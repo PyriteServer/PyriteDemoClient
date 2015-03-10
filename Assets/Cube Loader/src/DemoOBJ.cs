@@ -11,6 +11,8 @@ public class DemoOBJ : MonoBehaviour {
     public int Viewport = 1;
 
     public bool UseUnlitShader = false;
+
+    public Camera Camera;
     
     /* OBJ file tags */
     private const string O 	= "o";
@@ -36,8 +38,9 @@ public class DemoOBJ : MonoBehaviour {
     private string basepath;
     private string mtllib;
 
-    private readonly Dictionary<string, List<MaterialData>> materialCache = new Dictionary<string, List<MaterialData>>();
+    private readonly Dictionary<string, List<MaterialData>> materialDataCache = new Dictionary<string, List<MaterialData>>();
     private readonly Dictionary<string, Texture2D> textureCache = new Dictionary<string, Texture2D>();
+    private readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
     
     void Start ()
     {
@@ -68,6 +71,18 @@ public class DemoOBJ : MonoBehaviour {
             .Replace("{z}", "{2}")
             .Replace("{v}", Viewport.ToString());
 
+
+        if (Camera != null)
+        {
+            // Hardcoding some values for now   
+            var x = vlevel.MinExtent.x + (vlevel.Size.x / 2.0f);
+            var y = vlevel.MinExtent.y + (vlevel.Size.y / 2.0f);
+            var z = vlevel.MinExtent.z + (vlevel.Size.z/2.0f) + (vlevel.Size.z*3);
+            Camera.transform.position = new Vector3(x, y, z);
+
+            Camera.transform.rotation = Quaternion.Euler(0, 180, 0);
+        }
+
         for (int x = 0; x<xMax; x++)
         {
             for (int y = 0; y<yMax; y++)
@@ -95,14 +110,14 @@ public class DemoOBJ : MonoBehaviour {
 
                         if (hasMaterials)
                         {
-                            if (!materialCache.ContainsKey(mtllib))
+                            if (!materialDataCache.ContainsKey(mtllib))
                             {
                                 loader = new WWW(basepath + mtllib);
                                 yield return loader;
                                 SetMaterialData(loader.text, materialData);
-                                materialCache[mtllib] = materialData;
+                                materialDataCache[mtllib] = materialData;
                             }
-                            materialData = materialCache[mtllib];
+                            materialData = materialDataCache[mtllib];
 
                             foreach (MaterialData m in materialData)
                             {
@@ -168,7 +183,6 @@ public class DemoOBJ : MonoBehaviour {
                     break;
                 case MTL:
                     mtllib = p[1].Trim();
-                    // mtllib = "output.mtl";
                     break;
                 case UML:
                     buffer.PushMaterialName(p[1].Trim());
@@ -286,13 +300,26 @@ public class DemoOBJ : MonoBehaviour {
     
     private void Build(GeometryBuffer buffer, List<MaterialData> materialData) {
         Dictionary<string, Material> materials = new Dictionary<string, Material>();
-        
-        if(hasMaterials) {
-            foreach(MaterialData md in materialData) {
-                materials.Add(md.name, GetMaterial(md));
+
+        if (hasMaterials)
+        {
+            foreach (MaterialData md in materialData)
+            {
+                if (!materialCache.ContainsKey(md.name))
+                {
+                    materialCache[md.name] = GetMaterial(md);
+                }
+                materials.Add(md.name, materialCache[md.name]);
             }
-        } else {
-            materials.Add("default", new Material(Shader.Find("VertexLit")));
+        }
+        else
+        {
+            const string defaultKey = "default";
+            if (!materialCache.ContainsKey(defaultKey))
+            {
+                materialCache[defaultKey] = new Material(Shader.Find("VertexLit"));
+            }
+            materials.Add(defaultKey, materialCache[defaultKey]);
         }
         
         GameObject[] ms = new GameObject[buffer.numObjects];
