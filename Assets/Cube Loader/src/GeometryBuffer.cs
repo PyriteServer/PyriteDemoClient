@@ -205,6 +205,7 @@
 					
 					gs[i].GetComponent<Renderer>().materials = sml;
 				}
+			m.RecalculateNormals();
 			}
 		}
 	}
