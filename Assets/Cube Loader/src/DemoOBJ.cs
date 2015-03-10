@@ -11,6 +11,7 @@ public class DemoOBJ : MonoBehaviour {
     public int Viewport = 1;
 
     public bool UseUnlitShader = false;
+    public bool UseDividedTexture = false;
 
     public Camera Camera;
     
@@ -131,10 +132,31 @@ public class DemoOBJ : MonoBehaviour {
                                     }
                                     m.diffuseTex = textureCache[m.diffuseTexPath];
                                 }
+                                if (query.TextureSubdivide > 1)
+                                {
+                                    m.diffuseTexDivisions = query.TextureSubdivide;
+                                    m.dividedDiffuseTex = new Texture2D[query.TextureSubdivide, query.TextureSubdivide];
+                                    for (int texX = 0; texX < query.TextureSubdivide; texX++)
+                                    {
+                                        for (int texY = 0; texY < query.TextureSubdivide; texY++)
+                                        {
+                                            var texPath = query.TexturePath.Replace("{x}", texX.ToString())
+                                                                           .Replace("{y}", texY.ToString());
+                                            if (!textureCache.ContainsKey(texPath))
+                                            {
+                                                WWW texloader = new WWW(texPath);
+                                                yield return texloader;
+                                                textureCache[texPath] = texloader.texture;
+                                            }
+                                            m.dividedDiffuseTex[texX, texY] = textureCache[texPath];
+                                        }
+                                        
+                                    }
+                                }
                             }
                         }
 
-                        Build(buffer, materialData);
+                        Build(buffer, materialData, x, y, z);
                     }
                     else
                     {
@@ -217,14 +239,17 @@ public class DemoOBJ : MonoBehaviour {
         public float shininess;
         public float alpha;
         public int illumType;
+        public int diffuseTexDivisions;
         public string diffuseTexPath;
         public Texture2D diffuseTex;
+        public Texture2D[,] dividedDiffuseTex;
     }
 
     private void SetMaterialData(string data, List<MaterialData> materialData) {
         string[] lines = data.Split("\n".ToCharArray());
 
         MaterialData current = new MaterialData();
+        current.diffuseTexDivisions = 1;
         
         for(int i = 0; i < lines.Length; i++) {
             string l = lines[i];
@@ -268,29 +293,40 @@ public class DemoOBJ : MonoBehaviour {
     private Material GetMaterial(MaterialData md) {
         Material m;
 
-        // Use an unlit shader for the model if set
-        if (UseUnlitShader)
+        if (md.diffuseTexDivisions == 2 && UseDividedTexture)
         {
-            m = new Material(Shader.Find(("Unlit/Texture")));
+            m = new Material(Shader.Find(("Custom/QuadShader")));
+            m.SetTexture("_MainTex0", md.dividedDiffuseTex[0, 0]);
+            m.SetTexture("_MainTex1", md.dividedDiffuseTex[1, 0]);
+            m.SetTexture("_MainTex2", md.dividedDiffuseTex[0, 1]);
+            m.SetTexture("_MainTex3", md.dividedDiffuseTex[1, 1]);
         }
         else
         {
-            if (md.illumType == 2)
+
+            // Use an unlit shader for the model if set
+            if (UseUnlitShader)
             {
-                m = new Material(Shader.Find("Specular"));
-                m.SetColor("_SpecColor", md.specular);
-                m.SetFloat("_Shininess", md.shininess);
+                m = new Material(Shader.Find(("Unlit/Texture")));
             }
             else
             {
-                m = new Material(Shader.Find("Diffuse"));
+                if (md.illumType == 2)
+                {
+                    m = new Material(Shader.Find("Specular"));
+                    m.SetColor("_SpecColor", md.specular);
+                    m.SetFloat("_Shininess", md.shininess);
+                }
+                else
+                {
+                    m = new Material(Shader.Find("Diffuse"));
+                }
+
+                m.SetColor("_Color", md.diffuse);
             }
 
-            m.SetColor("_Color", md.diffuse);
+            if (md.diffuseTex != null) m.SetTexture("_MainTex", md.diffuseTex);
         }
-
-        if(md.diffuseTex != null) m.SetTexture("_MainTex", md.diffuseTex);
-        
         return m;
     }
     
@@ -298,7 +334,7 @@ public class DemoOBJ : MonoBehaviour {
         return new Color( cf(p[1]), cf(p[2]), cf(p[3]) );
     }
     
-    private void Build(GeometryBuffer buffer, List<MaterialData> materialData) {
+    private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z) {
         Dictionary<string, Material> materials = new Dictionary<string, Material>();
 
         if (hasMaterials)
@@ -326,6 +362,7 @@ public class DemoOBJ : MonoBehaviour {
         
         for(int i = 0; i < buffer.numObjects; i++) {
             GameObject go = new GameObject();
+            go.name = String.Format("cube_{0}_{1}_{2}.{3}", x, y, z, i);
             go.transform.parent = gameObject.transform;
             go.AddComponent(typeof(MeshFilter));
             go.AddComponent(typeof(MeshRenderer));

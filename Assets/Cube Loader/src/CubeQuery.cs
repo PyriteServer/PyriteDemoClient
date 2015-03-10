@@ -6,12 +6,15 @@ using System;
 
 public class CubeQuery
 {
-    public int MinimumViewport { get; set; }
-    public int MaximumViewport { get; set; }
-    public string CubeTemplate { get; set; }
-    public string MtlTemplate { get; set; }
-    public string JpgTemplate { get; set; }
-    public string MetadataTemplate { get; set; }
+    public int MinimumViewport { get; private set; }
+    public int MaximumViewport { get; private set; }
+    public string CubeTemplate { get; private set; }
+    public string MtlTemplate { get; private set; }
+    public string JpgTemplate { get; private set; }
+    public string MetadataTemplate { get; private set; }
+    public int TextureSubdivide { get; private set; }
+    public string TexturePath { get; private set; }
+
     public Dictionary<int, VLevelQuery> VLevels { get; set; }
 
     private readonly string indexUrl;
@@ -38,6 +41,9 @@ public class CubeQuery
         MtlTemplate = index["MtlTemplate"].Value;
         JpgTemplate = index["JpgTemplate"].Value;
         MetadataTemplate = index["MetadataTemplate"].Value;
+        TextureSubdivide = index["TextureSubdivide"].AsInt;
+        TexturePath = index["TexturePath"].Value;
+
 
         // Populate Viewports
         VLevels = new Dictionary<int, VLevelQuery>();
