@@ -38,6 +38,7 @@ public class DemoOBJ : MonoBehaviour {
     
     private string basepath;
     private string mtllib;
+	private string mtlOverride;
 
     private readonly Dictionary<string, List<MaterialData>> materialDataCache = new Dictionary<string, List<MaterialData>>();
     private readonly Dictionary<string, Texture2D> textureCache = new Dictionary<string, Texture2D>();
@@ -71,6 +72,8 @@ public class DemoOBJ : MonoBehaviour {
             .Replace("{y}", "{1}")
             .Replace("{z}", "{2}")
             .Replace("{v}", Viewport.ToString());
+
+		mtlOverride = query.MtlTemplate.Replace("{v}", Viewport.ToString ());
 
 
         if (Camera != null)
@@ -113,7 +116,15 @@ public class DemoOBJ : MonoBehaviour {
                         {
                             if (!materialDataCache.ContainsKey(mtllib))
                             {
-                                loader = new WWW(basepath + mtllib);
+								if (!string.IsNullOrEmpty(mtlOverride))
+								{
+									loader = new WWW(mtlOverride);
+								}
+								else
+								{
+                                	loader = new WWW(basepath + mtllib);
+								}
+
                                 yield return loader;
                                 SetMaterialData(loader.text, materialData);
                                 materialDataCache[mtllib] = materialData;
@@ -203,7 +214,7 @@ public class DemoOBJ : MonoBehaviour {
                         buffer.PushFace(fi);
                     }
                     break;
-                case MTL:
+				case MTL:
                     mtllib = p[1].Trim();
                     break;
                 case UML:
