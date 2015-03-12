@@ -1,69 +1,48 @@
 ﻿Shader "Custom/QuadShader" {  
     Properties {  
-        _MainTex0 ("Base (RGB)", 2D) = "white" {}  
-        //Added three more textures slots, one for each image  
-        _MainTex1 ("Base (RGB)", 2D) = "white" {}  
-        _MainTex2 ("Base (RGB)", 2D) = "white" {}  
-        _MainTex3 ("Base (RGB)", 2D) = "white" {}  
+        _MainTex ("Base (RGB)", 2D) = "white" {}  
+        _UVExtents ("UV Extents", Vector) = (0,0,1,1)  //xy zw == xy1 xy2
     }  
     SubShader {  
-        Tags { "RenderType"="Opaque" }  
+        Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}  
+        Pass { Blend One One }
         LOD 200  
   
         CGPROGRAM  
-        #pragma surface surf Lambert  
+        #pragma surface surf Lambert alpha  
   
-        sampler2D _MainTex0;  
-        //Added three more 2D samplers, one for each additional texture  
-        sampler2D _MainTex1;  
-        sampler2D _MainTex2;  
-        sampler2D _MainTex3;  
+        sampler2D _MainTex;  
+        float4 _UVExtents;
   
         struct Input {  
-            float2 uv_MainTex0;  
+            float2 uv_MainTex;  
         };  
   
         //this variable stores the current texture coordinates multiplied by 2  
-        float2 dbl_uv_MainTex0;  
+        float2 uv_scaler;  
   
         void surf (Input IN, inout SurfaceOutput o) {  
   
-            //multiply the current vertex texture coordinate by two  
-            dbl_uv_MainTex0 = IN.uv_MainTex0*2;  
-  
-            //add an offset to the texture coordinates for each of the input textures  
-            half4 c0 = tex2D (_MainTex0, dbl_uv_MainTex0 - float2(0.0, 1.0));  
-            half4 c1 = tex2D (_MainTex1, dbl_uv_MainTex0 - float2(1.0, 1.0));  
-            half4 c2 = tex2D (_MainTex2, dbl_uv_MainTex0);  
-            half4 c3 = tex2D (_MainTex3, dbl_uv_MainTex0 - float2(1.0, 0.0));  
+  			//scaler
+  			uv_scaler = float2(1.0/(_UVExtents.z-_UVExtents.x),1.0/(_UVExtents.w-_UVExtents.y));  			           
   
             //this if statement assures that the input textures won't overlap  
-            if(IN.uv_MainTex0.x >= 0.5)  
+            if(IN.uv_MainTex.x >= _UVExtents.x && IN.uv_MainTex.x <= _UVExtents.z &&
+               IN.uv_MainTex.y >= _UVExtents.y && IN.uv_MainTex.y <= _UVExtents.w)  
             {  
-                if(IN.uv_MainTex0.y <= 0.5)  
-                {  
-                    c0.rgb = c1.rgb = c2.rgb = 0;  
-                }  
-                else  
-                {  
-                    c0.rgb = c2.rgb = c3.rgb = 0;  
-                }  
+            	//sample the texture (Add the offset then multiply by scaler
+            	half4 c0 = tex2D (_MainTex, (IN.uv_MainTex - float2(_UVExtents.x, _UVExtents.y)) * float2(uv_scaler.x, uv_scaler.y));  
+            
+                //sum the colors and the alpha, passing them to the Output Surface 'o'  
+	            o.Albedo = c0.rgb;
+	            o.Alpha = c0.a;
             }  
-            else  
-            {  
-                if(IN.uv_MainTex0.y <= 0.5)  
-                {  
-                    c0.rgb = c1.rgb = c3.rgb = 0;  
-                }  
-                else  
-                {  
-                    c1.rgb = c2.rgb = c3.rgb = 0;  
-                }  
-            }  
-  
-            //sum the colors and the alpha, passing them to the Output Surface 'o'  
-            o.Albedo = c0.rgb + c1.rgb + c2.rgb + c3.rgb;  
-            o.Alpha = c0.a + c1.a + c2.a + c3.a ;  
+            else
+            {
+            	//o.Alpha = 0;
+            }
+          
+           
         }  
         ENDCG  
     }  

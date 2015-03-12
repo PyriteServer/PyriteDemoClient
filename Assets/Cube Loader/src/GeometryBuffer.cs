@@ -115,7 +115,7 @@
 		public bool hasUVs { get { return uvs.Count > 0; } }
 		public bool hasNormals { get { return normals.Count > 0; } }
 		
-		public void PopulateMeshes(GameObject[] gs, Dictionary<string, Material> mats) {
+		public void PopulateMeshes(GameObject[] gs, Dictionary<string, Material[]> mats) {
 			if(gs.Length != numObjects) return; // Should not happen unless obj file is corrupt...
 			
 			for(int i = 0; i < gs.Length; i++) {
@@ -176,12 +176,13 @@
 
 					if (gd.materialName == null)
 					{
-						Dictionary<string,Material>.KeyCollection.Enumerator keys = mats.Keys.GetEnumerator();
+						Dictionary<string,Material[]>.KeyCollection.Enumerator keys = mats.Keys.GetEnumerator();
 						keys.MoveNext();
 						gd.materialName = keys.Current;
 					}
 
-					gs[i].GetComponent<Renderer>().material = mats[gd.materialName];
+					Renderer renderer = gs[i].GetComponent<Renderer>();
+					renderer.materials = mats[gd.materialName];
 					
 					int[] triangles = new int[gd.faces.Count];
 					for(int j = 0; j < triangles.Length; j++) triangles[j] = j;
@@ -189,7 +190,10 @@
 					m.triangles = triangles;
 					
 				} else {
-					int gl = od.groups.Count;
+					
+					throw new UnityException("Material handling for objects with groups not yet implemented.");
+					/*
+					 int gl = od.groups.Count;
 					Material[] sml = new Material[gl];
 					m.subMeshCount = gl;
 					int c = 0;
@@ -204,6 +208,7 @@
 					}
 					
 					gs[i].GetComponent<Renderer>().materials = sml;
+					*/
 				}
 			m.RecalculateNormals();
 			}

@@ -41,7 +41,7 @@ public class DemoOBJ : MonoBehaviour {
 
     private readonly Dictionary<string, List<MaterialData>> materialDataCache = new Dictionary<string, List<MaterialData>>();
     private readonly Dictionary<string, Texture2D> textureCache = new Dictionary<string, Texture2D>();
-    private readonly Dictionary<string, Material> materialCache = new Dictionary<string, Material>();
+    private readonly Dictionary<string, Material[]> materialCache = new Dictionary<string, Material[]>();
     
     void Start ()
     {
@@ -122,7 +122,7 @@ public class DemoOBJ : MonoBehaviour {
 
                             foreach (MaterialData m in materialData)
                             {
-                                if (m.diffuseTexPath != null)
+                                if (m.diffuseTexPath != null && query.TextureSubdivide <= 1)
                                 {
                                     if (!textureCache.ContainsKey(m.diffuseTexPath))
                                     {
@@ -290,16 +290,29 @@ public class DemoOBJ : MonoBehaviour {
         }	
     }
     
-    private Material GetMaterial(MaterialData md) {
-        Material m;
+    private Material[] GetMaterial(MaterialData md) {
+        Material[] m;
 
         if (md.diffuseTexDivisions == 2 && UseDividedTexture)
         {
-            m = new Material(Shader.Find(("Custom/QuadShader")));
-            m.SetTexture("_MainTex0", md.dividedDiffuseTex[0, 0]);
-            m.SetTexture("_MainTex1", md.dividedDiffuseTex[1, 0]);
-            m.SetTexture("_MainTex2", md.dividedDiffuseTex[0, 1]);
-            m.SetTexture("_MainTex3", md.dividedDiffuseTex[1, 1]);
+			m = new Material[4];
+
+			m[0] = new Material(Shader.Find(("Custom/QuadShader")));            
+			m[1] = new Material(Shader.Find(("Custom/QuadShader")));
+			m[2] = new Material(Shader.Find(("Custom/QuadShader")));
+			m[3] = new Material(Shader.Find(("Custom/QuadShader")));
+
+            m[0].SetTexture("_MainTex", md.dividedDiffuseTex[0, 1]);
+			m[0].SetVector("_UVExtents", new Vector4(0f,0f,0.5f,0.5f));
+
+			m[1].SetTexture("_MainTex", md.dividedDiffuseTex[1, 1]);
+			m[1].SetVector("_UVExtents", new Vector4(0.5f,0f,1f,0.5f));
+
+			m[2].SetTexture("_MainTex", md.dividedDiffuseTex[0, 0]);
+			m[2].SetVector("_UVExtents", new Vector4(0f,0.5f,0.5f,1f));
+
+			m[3].SetTexture("_MainTex", md.dividedDiffuseTex[1, 0]);
+			m[3].SetVector("_UVExtents", new Vector4(0.5f,0.5f,1f,1f));		
         }
         else
         {
@@ -307,25 +320,25 @@ public class DemoOBJ : MonoBehaviour {
             // Use an unlit shader for the model if set
             if (UseUnlitShader)
             {
-                m = new Material(Shader.Find(("Unlit/Texture")));
+				m = new Material[] { new Material(Shader.Find(("Unlit/Texture")))};
             }
             else
             {
                 if (md.illumType == 2)
                 {
-                    m = new Material(Shader.Find("Specular"));
-                    m.SetColor("_SpecColor", md.specular);
-                    m.SetFloat("_Shininess", md.shininess);
+					m = new Material[] { new Material(Shader.Find("Specular")) };
+                    m[0].SetColor("_SpecColor", md.specular);
+                    m[0].SetFloat("_Shininess", md.shininess);
                 }
                 else
                 {
-                    m = new Material(Shader.Find("Diffuse"));
+					m = new Material[] { new Material(Shader.Find("Diffuse")) };
                 }
 
-                m.SetColor("_Color", md.diffuse);
+                m[0].SetColor("_Color", md.diffuse);
             }
 
-            if (md.diffuseTex != null) m.SetTexture("_MainTex", md.diffuseTex);
+            if (md.diffuseTex != null) m[0].SetTexture("_MainTex", md.diffuseTex);
         }
         return m;
     }
@@ -335,7 +348,7 @@ public class DemoOBJ : MonoBehaviour {
     }
     
     private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z) {
-        Dictionary<string, Material> materials = new Dictionary<string, Material>();
+        Dictionary<string, Material[]> materials = new Dictionary<string, Material[]>();
 
         if (hasMaterials)
         {
@@ -353,7 +366,7 @@ public class DemoOBJ : MonoBehaviour {
             const string defaultKey = "default";
             if (!materialCache.ContainsKey(defaultKey))
             {
-                materialCache[defaultKey] = new Material(Shader.Find("VertexLit"));
+				materialCache[defaultKey] = new Material[] { new Material(Shader.Find("VertexLit")) };
             }
             materials.Add(defaultKey, materialCache[defaultKey]);
         }
