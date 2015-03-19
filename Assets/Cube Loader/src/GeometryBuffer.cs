@@ -153,6 +153,11 @@ using System.IO;
 					tvertices[i] = tvertices[bufferIndex];
 					tuvs[i] = tuvs[bufferIndex];
 					break;
+				case (64):
+					bufferIndex = (int)br.ReadUInt32();
+					tvertices[i] = tvertices[bufferIndex];
+					tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
+					break;
 				case (128):
 					throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
 				case (255):
