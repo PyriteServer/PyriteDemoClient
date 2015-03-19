@@ -12,6 +12,7 @@ public class DemoOBJ : MonoBehaviour {
 
     public bool UseUnlitShader = false;
     public bool UseDividedTexture = false;
+	public bool UseEbo = false;
 
     public Camera Camera;
     
@@ -104,14 +105,29 @@ public class DemoOBJ : MonoBehaviour {
                         GeometryBuffer buffer = new GeometryBuffer();
                         List<MaterialData> materialData = new List<MaterialData>();
 
-                        WWW loader = new WWW(path);
-                        yield return loader;
-                        if (!string.IsNullOrEmpty(loader.error))
-                        {
-                            continue;
-                        }
-                        SetGeometryData(loader.text, buffer);
+						WWW loader;
 
+						if (!UseEbo)
+						{
+	                        loader = new WWW(path);
+	                        yield return loader;
+	                        if (!string.IsNullOrEmpty(loader.error))
+	                        {
+	                            continue;
+	                        }
+	                        SetGeometryData(loader.text, buffer);
+						}
+						else
+						{
+							loader = new WWW(path + ".ebo");
+							yield return loader;
+							if (!string.IsNullOrEmpty(loader.error))
+							{
+								continue;
+							}
+							buffer.eboBuffer = loader.bytes;
+							mtllib = "model.mtl";
+						}
                         if (hasMaterials)
                         {
                             if (!materialDataCache.ContainsKey(mtllib))

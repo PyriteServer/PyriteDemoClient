@@ -1,6 +1,7 @@
 	using UnityEngine;
 	using System.Collections;
 	using System.Collections.Generic;
+using System.IO;
 
 	public class GeometryBuffer {
 
@@ -8,6 +9,7 @@
 		public List<Vector3> vertices;
 		public List<Vector2> uvs;
 		public List<Vector3> normals;
+		public byte[] eboBuffer;
 		
 		private ObjectData current;
 		private class ObjectData {
@@ -114,8 +116,78 @@
 		public bool isEmpty { get { return vertices.Count == 0; } }
 		public bool hasUVs { get { return uvs.Count > 0; } }
 		public bool hasNormals { get { return normals.Count > 0; } }
+
+		public void PopulateMeshes(GameObject[] gs, Dictionary<string, Material[]> mats) 
+		{
+			if (eboBuffer == null)
+			{
+				PopulateMeshesObj(gs, mats);
+			}
+			else
+			{
+				PopulateMeshesEbo(gs, mats);
+			}
+		}
+
+	public void PopulateMeshesEbo(GameObject[] gs, Dictionary<string, Material[]> mats) {
+
+		int vertexCount;
+		Vector3[] tvertices;
+		Vector2[] tuvs;
+
+		using (var s = new MemoryStream(eboBuffer))
+		using (var br = new BinaryReader(s))
+		{
+			// File is prefixed with face count, times 3 for vertices
+			vertexCount = br.ReadUInt16() * 3;
+
+			tvertices = new Vector3[vertexCount];
+			tuvs = new Vector2[vertexCount];
+
+			for(int i = 0; i < vertexCount; i++)
+			{
+				switch ((int)br.ReadByte())
+				{
+				case (0):
+					int bufferIndex = (int)br.ReadUInt32();
+					tvertices[i] = tvertices[bufferIndex];
+					tuvs[i] = tuvs[bufferIndex];
+					break;
+				case (128):
+					throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
+				case (255):
+					tvertices[i] = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+					tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
+					break;
+				}
+			}
+
+		}
+
+		Mesh m = (gs[0].GetComponent(typeof(MeshFilter)) as MeshFilter).mesh;
+		m.vertices = tvertices;
+		m.uv = tuvs;
+
+		GroupData gd = objects[0].groups[0];
 		
-		public void PopulateMeshes(GameObject[] gs, Dictionary<string, Material[]> mats) {
+		if (gd.materialName == null)
+		{
+			Dictionary<string,Material[]>.KeyCollection.Enumerator keys = mats.Keys.GetEnumerator();
+			keys.MoveNext();
+			gd.materialName = keys.Current;
+		}
+		
+		Renderer renderer = gs[0].GetComponent<Renderer>();
+		renderer.materials = mats[gd.materialName];
+		
+		int[] triangles = new int[vertexCount];
+		for(int j = 0; j < triangles.Length; j++) triangles[j] = j;
+		
+		m.triangles = triangles;
+		m.RecalculateNormals();
+	}
+
+		public void PopulateMeshesObj(GameObject[] gs, Dictionary<string, Material[]> mats) {
 			if(gs.Length != numObjects) return; // Should not happen unless obj file is corrupt...
 			
 			for(int i = 0; i < gs.Length; i++) {
