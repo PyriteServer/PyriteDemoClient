@@ -119,7 +119,7 @@ public class DemoOBJ : MonoBehaviour {
 						}
 						else
 						{
-							loader = new WWW(path + ".ebo");
+							loader = new WWW(path.Replace(".obj", ".ebo"));
 							yield return loader;
 							if (!string.IsNullOrEmpty(loader.error))
 							{
