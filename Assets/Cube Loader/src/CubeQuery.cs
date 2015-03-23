@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using SimpleJSON;
 using System;
+using Assets.Cube_Loader.Extensions;
 
 public class CubeQuery
 {
@@ -30,10 +31,10 @@ public class CubeQuery
     public IEnumerator Load()
     {
         Debug.Log("CubeQuery started against: " + indexUrl);
-        WWW loader = new WWW(indexUrl);
+        WWW loader = WWWExtensions.CreateWWW(path: indexUrl);
         yield return loader;
 
-        var index = JSON.Parse(loader.text);
+        var index = JSON.Parse(loader.GetDecompressedText());
 
         MinimumViewport = index["MinimumViewport"].AsInt;
         MaximumViewport = index["MaximumViewport"].AsInt;
@@ -80,11 +81,11 @@ public class VLevelQuery
 
     public IEnumerator Load()
     {
-        WWW loader = new WWW(metadataUrl);
+        WWW loader = WWWExtensions.CreateWWW(path: metadataUrl);
         yield return loader;
 
         // POPULATE THE BOOL ARRAY...
-        var metadata = JSON.Parse(loader.text);
+        var metadata = JSON.Parse(loader.GetDecompressedText());
         int xMax = metadata["GridSize"]["X"].AsInt;
         int yMax = metadata["GridSize"]["Y"].AsInt;
         int zMax = metadata["GridSize"]["Z"].AsInt;

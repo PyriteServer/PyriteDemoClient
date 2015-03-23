@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using Assets.Cube_Loader.Extensions;
 using Debug = UnityEngine.Debug;
 
 public class DemoOBJ : MonoBehaviour
@@ -150,25 +151,27 @@ public class DemoOBJ : MonoBehaviour
 
         if (!UseEbo)
         {
-            loader = new WWW(path);
+            loader = WWWExtensions.CreateWWW(path: path);
             yield return loader;
             if (!string.IsNullOrEmpty(loader.error))
             {
                 Debug.LogError(loader.error);
                 yield break;
             }
-            SetGeometryData(loader.text, buffer);
+            SetGeometryData(loader.GetDecompressedText(), buffer);
         }
         else
         {
-            loader = new WWW(path.Replace(".obj", ".ebo"));
+            var headers = new Dictionary<string, string>();
+            headers.Add("Accept-Encoding", "gzip, deflate");
+            loader = WWWExtensions.CreateWWW(path: path.Replace(".obj", ".ebo"));
             yield return loader;
             if (!string.IsNullOrEmpty(loader.error))
             {
                 Debug.LogError(loader.error);
                 yield break;
             }
-            buffer.eboBuffer = loader.bytes;
+            buffer.eboBuffer = loader.GetDecompressedBytes();
             mtllib = "model.mtl";
         }
 
@@ -179,15 +182,15 @@ public class DemoOBJ : MonoBehaviour
                 materialDataCache[mtllib] = null;
                 if (!string.IsNullOrEmpty(mtlOverride))
                 {
-                    loader = new WWW(mtlOverride);
+                    loader = WWWExtensions.CreateWWW(path: mtlOverride);
                 }
                 else
                 {
-                    loader = new WWW(basepath + mtllib);
+                    loader = WWWExtensions.CreateWWW(path: basepath + mtllib);
                 }
 
                 yield return loader;
-                SetMaterialData(loader.text, materialData);
+                SetMaterialData(loader.GetDecompressedText(), materialData);
                 materialDataCache[mtllib] = materialData;
             }
             while (materialDataCache[mtllib] == null)
@@ -209,7 +212,7 @@ public class DemoOBJ : MonoBehaviour
                     // of being filled
                     textureCache[m.diffuseTexPath] = null;
                     // Do not request compression for textures
-                    var texloader = new WWW(basepath + m.diffuseTexPath);
+                    var texloader = WWWExtensions.CreateWWW(path: basepath + m.diffuseTexPath, requestCompression: false);
                     yield return texloader;
 
                     textureCache[m.diffuseTexPath] = texloader.texture;
@@ -281,7 +284,7 @@ public class DemoOBJ : MonoBehaviour
             // of being filled
             textureCache[texturePath] = null;
             // Do not request compression for textures
-            var texloader = new WWW(texturePath);
+            var texloader = WWWExtensions.CreateWWW(path: texturePath, requestCompression: false);
             yield return texloader;
             textureCache[texturePath] = texloader.texture;
         }
