@@ -4,8 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Net;
-using System.IO;
 using Debug = UnityEngine.Debug;
 
 public class DemoOBJ : MonoBehaviour
@@ -230,23 +228,34 @@ public class DemoOBJ : MonoBehaviour
             {
                 m.diffuseTexDivisions = query.TextureSubdivide;
                 m.dividedDiffuseTex = new Texture2D[query.TextureSubdivide, query.TextureSubdivide];
+
+                // Download each texture division (in parallel if option is set)
                 for (int texX = 0; texX < query.TextureSubdivide; texX++)
                 {
                     for (int texY = 0; texY < query.TextureSubdivide; texY++)
                     {
                         var texPath = query.TexturePath.Replace("{x}", texX.ToString())
                             .Replace("{y}", texY.ToString());
-                        if (!textureCache.ContainsKey(texPath))
-                        {
-                            // Set to null to signal to other tasks that the key is in the process
-                            // of being filled
-                            textureCache[texPath] = null;
-                            // Do not request compression for textures
-                            var texloader = new WWW(texPath);
-                            yield return texloader;
-                            textureCache[texPath] = texloader.texture;
-                        }
 
+                        if (ParallelCubeLoad)
+                        {
+                            StartCoroutine(LoadTextureTask(texPath, textureCache));
+                        }
+                        else
+                        {
+                            yield return StartCoroutine(LoadTextureTask(texPath, textureCache));
+                        }
+                    }
+                }
+
+                // Since above can start off multiple tasks that execute in parallel
+                // we need to make sure they are completed here
+                for (int texX = 0; texX < query.TextureSubdivide; texX++)
+                {
+                    for (int texY = 0; texY < query.TextureSubdivide; texY++)
+                    {
+                        var texPath = query.TexturePath.Replace("{x}", texX.ToString())
+                        .Replace("{y}", texY.ToString());
                         // Loop while other tasks finish creating texture
                         while (textureCache[texPath] == null)
                         {
@@ -261,6 +270,21 @@ public class DemoOBJ : MonoBehaviour
         }
         Build(buffer, materialData, x, y, z);
         DebugLog("-LoadCube({0}_{1}_{2})", x, y, z);
+    }
+
+    // Coroutine for getting texture from the network and loading it into the cache
+    private IEnumerator LoadTextureTask(string texturePath, Dictionary<string, Texture2D> textureCache)
+    {
+        if (!textureCache.ContainsKey(texturePath))
+        {
+            // Set to null to signal to other tasks that the key is in the process
+            // of being filled
+            textureCache[texturePath] = null;
+            // Do not request compression for textures
+            var texloader = new WWW(texturePath);
+            yield return texloader;
+            textureCache[texturePath] = texloader.texture;
+        }
     }
 
     private void SetGeometryData(string data, GeometryBuffer buffer)
