@@ -276,14 +276,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ObjectIndex: 
-  Viewport: 4
+  Viewport: 3
   UseUnlitShader: 0
   UseDividedTexture: 1
-  UseEbo: 0
-  EnableDebugLogs: 0
-  ParallelCubeLoad: 0
-  PlaceHolderCube: {fileID: 0}
-  BaseObject: {fileID: 0}
+  UseEbo: 1
+  EnableDebugLogs: 1
+  ParallelCubeLoad: 1
+  UseCameraDetection: 1
+  PlaceHolderCube: {fileID: 100618, guid: 547fcef88f7c7df44878fafaaa15d4a3, type: 2}
+  BaseObject: {fileID: 127098, guid: 5fb6e69efbd7b704da37642196156d38, type: 2}
   Camera: {fileID: 549180670}
 --- !u!4 &2132541550
 Transform:

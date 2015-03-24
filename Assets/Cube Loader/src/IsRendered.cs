@@ -9,7 +9,7 @@ public class IsRendered : MonoBehaviour
     Material mat;
     Renderer render;
     Color origColor;
-    private GameObject cube = null;
+    private GameObject[] cubes = null;
 
     public void SetCubePosition(int x, int y, int z, CubeQuery query, DemoOBJ manager)
     {
@@ -46,9 +46,9 @@ public class IsRendered : MonoBehaviour
             {
                 GetComponent<MeshRenderer>().enabled = false;
                 pauseCheck = 30;
-                if (this.cube == null)
+                if (this.cubes == null)
                 {
-                    StartCoroutine(manager.LoadCube(query, x, y, z, (go) => { this.cube = go; }));
+                    StartCoroutine(manager.LoadCube(query, x, y, z, (createdObjects) => { this.cubes = createdObjects; }));
                 }
 
             }
@@ -57,10 +57,13 @@ public class IsRendered : MonoBehaviour
                 GetComponent<MeshRenderer>().enabled = true;
                 mat.color = origColor;
                 pauseCheck = 5;
-                if (this.cube != null)
+                if (this.cubes != null)
                 {
-                    Destroy(this.cube.gameObject);
-                    this.cube = null;
+                    foreach (var cube in cubes)
+                    {
+                        Destroy(cube.gameObject);
+                    }
+                    this.cubes = null;
                 }
             }
         }

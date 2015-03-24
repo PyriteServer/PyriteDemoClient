@@ -19,6 +19,8 @@ public class DemoOBJ : MonoBehaviour
     public bool EnableDebugLogs = false;
     public bool ParallelCubeLoad = false;
 
+    public bool UseCameraDetection = false;
+
     public GameObject PlaceHolderCube;
     public GameObject BaseObject;
 
@@ -120,38 +122,35 @@ public class DemoOBJ : MonoBehaviour
                     if (cubeMap[x, y, z])
                     {
 
-
-
-                        //if (colorSelector%3 == 0)
-                        //{
-                        //    if (ParallelCubeLoad)
-                        //    {
-                        //        StartCoroutine(LoadCube(query, x, y, z));
-                        //    }
-                        //    else
-                        //    {
-                        //        yield return StartCoroutine(LoadCube(query, x, y, z));
-                        //    }
-                        //}
-                        //else
-                        //{
-                            float xPos = vlevel.MinExtent.x + vlevel.Size.x / xMax * x + vlevel.Size.x / xMax * 0.5f;
-                            float yPos = vlevel.MinExtent.y + vlevel.Size.y / yMax * y + vlevel.Size.y / yMax * 0.5f;
-                            float zPos = vlevel.MinExtent.z + vlevel.Size.z / zMax * z + vlevel.Size.z / zMax * 0.5f;
+                        if (UseCameraDetection)
+                        {
+                            float xPos = vlevel.MinExtent.x + vlevel.Size.x/xMax*x + vlevel.Size.x/xMax*0.5f;
+                            float yPos = vlevel.MinExtent.y + vlevel.Size.y/yMax*y + vlevel.Size.y/yMax*0.5f;
+                            float zPos = vlevel.MinExtent.z + vlevel.Size.z/zMax*z + vlevel.Size.z/zMax*0.5f;
                             GameObject g =
                                 (GameObject)
                                     Instantiate(PlaceHolderCube, new Vector3(xPos, yPos, zPos), Quaternion.identity);
 
                             g.transform.parent = gameObject.transform;
-                            g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector % 3];
+                            g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector%3];
 
                             g.GetComponent<IsRendered>().SetCubePosition(x, y, z, query, this);
 
-                            g.transform.localScale = new Vector3(vlevel.Size.x / xMax, vlevel.Size.y / yMax, vlevel.Size.z / zMax);
-                        //}
-
-                        colorSelector++;
-
+                            g.transform.localScale = new Vector3(vlevel.Size.x/xMax, vlevel.Size.y/yMax,
+                                vlevel.Size.z/zMax);
+                            colorSelector++;
+                        }
+                        else
+                        {
+                            if (ParallelCubeLoad)
+                            {
+                                StartCoroutine(LoadCube(query, x, y, z));
+                            }
+                            else
+                            {
+                                yield return StartCoroutine(LoadCube(query, x, y, z));
+                            }
+                        }
                     }
                 }
             }
@@ -160,7 +159,7 @@ public class DemoOBJ : MonoBehaviour
         DebugLog("-Load()");
     }
 
-    public IEnumerator LoadCube(CubeQuery query, int x, int y, int z, Action<GameObject> setObject = null)
+    public IEnumerator LoadCube(CubeQuery query, int x, int y, int z, Action<GameObject[]> registerCreatedObjects = null)
     {
         DebugLog("+LoadCube({0}_{1}_{2})", x, y, z);
         var objectLocationFormat = query.CubeTemplate.Replace("{x}", "{0}")
@@ -301,7 +300,7 @@ public class DemoOBJ : MonoBehaviour
                 }
             }
         }
-        Build(buffer, materialData, x, y, z, setObject);
+        Build(buffer, materialData, x, y, z, registerCreatedObjects);
         DebugLog("-LoadCube({0}_{1}_{2})", x, y, z);
     }
 
@@ -519,7 +518,7 @@ public class DemoOBJ : MonoBehaviour
         return new Color(cf(p[1]), cf(p[2]), cf(p[3]));
     }
 
-    private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, Action<GameObject> setObject = null)
+    private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, Action<GameObject[]> registerCreatedObjects)
     {
         Dictionary<string, Material[]> materials = new Dictionary<string, Material[]>();
 
@@ -550,16 +549,17 @@ public class DemoOBJ : MonoBehaviour
 
         for (int i = 0; i < buffer.numObjects; i++)
         {
-            GameObject go = Instantiate(BaseObject);
+            GameObject go = new GameObject(); // Instantiate(BaseObject);
             go.name = String.Format("cube_{0}_{1}_{2}.{3}", x, y, z, i);
             go.transform.parent = gameObject.transform;
             go.AddComponent(typeof(MeshFilter));
             go.AddComponent(typeof(MeshRenderer));
             ms[i] = go;
-            if (setObject != null)
-            {
-                setObject(go);
-            }
+        }
+
+        if (registerCreatedObjects != null)
+        {
+            registerCreatedObjects(ms);
         }
 
         buffer.PopulateMeshes(ms, materials);
