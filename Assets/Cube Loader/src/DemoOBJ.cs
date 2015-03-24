@@ -19,9 +19,14 @@ public class DemoOBJ : MonoBehaviour
     public bool EnableDebugLogs = false;
     public bool ParallelCubeLoad = false;
 
+    public GameObject PlaceHolderCube;
+    public GameObject BaseObject;
+
     private readonly Stopwatch _sw = Stopwatch.StartNew();
 
     public Camera Camera;
+
+    private Color[] colorList = {Color.gray, Color.yellow, Color.cyan};
 
     /* OBJ file tags */
     private const string O = "o";
@@ -98,14 +103,14 @@ public class DemoOBJ : MonoBehaviour
             // Hardcoding some values for now   
             var x = vlevel.MinExtent.x + (vlevel.Size.x / 2.0f);
             var y = vlevel.MinExtent.y + (vlevel.Size.y / 2.0f);
-            var z = vlevel.MinExtent.z + (vlevel.Size.z / 2.0f) + (vlevel.Size.z * 5);
+            var z = vlevel.MinExtent.z + (vlevel.Size.z / 2.0f) + (vlevel.Size.z * 1.4f);
             Camera.transform.position = new Vector3(x, y, z);
 
             Camera.transform.rotation = Quaternion.Euler(0, 180, 0);
 
             DebugLog("Done moving camera");
         }
-
+        int colorSelector = 0;
         for (int x = 0; x < xMax; x++)
         {
             for (int y = 0; y < yMax; y++)
@@ -114,14 +119,39 @@ public class DemoOBJ : MonoBehaviour
                 {
                     if (cubeMap[x, y, z])
                     {
-                        if (ParallelCubeLoad)
-                        {
-                            StartCoroutine(LoadCube(query, x, y, z));
-                        }
-                        else
-                        {
-                            yield return StartCoroutine(LoadCube(query, x, y, z));
-                        }
+
+
+
+                        //if (colorSelector%3 == 0)
+                        //{
+                        //    if (ParallelCubeLoad)
+                        //    {
+                        //        StartCoroutine(LoadCube(query, x, y, z));
+                        //    }
+                        //    else
+                        //    {
+                        //        yield return StartCoroutine(LoadCube(query, x, y, z));
+                        //    }
+                        //}
+                        //else
+                        //{
+                            float xPos = vlevel.MinExtent.x + vlevel.Size.x / xMax * x + vlevel.Size.x / xMax * 0.5f;
+                            float yPos = vlevel.MinExtent.y + vlevel.Size.y / yMax * y + vlevel.Size.y / yMax * 0.5f;
+                            float zPos = vlevel.MinExtent.z + vlevel.Size.z / zMax * z + vlevel.Size.z / zMax * 0.5f;
+                            GameObject g =
+                                (GameObject)
+                                    Instantiate(PlaceHolderCube, new Vector3(xPos, yPos, zPos), Quaternion.identity);
+
+                            g.transform.parent = gameObject.transform;
+                            g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector % 3];
+
+                            g.GetComponent<IsRendered>().SetCubePosition(x, y, z, query, this);
+
+                            g.transform.localScale = new Vector3(vlevel.Size.x / xMax, vlevel.Size.y / yMax, vlevel.Size.z / zMax);
+                        //}
+
+                        colorSelector++;
+
                     }
                 }
             }
@@ -130,7 +160,7 @@ public class DemoOBJ : MonoBehaviour
         DebugLog("-Load()");
     }
 
-    private IEnumerator LoadCube(CubeQuery query, int x, int y, int z)
+    public IEnumerator LoadCube(CubeQuery query, int x, int y, int z, Action<GameObject> setObject = null)
     {
         DebugLog("+LoadCube({0}_{1}_{2})", x, y, z);
         var objectLocationFormat = query.CubeTemplate.Replace("{x}", "{0}")
@@ -271,7 +301,7 @@ public class DemoOBJ : MonoBehaviour
                 }
             }
         }
-        Build(buffer, materialData, x, y, z);
+        Build(buffer, materialData, x, y, z, setObject);
         DebugLog("-LoadCube({0}_{1}_{2})", x, y, z);
     }
 
@@ -489,7 +519,7 @@ public class DemoOBJ : MonoBehaviour
         return new Color(cf(p[1]), cf(p[2]), cf(p[3]));
     }
 
-    private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z)
+    private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, Action<GameObject> setObject = null)
     {
         Dictionary<string, Material[]> materials = new Dictionary<string, Material[]>();
 
@@ -520,12 +550,16 @@ public class DemoOBJ : MonoBehaviour
 
         for (int i = 0; i < buffer.numObjects; i++)
         {
-            GameObject go = new GameObject();
+            GameObject go = Instantiate(BaseObject);
             go.name = String.Format("cube_{0}_{1}_{2}.{3}", x, y, z, i);
             go.transform.parent = gameObject.transform;
             go.AddComponent(typeof(MeshFilter));
             go.AddComponent(typeof(MeshRenderer));
             ms[i] = go;
+            if (setObject != null)
+            {
+                setObject(go);
+            }
         }
 
         buffer.PopulateMeshes(ms, materials);
