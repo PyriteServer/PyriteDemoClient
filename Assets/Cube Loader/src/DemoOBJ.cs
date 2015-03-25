@@ -191,8 +191,6 @@ public class DemoOBJ : MonoBehaviour
         }
         else
         {
-            var headers = new Dictionary<string, string>();
-            headers.Add("Accept-Encoding", "gzip, deflate");
             loader = WWWExtensions.CreateWWW(path: path.Replace(".obj", ".ebo"));
             yield return loader;
             if (!string.IsNullOrEmpty(loader.error))

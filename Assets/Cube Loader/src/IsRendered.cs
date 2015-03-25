@@ -6,9 +6,8 @@ using Assets.Cube_Loader.Extensions;
 
 public class IsRendered : MonoBehaviour
 {
-    Material mat;
+    MeshRenderer meshRenderer;
     Renderer render;
-    Color origColor;
     private GameObject[] cubes = null;
 
     public void SetCubePosition(int x, int y, int z, CubeQuery query, DemoOBJ manager)
@@ -25,38 +24,41 @@ public class IsRendered : MonoBehaviour
     private CubeQuery query;
     private DemoOBJ manager;
 
-
-    private int pauseCheck = 0;
-
     // Use this for initialization
     void Start()
     {
         render = GetComponent<Renderer>();
-        mat = GetComponent<MeshRenderer>().material;
-        origColor = mat.color;
+        meshRenderer = GetComponent<MeshRenderer>();
     }
 
-    // Update is called once per frame
-    void Update()
+    void OnWillRenderObject()
     {
-        if (pauseCheck == 0)
+        if (Camera.current == Camera.main)
         {
-
-            if (render.IsVisibleFrom(Camera.main))
+            if (this.cubes == null)
             {
-                GetComponent<MeshRenderer>().enabled = false;
-                pauseCheck = 30;
-                if (this.cubes == null)
-                {
-                    StartCoroutine(manager.LoadCube(query, x, y, z, (createdObjects) => { this.cubes = createdObjects; }));
-                }
-
+                meshRenderer.enabled = false;
+                StartCoroutine(OnRenderRoutine());
             }
-            else
+        }
+    }
+
+    IEnumerator OnRenderRoutine()
+    {
+        yield return StartCoroutine(
+            manager.LoadCube(query, x, y, z, (createdObjects) => { this.cubes = createdObjects; }));
+        yield return StartCoroutine(StopRenderCheck(Camera.main));
+    }
+
+
+    IEnumerator StopRenderCheck(Camera camera)
+    {
+        Debug.LogFormat("{0}_{1}_{2}: {3}",x,y,z,Vector3.Distance(camera.transform.position, this.transform.position));
+        while (true)
+        {
+            if (!render.IsVisibleFrom(camera))
             {
-                GetComponent<MeshRenderer>().enabled = true;
-                mat.color = origColor;
-                pauseCheck = 5;
+                meshRenderer.enabled = true;
                 if (this.cubes != null)
                 {
                     foreach (var cube in cubes)
@@ -65,12 +67,9 @@ public class IsRendered : MonoBehaviour
                     }
                     this.cubes = null;
                 }
+                break;
             }
+            yield return null;
         }
-        else
-        {
-            pauseCheck--;
-        }
-
     }
 }

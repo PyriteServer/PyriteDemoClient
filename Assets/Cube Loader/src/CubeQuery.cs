@@ -52,8 +52,10 @@ public class CubeQuery
         {
             string path = MetadataTemplate.Replace("{v}", i.ToString());
             var vlevel = new VLevelQuery(i, path);
+            
             yield return behavior.StartCoroutine(vlevel.Load());
             VLevels.Add(i, vlevel);
+
         }
     }
 
@@ -86,27 +88,37 @@ public class VLevelQuery
 
         // POPULATE THE BOOL ARRAY...
         var metadata = JSON.Parse(loader.GetDecompressedText());
-        int xMax = metadata["GridSize"]["X"].AsInt;
-        int yMax = metadata["GridSize"]["Y"].AsInt;
-        int zMax = metadata["GridSize"]["Z"].AsInt;
-
-        CubeMap = new bool[xMax,yMax,zMax];
-
-        var cubeExists = metadata["CubeExists"];
-        for (int x = 0; x < xMax; x++)
+        if (metadata != null)
         {
-            for (int y = 0; y < yMax; y++)
+            int xMax = metadata["GridSize"]["X"].AsInt;
+            int yMax = metadata["GridSize"]["Y"].AsInt;
+            int zMax = metadata["GridSize"]["Z"].AsInt;
+
+            CubeMap = new bool[xMax, yMax, zMax];
+
+            var cubeExists = metadata["CubeExists"];
+            for (int x = 0; x < xMax; x++)
             {
-                for (int z = 0; z < zMax; z++)
+                for (int y = 0; y < yMax; y++)
                 {
-                    CubeMap[x, y, z] = cubeExists[x][y][z].AsBool;
+                    for (int z = 0; z < zMax; z++)
+                    {
+                        CubeMap[x, y, z] = cubeExists[x][y][z].AsBool;
+                    }
                 }
             }
-        }
 
-        var extents = metadata["Extents"];
-        MinExtent = new Vector3(extents["XMin"].AsFloat, extents["YMin"].AsFloat, extents["ZMin"].AsFloat);
-        MaxExtent = new Vector3(extents["XMax"].AsFloat, extents["YMax"].AsFloat, extents["ZMax"].AsFloat);
-        Size = new Vector3(extents["XSize"].AsFloat, extents["YSize"].AsFloat, extents["ZSize"].AsFloat);
+            var extents = metadata["Extents"];
+            MinExtent = new Vector3(extents["XMin"].AsFloat, extents["YMin"].AsFloat, extents["ZMin"].AsFloat);
+            MaxExtent = new Vector3(extents["XMax"].AsFloat, extents["YMax"].AsFloat, extents["ZMax"].AsFloat);
+            Size = new Vector3(extents["XSize"].AsFloat, extents["YSize"].AsFloat, extents["ZSize"].AsFloat);
+
+            Debug.Log("Viewport: " + ViewportLevel);
+            Debug.LogFormat("Exists: {0} {1} {2}", CubeMap.GetLength(0), CubeMap.GetLength(1), CubeMap.GetLength(2));
+            float xBlockSize = Size.x / CubeMap.GetLength(0);
+            float yBlockSize = Size.y / CubeMap.GetLength(1);
+            float zBlockSize = Size.z / CubeMap.GetLength(2);
+            Debug.LogFormat("CubeSize: {0} {1} {2}", xBlockSize, yBlockSize, zBlockSize);
+        }
     }
 }
