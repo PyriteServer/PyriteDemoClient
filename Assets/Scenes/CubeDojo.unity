@@ -146,7 +146,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 0
 --- !u!1 &549180666
 GameObject:
   m_ObjectHideFlags: 0
@@ -227,10 +227,10 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 549180666}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -1000}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1092456307}
   m_RootOrder: 0
 --- !u!114 &549180672
 MonoBehaviour:
@@ -248,6 +248,46 @@ MonoBehaviour:
   m_UpdateType: 0
   m_RotationRange: {x: 300, y: 300}
   m_FollowSpeed: 1
+--- !u!1 &1092456306
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 4
+  m_Component:
+  - 4: {fileID: 1092456307}
+  - 114: {fileID: 1092456308}
+  m_Layer: 0
+  m_Name: CameraRig
+  m_TagString: Player
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1092456307
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1092456306}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 549180671}
+  m_Father: {fileID: 0}
+  m_RootOrder: 2
+--- !u!114 &1092456308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1092456306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae8fdc3ed12ec1349813d20c5c42824e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2132541548
 GameObject:
   m_ObjectHideFlags: 0
@@ -276,7 +316,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ObjectIndex: 
-  Viewport: 2
+  Viewport: 5
   UseUnlitShader: 0
   UseDividedTexture: 1
   UseEbo: 1
@@ -284,8 +324,7 @@ MonoBehaviour:
   ParallelCubeLoad: 1
   UseCameraDetection: 1
   PlaceHolderCube: {fileID: 100618, guid: 547fcef88f7c7df44878fafaaa15d4a3, type: 2}
-  BaseObject: {fileID: 127098, guid: 5fb6e69efbd7b704da37642196156d38, type: 2}
-  Camera: {fileID: 549180670}
+  CameraRig: {fileID: 1092456306}
 --- !u!4 &2132541550
 Transform:
   m_ObjectHideFlags: 0
@@ -297,4 +336,4 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 1

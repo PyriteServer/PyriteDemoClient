@@ -22,11 +22,10 @@ public class DemoOBJ : MonoBehaviour
     public bool UseCameraDetection = false;
 
     public GameObject PlaceHolderCube;
-    public GameObject BaseObject;
 
     private readonly Stopwatch _sw = Stopwatch.StartNew();
 
-    public Camera Camera;
+    public GameObject CameraRig;
 
     private Color[] colorList = {Color.gray, Color.yellow, Color.cyan};
 
@@ -99,16 +98,16 @@ public class DemoOBJ : MonoBehaviour
         mtlOverride = query.MtlTemplate.Replace("{v}", Viewport.ToString());
 
 
-        if (Camera != null)
+        if (CameraRig != null)
         {
             DebugLog("Moving camera");
             // Hardcoding some values for now   
             var x = vlevel.MinExtent.x + (vlevel.Size.x / 2.0f);
             var y = vlevel.MinExtent.y + (vlevel.Size.y / 2.0f);
             var z = vlevel.MinExtent.z + (vlevel.Size.z / 2.0f) + (vlevel.Size.z * 1.4f);
-            Camera.transform.position = new Vector3(x, y, z);
+            CameraRig.transform.position = new Vector3(x, y, z);
 
-            Camera.transform.rotation = Quaternion.Euler(0, 180, 0);
+            CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
 
             DebugLog("Done moving camera");
         }

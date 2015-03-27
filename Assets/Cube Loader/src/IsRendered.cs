@@ -53,7 +53,8 @@ public class IsRendered : MonoBehaviour
 
     IEnumerator StopRenderCheck(Camera camera)
     {
-        Debug.LogFormat("{0}_{1}_{2}: {3}",x,y,z,Vector3.Distance(camera.transform.position, this.transform.position));
+        // Debug.LogFormat("{0}_{1}_{2}: {3}",x,y,z,Vector3.Distance(camera.transform.position, this.transform.position));
+
         while (true)
         {
             if (!render.IsVisibleFrom(camera))
