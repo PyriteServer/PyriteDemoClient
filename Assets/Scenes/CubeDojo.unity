@@ -316,7 +316,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ObjectIndex: 
-  Viewport: 5
+  Viewport: 4
   UseUnlitShader: 0
   UseDividedTexture: 1
   UseEbo: 1
