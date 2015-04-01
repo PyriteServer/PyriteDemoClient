@@ -4,8 +4,11 @@ using System.Collections;
 public class InputManager : MonoBehaviour
 {
     float RotationDeltaRate = 90;
-    private float camPitch = 180;
+    private float camPitch = 60;
     private float yaw = 0;
+    float move_x;
+    float move_y;
+    float move_z;
     private Quaternion cameraOrientation;
     private Quaternion rigOrientation;
     private Camera pivotCamera;
@@ -16,15 +19,16 @@ public class InputManager : MonoBehaviour
     }
 
     void Update()
-    {   
-        // HACK
-        float move_x = -Input.GetAxis("HorizontalMove");
-        float move_z = -Input.GetAxis("VerticalMove");
-        float move_y = Input.GetAxis("ForwardMove");
+    {
+        move_x = Input.GetAxis("HorizontalMove");
+        move_y = Input.GetAxis("VerticalMove");
+        move_z = Input.GetAxis("ForwardMove");
+        yaw += Input.GetAxis("Horizontal") * Time.deltaTime * RotationDeltaRate;
+        camPitch += Input.GetAxis("Vertical") * Time.deltaTime * RotationDeltaRate;
+    }
 
-        yaw -= Input.GetAxis("Horizontal")*Time.deltaTime*RotationDeltaRate;
-        camPitch += Input.GetAxis("Vertical")*Time.deltaTime*RotationDeltaRate;
-
+    void FixedUpdate()
+    {
         transform.Translate(Vector3.up * move_y, Space.World);
         transform.Translate(Vector3.forward * move_z + Vector3.right * move_x, Space.Self);
 

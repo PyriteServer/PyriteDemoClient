@@ -89,11 +89,11 @@ public class DemoOBJ : MonoBehaviour
         DebugLog("CubeQuery complete.");
         var vlevel = query.VLevels[Viewport];
         var cubeMap = vlevel.CubeMap;
-
+        
         int xMax = cubeMap.GetLength(0);
         int yMax = cubeMap.GetLength(1);
         int zMax = cubeMap.GetLength(2);
-
+        
 
         mtlOverride = query.MtlTemplate.Replace("{v}", Viewport.ToString());
 
@@ -128,15 +128,16 @@ public class DemoOBJ : MonoBehaviour
                             float zPos = vlevel.MinExtent.z + vlevel.Size.z/zMax*z + vlevel.Size.z/zMax*0.5f;
                             GameObject g =
                                 (GameObject)
-                                    Instantiate(PlaceHolderCube, new Vector3(xPos, yPos, zPos), Quaternion.identity);
+                                    //Instantiate(PlaceHolderCube, new Vector3(xPos, yPos, zPos), Quaternion.identity);
+                                    Instantiate(PlaceHolderCube, new Vector3(-xPos, zPos + 600, -yPos), Quaternion.identity);
+                                    
 
                             g.transform.parent = gameObject.transform;
                             g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector%3];
-
                             g.GetComponent<IsRendered>().SetCubePosition(x, y, z, query, this);
-
-                            g.transform.localScale = new Vector3(vlevel.Size.x/xMax, vlevel.Size.y/yMax,
-                                vlevel.Size.z/zMax);
+                            
+                            //g.transform.localScale = new Vector3(vlevel.Size.x/xMax, vlevel.Size.y/yMax, vlevel.Size.z/zMax);
+                            g.transform.localScale = new Vector3(vlevel.Size.x / xMax,  vlevel.Size.z / zMax, vlevel.Size.y / yMax);
                             colorSelector++;
                         }
                         else

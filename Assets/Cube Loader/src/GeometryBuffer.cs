@@ -173,6 +173,25 @@ using System.IO;
         }
 
         Mesh m = (gs[0].GetComponent(typeof(MeshFilter)) as MeshFilter).mesh;
+        
+        // RPL HACK FIX
+        for (int i = 0; i < tvertices.Length; i++)
+        {
+            Vector3 t = new Vector3(-tvertices[i].x, tvertices[i].z + 600, -tvertices[i].y);
+            tvertices[i] = t;
+        }
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            int t0 = triangles[i];
+            int t1 = triangles[i + 1];
+            int t2 = triangles[i + 2];
+
+            triangles[i] = t0;
+            triangles[i + 1] = t2;
+            triangles[i + 2] = t1;
+        }
+        // END HACK        
+
         m.vertices = tvertices;
         m.uv = tuvs;
         m.triangles = triangles;
