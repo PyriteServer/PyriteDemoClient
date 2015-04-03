@@ -2,6 +2,15 @@
     Properties {  
         _MainTex ("Base (RGB)", 2D) = "white" {}  
         _UVExtents ("UV Extents", Vector) = (0,0,1,1)  //xy zw == xy1 xy2
+
+		_MainTex2 ("Base (RGB)", 2D) = "white" {}  
+        _UVExtents2 ("UV Extents", Vector) = (0,0,1,1)  //xy zw == xy1 xy2
+
+		_MainTex3 ("Base (RGB)", 2D) = "white" {}  
+        _UVExtents3 ("UV Extents", Vector) = (0,0,1,1)  //xy zw == xy1 xy2
+
+		_MainTex4 ("Base (RGB)", 2D) = "white" {}  
+        _UVExtents4 ("UV Extents", Vector) = (0,0,1,1)  //xy zw == xy1 xy2
     }  
     SubShader {  
         Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}  
@@ -41,8 +50,6 @@
             {
             	//o.Alpha = 0;
             }
-          
-           
         }  
         ENDCG  
     }  

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using SimpleJSON;
 using System;
 using Assets.Cube_Loader.Extensions;
+using RestSharp;
 
 public class CubeQuery
 {
@@ -15,6 +16,7 @@ public class CubeQuery
     public string MetadataTemplate { get; private set; }
     public int TextureSubdivide { get; private set; }
     public string TexturePath { get; private set; }
+    public string BasePath { get; set; }
 
     public Dictionary<int, VLevelQuery> VLevels { get; set; }
 
@@ -22,10 +24,62 @@ public class CubeQuery
 
     private readonly MonoBehaviour behavior;
 
+    private JSONNode index;
+
     public CubeQuery(string sceneIndexUrl, MonoBehaviour behaviour)
     {
         indexUrl = sceneIndexUrl;
         this.behavior = behaviour;
+    }
+
+    public IEnumerator NewLoad()
+    {
+        Debug.Log("CubeQuery started against: " + indexUrl);
+        RestClient client = new RestClient(indexUrl);
+        
+
+        //yield return client.GetAsync(new RestRequest(), NewLoadCallback);
+        var handle = client.GetAsync(new RestRequest(), (r, h) =>
+        {
+            index = JSON.Parse(r.Content);
+            MinimumViewport = index["MinimumViewport"].AsInt;
+            MaximumViewport = index["MaximumViewport"].AsInt;
+            CubeTemplate = index["CubeTemplate"].Value;
+            MtlTemplate = index["MtlTemplate"].Value;
+            JpgTemplate = index["JpgTemplate"].Value;
+            MetadataTemplate = index["MetadataTemplate"].Value;
+            TextureSubdivide = index["TextureSubdivide"].AsInt;
+            TexturePath = index["TexturePath"].Value;
+
+            BasePath = (CubeTemplate.IndexOf("/") == -1) ? "" : CubeTemplate.Substring(0, CubeTemplate.LastIndexOf("/") + 1);
+
+            PopulateViewports();
+        });
+
+        while (!handle.WebRequest.HaveResponse)
+            yield return null;
+    }
+
+    public void PopulateViewports()
+    {
+        //Populate Viewports
+        VLevels = new Dictionary<int, VLevelQuery>();
+        for (int i = MinimumViewport; i <= MaximumViewport; i++)
+        {
+            string path = MetadataTemplate.Replace("{v}", i.ToString());
+            var vlevel = new VLevelQuery(i, path);
+            //yield return behavior.StartCoroutine(vlevel.Load());
+            VLevels.Add(i, vlevel);
+        }
+    }
+
+    public IEnumerator LoadViewPorts()
+    {
+        foreach(var vlevel in VLevels.Values)
+        {
+            //yield return behavior.StartCoroutine(vlevel.Load());
+            yield return behavior.StartCoroutine(vlevel.NewLoad());
+        }
     }
 
     public IEnumerator Load()
@@ -52,10 +106,8 @@ public class CubeQuery
         {
             string path = MetadataTemplate.Replace("{v}", i.ToString());
             var vlevel = new VLevelQuery(i, path);
-            
             yield return behavior.StartCoroutine(vlevel.Load());
             VLevels.Add(i, vlevel);
-
         }
     }
 
@@ -81,15 +133,14 @@ public class VLevelQuery
         metadataUrl = viewportMetadataUrl;
     }
 
-    public IEnumerator Load()
+    public IEnumerator NewLoad()
     {
-        WWW loader = WWWExtensions.CreateWWW(path: metadataUrl);
-        yield return loader;
-
-        // POPULATE THE BOOL ARRAY...
-        var metadata = JSON.Parse(loader.GetDecompressedText());
-        if (metadata != null)
+        RestClient client = new RestClient(metadataUrl);
+        RestRequest request = new RestRequest(Method.GET);
+        RestRequestAsyncHandle handle = client.ExecuteAsync(request, (r, h) =>
         {
+            // POPULATE THE BOOL ARRAY...
+            var metadata = JSON.Parse(r.Content);
             int xMax = metadata["GridSize"]["X"].AsInt;
             int yMax = metadata["GridSize"]["Y"].AsInt;
             int zMax = metadata["GridSize"]["Z"].AsInt;
@@ -112,13 +163,40 @@ public class VLevelQuery
             MinExtent = new Vector3(extents["XMin"].AsFloat, extents["YMin"].AsFloat, extents["ZMin"].AsFloat);
             MaxExtent = new Vector3(extents["XMax"].AsFloat, extents["YMax"].AsFloat, extents["ZMax"].AsFloat);
             Size = new Vector3(extents["XSize"].AsFloat, extents["YSize"].AsFloat, extents["ZSize"].AsFloat);
+        });
 
-            Debug.Log("Viewport: " + ViewportLevel);
-            Debug.LogFormat("Exists: {0} {1} {2}", CubeMap.GetLength(0), CubeMap.GetLength(1), CubeMap.GetLength(2));
-            float xBlockSize = Size.x / CubeMap.GetLength(0);
-            float yBlockSize = Size.y / CubeMap.GetLength(1);
-            float zBlockSize = Size.z / CubeMap.GetLength(2);
-            Debug.LogFormat("CubeSize: {0} {1} {2}", xBlockSize, yBlockSize, zBlockSize);
+        while (!handle.WebRequest.HaveResponse)
+            yield return null;
+    }
+
+    public IEnumerator Load()
+    {
+        WWW loader = WWWExtensions.CreateWWW(path: metadataUrl);
+        yield return loader;
+
+        // POPULATE THE BOOL ARRAY...
+        var metadata = JSON.Parse(loader.GetDecompressedText());
+        int xMax = metadata["GridSize"]["X"].AsInt;
+        int yMax = metadata["GridSize"]["Y"].AsInt;
+        int zMax = metadata["GridSize"]["Z"].AsInt;
+
+        CubeMap = new bool[xMax,yMax,zMax];
+
+        var cubeExists = metadata["CubeExists"];
+        for (int x = 0; x < xMax; x++)
+        {
+            for (int y = 0; y < yMax; y++)
+            {
+                for (int z = 0; z < zMax; z++)
+                {
+                    CubeMap[x, y, z] = cubeExists[x][y][z].AsBool;
+                }
+            }
         }
+
+        var extents = metadata["Extents"];
+        MinExtent = new Vector3(extents["XMin"].AsFloat, extents["YMin"].AsFloat, extents["ZMin"].AsFloat);
+        MaxExtent = new Vector3(extents["XMax"].AsFloat, extents["YMax"].AsFloat, extents["ZMax"].AsFloat);
+        Size = new Vector3(extents["XSize"].AsFloat, extents["YSize"].AsFloat, extents["ZSize"].AsFloat);
     }
 }
