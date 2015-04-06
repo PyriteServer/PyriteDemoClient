@@ -17,7 +17,6 @@ public class DemoOBJ : MonoBehaviour
     public bool UseEbo = false;
 
     public bool EnableDebugLogs = false;
-    public bool ParallelCubeLoad = false;
 
     public bool UseCameraDetection = false;
 
@@ -142,14 +141,7 @@ public class DemoOBJ : MonoBehaviour
                         }
                         else
                         {
-                            if (ParallelCubeLoad)
-                            {
-                                StartCoroutine(LoadCube(query, x, y, z));
-                            }
-                            else
-                            {
-                                yield return StartCoroutine(LoadCube(query, x, y, z));
-                            }
+                            StartCoroutine(LoadCube(query, x, y, z));
                         }
                     }
                 }
@@ -267,14 +259,7 @@ public class DemoOBJ : MonoBehaviour
                         var texPath = query.TexturePath.Replace("{x}", texX.ToString())
                             .Replace("{y}", texY.ToString());
 
-                        if (ParallelCubeLoad)
-                        {
-                            StartCoroutine(LoadTextureTask(texPath, textureCache));
-                        }
-                        else
-                        {
-                            yield return StartCoroutine(LoadTextureTask(texPath, textureCache));
-                        }
+                        StartCoroutine(LoadTextureTask(texPath, textureCache));
                     }
                 }
 
