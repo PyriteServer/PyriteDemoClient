@@ -147,7 +147,7 @@ using System.IO;
             int vertexCount;
             Vector3[] tvertices;
             Vector2[] tuvs;
-
+            int[] triangles;
             using (var s = new MemoryStream(eboBuffer))
             using (var br = new BinaryReader(s))
             {
@@ -156,9 +156,12 @@ using System.IO;
 
                 tvertices = new Vector3[vertexCount];
                 tuvs = new Vector2[vertexCount];
+                triangles = new int[vertexCount];
 
                 for (int i = 0; i < vertexCount; i++)
                 {
+                    triangles[i] = i;
+
                     switch ((int)br.ReadByte())
                     {
                         case (0):
@@ -183,25 +186,27 @@ using System.IO;
             }
 
             Mesh m = (gs[0].GetComponent(typeof(MeshFilter)) as MeshFilter).mesh;
+            // RPL HACK FIX
+            for (int i = 0; i < tvertices.Length; i++)
+            {
+                Vector3 t = new Vector3(-tvertices[i].x, tvertices[i].z + 600, -tvertices[i].y);
+                tvertices[i] = t;
+            }
+            for (int i = 0; i < triangles.Length; i += 3)
+            {
+                int t0 = triangles[i];
+                int t1 = triangles[i + 1];
+                int t2 = triangles[i + 2];
+
+                triangles[i] = t0;
+                triangles[i + 1] = t2;
+                triangles[i + 2] = t1;
+            }
+            // END HACK  
             m.vertices = tvertices;
             m.uv = tuvs;
-
-            GroupData gd = objects[0].groups[0];
-
-            //if (gd.materialName == null)
-            //{
-            //    Dictionary<string, Material[]>.KeyCollection.Enumerator keys = mats.Keys.GetEnumerator();
-            //    keys.MoveNext();
-            //    gd.materialName = keys.Current;
-            //}
-
-            //Renderer renderer = gs[0].GetComponent<Renderer>();
-            //renderer.materials = mats[gd.materialName];
-
-            int[] triangles = new int[vertexCount];
-            for (int j = 0; j < triangles.Length; j++) triangles[j] = j;
-
             m.triangles = triangles;
+            GroupData gd = objects[0].groups[0];
             m.RecalculateNormals();
         }
 

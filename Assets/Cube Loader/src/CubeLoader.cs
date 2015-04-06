@@ -47,10 +47,16 @@ public class CubeLoader : MonoBehaviour {
     public string ObjectIndex;
     public int Viewport = 1;
     public bool UseUnlitShader = false;
-    public bool UseDividedTexture = false;
     public bool UseEbo = false;
     public Camera Camera;
+
+    public bool UseCameraDetection = false;
+    public GameObject CameraRig;
     public bool UseOldQuadShader = false;
+
+
+    public GameObject PlaceHolderCube;
+
 
     public int LOD0 = 2;
     public int LOD1 = 4;
@@ -68,6 +74,9 @@ public class CubeLoader : MonoBehaviour {
     private Queue<Cube> textureQueue = new Queue<Cube>();
 
     private List<MaterialData> materialDataList = new List<MaterialData>();
+
+
+    private Color[] colorList = { Color.gray, Color.yellow, Color.cyan };
 
     private event EventHandler MeshCompleted;
 
@@ -118,24 +127,23 @@ public class CubeLoader : MonoBehaviour {
         var vlevel = Query.VLevels[Viewport];
         var cubeMap = vlevel.CubeMap;
 
-        if (Camera != null)
+        if (Camera != null || CameraRig != null)
         {
-            //DebugLog("Moving camera");
+            Transform cTransform = Camera == null ? CameraRig.transform : Camera.transform;
             // Hardcoding some values for now   
             var x = vlevel.MinExtent.x + (vlevel.Size.x / 2.0f);
             var y = vlevel.MinExtent.y + (vlevel.Size.y / 2.0f);
-            var z = vlevel.MinExtent.z + (vlevel.Size.z / 2.0f) + (vlevel.Size.z * 5);
-            Camera.transform.position = new Vector3(x, y, z);
+            var z = vlevel.MinExtent.z + (vlevel.Size.z / 2.0f) + (vlevel.Size.z * 1.4f);
+            cTransform.position = new Vector3(x, y, z);
 
-            Camera.transform.rotation = Quaternion.Euler(0, 180, 0);
-
-            //DebugLog("Done moving camera");
+            cTransform.rotation = Quaternion.Euler(0, 180, 0);
         }
 
         int xMax = cubeMap.GetLength(0);
         int yMax = cubeMap.GetLength(1);
         int zMax = cubeMap.GetLength(2);
 
+        int colorSelector = 0;
         for (int x = 0; x < xMax; x++)
         {
             for (int y = 0; y < yMax; y++)
@@ -144,7 +152,29 @@ public class CubeLoader : MonoBehaviour {
                 {
                     if (cubeMap[x, y, z])
                     {
-                        AddToQueue(new Cube() { MapPosition = new UnityEngine.Vector3(x, y, z), Query = Query});
+                        if (UseCameraDetection)
+                        {
+                            float xPos = vlevel.MinExtent.x + vlevel.Size.x / xMax * x + vlevel.Size.x / xMax * 0.5f;
+                            float yPos = vlevel.MinExtent.y + vlevel.Size.y / yMax * y + vlevel.Size.y / yMax * 0.5f;
+                            float zPos = vlevel.MinExtent.z + vlevel.Size.z / zMax * z + vlevel.Size.z / zMax * 0.5f;
+                            GameObject g =
+                                (GameObject)
+                                //Instantiate(PlaceHolderCube, new Vector3(xPos, yPos, zPos), Quaternion.identity);
+                                    Instantiate(PlaceHolderCube, new Vector3(-xPos, zPos + 600, -yPos), Quaternion.identity);
+
+
+                            g.transform.parent = gameObject.transform;
+                            g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector % 3];
+                            g.GetComponent<IsRendered>().SetCubePosition(x, y, z, Query, this);
+
+                            //g.transform.localScale = new Vector3(vlevel.Size.x/xMax, vlevel.Size.y/yMax, vlevel.Size.z/zMax);
+                            g.transform.localScale = new Vector3(vlevel.Size.x / xMax, vlevel.Size.z / zMax, vlevel.Size.y / yMax);
+                            colorSelector++;
+                        }
+                        else
+                        {
+                            AddToQueue(new Cube() { MapPosition = new UnityEngine.Vector3(x, y, z), Query = Query });
+                        }
                     }
                 }
             }
@@ -195,7 +225,7 @@ public class CubeLoader : MonoBehaviour {
     {
         while (loadingQueue.Count > 0)
         {
-            ThreadPool.QueueUserWorkItem(new WaitCallback(ProcessCube), loadingQueue.Dequeue());
+            ThreadPool.QueueUserWorkItem(new WaitCallback(LoadCubue), loadingQueue.Dequeue());
             yield return null;
         }
     }
@@ -211,7 +241,7 @@ public class CubeLoader : MonoBehaviour {
         }
     }
 
-    private void ProcessCube(object state)
+    private void LoadCubue(object state)
     {
         Cube cube = (Cube)state;
         float x = cube.MapPosition.x;

@@ -9,6 +9,7 @@ public class IsRendered : MonoBehaviour
     MeshRenderer meshRenderer;
     Renderer render;
     private GameObject[] cubes = null;
+    private Cube cube = null;
 
     public void SetCubePosition(int x, int y, int z, CubeQuery query, DemoOBJ manager)
     {
@@ -20,9 +21,20 @@ public class IsRendered : MonoBehaviour
         this.name = string.Format("PH_{0}_{1}_{2}", x, y, z);
     }
 
+    public void SetCubePosition(int x, int y, int z, CubeQuery query, CubeLoader manager)
+    {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.query = query;
+        this.cubeLoader = manager;
+        this.name = string.Format("PH_{0}_{1}_{2}", x, y, z);
+    }
+
     private int x, y, z;
     private CubeQuery query;
     private DemoOBJ manager;
+    private CubeLoader cubeLoader;
 
     // Use this for initialization
     void Start()
@@ -45,9 +57,23 @@ public class IsRendered : MonoBehaviour
 
     IEnumerator OnRenderRoutine()
     {
-        yield return StartCoroutine(
-            manager.LoadCube(query, x, y, z, (createdObjects) => { this.cubes = createdObjects; }));
-        yield return StartCoroutine(StopRenderCheck(Camera.main));
+        if (manager != null)
+        {
+            yield return StartCoroutine(
+                manager.LoadCube(query, x, y, z, (createdObjects) => { this.cubes = createdObjects; }));
+            yield return StartCoroutine(StopRenderCheck(Camera.main));
+        }
+        else if (cubeLoader != null)
+        {
+            cube = new Cube() {MapPosition = new Vector3(x, y, z), Query = query};
+            cubeLoader.AddToQueue(cube);
+            while (cube.GameObject == null)
+            {
+                yield return null;
+            }
+            yield return StartCoroutine(StopRenderCheck(Camera.main));
+        }
+        
     }
 
 
@@ -67,6 +93,12 @@ public class IsRendered : MonoBehaviour
                         Destroy(cube.gameObject);
                     }
                     this.cubes = null;
+                }
+
+                if (this.cube != null)
+                {
+                    Destroy(cube.GameObject);
+                    cube = null;
                 }
                 break;
             }
