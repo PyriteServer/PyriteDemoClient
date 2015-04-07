@@ -8,8 +8,6 @@ using System;
 public class TextureLoader {
     public event EventHandler DownloadCompleted;
 
-    public bool UseOldQuadShader { get; set; }
-
     public CubeQuery Query { get; private set; }
     public List<MaterialData> MaterialDataList { get; private set; }
     public int TextureCount { get; private set; }
@@ -115,14 +113,7 @@ public class TextureLoader {
         GameObject gameObject = cube.GameObject;
         Renderer renderer = gameObject.GetComponent<Renderer>();
 
-        if(UseOldQuadShader)
-        {
-            renderer.materials = materials;
-        }
-        else
-        {
-            renderer.material = materials[0];
-        }
+        renderer.material = materials[0];
                 
         yield return null;
     }
@@ -133,44 +124,21 @@ public class TextureLoader {
 
         if (md.diffuseTexDivisions == 2)
         {
-            if(UseOldQuadShader)
-            {
-                m = new Material[4];
-                m[0] = new Material(Shader.Find(("Custom/QuadShader")));
-                m[1] = new Material(Shader.Find(("Custom/QuadShader")));
-                m[2] = new Material(Shader.Find(("Custom/QuadShader")));
-                m[3] = new Material(Shader.Find(("Custom/QuadShader")));
+            m = new Material[1];
 
-                m[0].SetTexture("_MainTex", md.dividedDiffuseTex[0, 1]);
-                m[0].SetVector("_UVExtents", new Vector4(0f, 0f, 0.5f, 0.5f));
+            m[0] = new Material(Shader.Find(("Custom/MPQuadShader")));
 
-                m[1].SetTexture("_MainTex", md.dividedDiffuseTex[1, 1]);
-                m[1].SetVector("_UVExtents", new Vector4(0.5f, 0f, 1f, 0.5f));
+            m[0].SetTexture("_MainTex", md.dividedDiffuseTex[0, 1]);
+            m[0].SetVector("_UVExtents", new Vector4(0f, 0f, 0.5f, 0.5f));
 
-                m[2].SetTexture("_MainTex", md.dividedDiffuseTex[0, 0]);
-                m[2].SetVector("_UVExtents", new Vector4(0f, 0.5f, 0.5f, 1f));
+            m[0].SetTexture("_MainTex2", md.dividedDiffuseTex[1, 1]);
+            m[0].SetVector("_UVExtents2", new Vector4(0.5f, 0f, 1f, 0.5f));
 
-                m[3].SetTexture("_MainTex", md.dividedDiffuseTex[1, 0]);
-                m[3].SetVector("_UVExtents", new Vector4(0.5f, 0.5f, 1f, 1f));
-            }
-            else
-            {
-                m = new Material[1];
+            m[0].SetTexture("_MainTex3", md.dividedDiffuseTex[0, 0]);
+            m[0].SetVector("_UVExtents3", new Vector4(0f, 0.5f, 0.5f, 1f));
 
-                m[0] = new Material(Shader.Find(("Custom/MPQuadShader")));
-
-                m[0].SetTexture("_MainTex", md.dividedDiffuseTex[0, 1]);
-                m[0].SetVector("_UVExtents", new Vector4(0f, 0f, 0.5f, 0.5f));
-
-                m[0].SetTexture("_MainTex2", md.dividedDiffuseTex[1, 1]);
-                m[0].SetVector("_UVExtents2", new Vector4(0.5f, 0f, 1f, 0.5f));
-
-                m[0].SetTexture("_MainTex3", md.dividedDiffuseTex[0, 0]);
-                m[0].SetVector("_UVExtents3", new Vector4(0f, 0.5f, 0.5f, 1f));
-
-                m[0].SetTexture("_MainTex4", md.dividedDiffuseTex[1, 0]);
-                m[0].SetVector("_UVExtents4", new Vector4(0.5f, 0.5f, 1f, 1f));
-            }
+            m[0].SetTexture("_MainTex4", md.dividedDiffuseTex[1, 0]);
+            m[0].SetVector("_UVExtents4", new Vector4(0.5f, 0.5f, 1f, 1f));
 
         }
         else

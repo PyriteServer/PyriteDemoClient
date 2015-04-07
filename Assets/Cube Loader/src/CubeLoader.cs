@@ -4,10 +4,12 @@ using RestSharp;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Threading;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 public class CubeLoader : MonoBehaviour {
     /* OBJ file tags */
@@ -52,7 +54,9 @@ public class CubeLoader : MonoBehaviour {
 
     public bool UseCameraDetection = false;
     public GameObject CameraRig;
-    public bool UseOldQuadShader = false;
+
+    public bool EnableDebugLogs = false;
+    private readonly Stopwatch _sw = Stopwatch.StartNew();
 
 
     public GameObject PlaceHolderCube;
@@ -83,6 +87,16 @@ public class CubeLoader : MonoBehaviour {
     private TextureLoader textureLoader;
 
     private LODGroup lodGroup;
+
+    void DebugLog(string fmt, params object[] args)
+    {
+        if (EnableDebugLogs)
+        {
+            string content = string.Format(fmt, args);
+            Debug.LogFormat("{0}: {1}", _sw.ElapsedMilliseconds, content);
+        }
+    }
+
 
     public CubeLoader()
     {
@@ -116,7 +130,6 @@ public class CubeLoader : MonoBehaviour {
         
         // testing preloading the textures data on a background thread - by this point, we should have the data we need to start downloading
         textureLoader = new TextureLoader(Query, materialDataList);
-        textureLoader.UseOldQuadShader = UseOldQuadShader;
         textureLoader.DownloadCompleted += (s, e) =>
         {
             readyToBuild = true;
@@ -238,6 +251,7 @@ public class CubeLoader : MonoBehaviour {
 
             yield return StartCoroutine(BuildCube(cube));
             yield return StartCoroutine(textureLoader.MapTextures(cube));
+            DebugLog("Done building: {0} {1} {2}", cube.MapPosition.x, cube.MapPosition.y, cube.MapPosition.z);
         }
     }
 
