@@ -4,17 +4,24 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using Assets.Cube_Loader.Extensions;
+using Assets.Cube_Loader.src;
 using Debug = UnityEngine.Debug;
 
 public class DemoOBJ : MonoBehaviour
 {
-
-    public string ObjectIndex;
-    public int Viewport = 1;
+    public int DetailLevel = 6;
     public bool UseUnlitShader = false;
-    public bool UseDividedTexture = false;
-    public bool UseEbo = false;
+    public bool UseEbo = true;
+    public string SetName;
+    public string ModelVersion = "V1";
+    public string PyriteServer;
+
+    private string LOD
+    {
+        get { return "L" + DetailLevel; }
+    }
 
     public bool EnableDebugLogs = false;
 
@@ -49,10 +56,6 @@ public class DemoOBJ : MonoBehaviour
     private const string ILLUM = "illum"; // Illumination model. 1 - diffuse, 2 - specular
     private const string MAP_KD = "map_Kd"; // Diffuse texture (other textures are not supported)
 
-    private string basepath;
-    private string mtllib;
-    private string mtlOverride;
-
     private readonly Dictionary<string, List<MaterialData>> materialDataCache = new Dictionary<string, List<MaterialData>>();
     private readonly Dictionary<string, Texture2D> textureCache = new Dictionary<string, Texture2D>();
     private readonly Dictionary<string, Material[]> materialCache = new Dictionary<string, Material[]>();
@@ -68,238 +71,153 @@ public class DemoOBJ : MonoBehaviour
 
     void Start()
     {
+        if (string.IsNullOrEmpty(SetName))
+        {
+            Debug.LogError("Must specify SetName");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(ModelVersion))
+        {
+            Debug.LogError("Must specify ModelVersion");
+            return;
+        }
+
+
         DebugLog("+Start()");
-        if (string.IsNullOrEmpty(ObjectIndex))
-        {
-            Debug.LogWarning("ObjectIndex needs to be set. Skipping cube loading attempt.");
-        }
-        else
-        {
-            StartCoroutine(Load());
-        }
+        StartCoroutine(Load());
         DebugLog("-Start()");
     }
 
     public IEnumerator Load()
     {
         DebugLog("+Load()");
-        CubeQuery query = new CubeQuery(ObjectIndex, this);
-        yield return StartCoroutine(query.Load());
+
+        PyriteQuery pyriteQuery = new PyriteQuery(PyriteServer);
+        yield return StartCoroutine(pyriteQuery.Load());
         DebugLog("CubeQuery complete.");
-        var vlevel = query.VLevels[Viewport];
-        var cubeMap = vlevel.CubeMap;
         
-        int xMax = cubeMap.GetLength(0);
-        int yMax = cubeMap.GetLength(1);
-        int zMax = cubeMap.GetLength(2);
-        
-
-        mtlOverride = query.MtlTemplate.Replace("{v}", Viewport.ToString());
-
+        var pyriteLevel =
+            pyriteQuery.Sets[SetName].Versions[ModelVersion].DetailLevels[LOD];
 
         if (CameraRig != null)
         {
             DebugLog("Moving camera");
             // Hardcoding some values for now   
-            var x = vlevel.MinExtent.x + (vlevel.Size.x / 2.0f);
-            var y = vlevel.MinExtent.y + (vlevel.Size.y / 2.0f);
-            var z = vlevel.MinExtent.z + (vlevel.Size.z / 2.0f) + (vlevel.Size.z * 1.4f);
-            CameraRig.transform.position = new Vector3(x, y, z);
+            var newCameraPosition = pyriteLevel.WorldBoundsMin + (pyriteLevel.WorldBoundsSize) / 2.0f;
+            newCameraPosition += new Vector3(0,0,pyriteLevel.WorldBoundsSize.z * 1.4f);
+            CameraRig.transform.position = newCameraPosition;
 
             CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
 
             DebugLog("Done moving camera");
         }
+
         int colorSelector = 0;
-        for (int x = 0; x < xMax; x++)
+        for (int i = 0; i < pyriteLevel.Cubes.Length; i++)
         {
-            for (int y = 0; y < yMax; y++)
+            int x = pyriteLevel.Cubes[i].X;
+            int y = pyriteLevel.Cubes[i].Y;
+            int z = pyriteLevel.Cubes[i].Z;
+            if (UseCameraDetection)
             {
-                for (int z = 0; z < zMax; z++)
-                {
-                    if (cubeMap[x, y, z])
-                    {
+                float xPos = pyriteLevel.WorldBoundsMin.x + pyriteLevel.WorldBoundsSize.x/pyriteLevel.SetSize.x*x +
+                             pyriteLevel.WorldBoundsSize.x/pyriteLevel.SetSize.x*0.5f;
+                float yPos = pyriteLevel.WorldBoundsMin.y + pyriteLevel.WorldBoundsSize.y/pyriteLevel.SetSize.y*y +
+                             pyriteLevel.WorldBoundsSize.y/pyriteLevel.SetSize.y*0.5f;
+                float zPos = pyriteLevel.WorldBoundsMin.z + pyriteLevel.WorldBoundsSize.z/pyriteLevel.SetSize.z*z +
+                             pyriteLevel.WorldBoundsSize.z/pyriteLevel.SetSize.z*0.5f;
 
-                        if (UseCameraDetection)
-                        {
-                            float xPos = vlevel.MinExtent.x + vlevel.Size.x/xMax*x + vlevel.Size.x/xMax*0.5f;
-                            float yPos = vlevel.MinExtent.y + vlevel.Size.y/yMax*y + vlevel.Size.y/yMax*0.5f;
-                            float zPos = vlevel.MinExtent.z + vlevel.Size.z/zMax*z + vlevel.Size.z/zMax*0.5f;
-                            GameObject g =
-                                (GameObject)
-                                    //Instantiate(PlaceHolderCube, new Vector3(xPos, yPos, zPos), Quaternion.identity);
-                                    Instantiate(PlaceHolderCube, new Vector3(-xPos, zPos + 600, -yPos), Quaternion.identity);
-                                    
+                GameObject g =
+                    (GameObject)
+                        Instantiate(PlaceHolderCube, new Vector3(-xPos, zPos + 600, -yPos), Quaternion.identity);
 
-                            g.transform.parent = gameObject.transform;
-                            g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector%3];
-                            g.GetComponent<IsRendered>().SetCubePosition(x, y, z, query, this);
-                            
-                            //g.transform.localScale = new Vector3(vlevel.Size.x/xMax, vlevel.Size.y/yMax, vlevel.Size.z/zMax);
-                            g.transform.localScale = new Vector3(vlevel.Size.x / xMax,  vlevel.Size.z / zMax, vlevel.Size.y / yMax);
-                            colorSelector++;
-                        }
-                        else
-                        {
-                            StartCoroutine(LoadCube(query, x, y, z));
-                        }
-                    }
-                }
+
+                g.transform.parent = gameObject.transform;
+                g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector%3];
+                g.GetComponent<IsRendered>().SetCubePosition(x, y, z, pyriteQuery, this);
+
+                g.transform.localScale = new Vector3(
+                    pyriteLevel.WorldBoundsSize.x/pyriteLevel.SetSize.x,
+                    pyriteLevel.WorldBoundsSize.z/pyriteLevel.SetSize.z,
+                    pyriteLevel.WorldBoundsSize.y/pyriteLevel.SetSize.y);
+                colorSelector++;
+            }
+            else
+            {
+                StartCoroutine(LoadCube(pyriteQuery, x, y, z));
             }
         }
 
         DebugLog("-Load()");
     }
 
-    public IEnumerator LoadCube(CubeQuery query, int x, int y, int z, Action<GameObject[]> registerCreatedObjects = null)
+    public IEnumerator LoadCube(PyriteQuery query, int x, int y, int z, Action<GameObject[]> registerCreatedObjects = null)
     {
         DebugLog("+LoadCube({0}_{1}_{2})", x, y, z);
-        var objectLocationFormat = query.CubeTemplate.Replace("{x}", "{0}")
-            .Replace("{y}", "{1}")
-                .Replace("{z}", "{2}")
-                .Replace("{v}", Viewport.ToString());
-
-        String path = string.Format(objectLocationFormat, x, y, z);
-        if (basepath == null)
-        {
-            basepath = (path.IndexOf("/") == -1) ? "" : path.Substring(0, path.LastIndexOf("/") + 1);
-        }
+        var modelPath = query.GetModelPath(SetName, ModelVersion, LOD, x, y, z);
+        var pyriteLevel =
+            query.Sets[SetName].Versions[ModelVersion].DetailLevels[LOD];
 
         GeometryBuffer buffer = new GeometryBuffer();
         List<MaterialData> materialData = new List<MaterialData>();
 
         WWW loader;
-
-        if (!UseEbo)
+        loader = WWWExtensions.CreateWWW(path: modelPath);
+        yield return loader;
+        if (!string.IsNullOrEmpty(loader.error))
         {
-            loader = WWWExtensions.CreateWWW(path: path);
-            yield return loader;
-            if (!string.IsNullOrEmpty(loader.error))
-            {
-                Debug.LogError(loader.error);
-                yield break;
-            }
-            SetGeometryData(loader.GetDecompressedText(), buffer);
+            Debug.LogError(loader.error);
+            yield break;
         }
-        else
+        buffer.eboBuffer = loader.GetDecompressedBytes();
+        var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(x, y);
+        var materialDataKey = string.Format("model.mtl_{0}_{1}", textureCoordinates.x, textureCoordinates.y);
+        if (!materialDataCache.ContainsKey(materialDataKey))
         {
-            loader = WWWExtensions.CreateWWW(path: path.Replace(".obj", ".ebo"));
-            yield return loader;
-            if (!string.IsNullOrEmpty(loader.error))
-            {
-                Debug.LogError(loader.error);
-                yield break;
-            }
-            buffer.eboBuffer = loader.GetDecompressedBytes();
-            mtllib = "model.mtl";
-        }
+            materialDataCache[materialDataKey] = null;
+            CubeBuilderHelpers.SetDefaultMaterialData(materialData, (int)textureCoordinates.x, (int)textureCoordinates.y);
 
-        if (hasMaterials)
-        {
-            if (!materialDataCache.ContainsKey(mtllib))
+            foreach (MaterialData m in materialData)
             {
-                materialDataCache[mtllib] = null;
-                if (!string.IsNullOrEmpty(mtlOverride))
-                {
-                    loader = WWWExtensions.CreateWWW(path: mtlOverride);
-                }
-                else
-                {
-                    loader = WWWExtensions.CreateWWW(path: basepath + mtllib);
-                }
 
-                yield return loader;
-                SetMaterialData(loader.GetDecompressedText(), materialData);
-                materialDataCache[mtllib] = materialData;
-            }
-            while (materialDataCache[mtllib] == null)
-            {
-                // Another task is in the process of filling out this cache entry.
-                // Loop until it is set
-                yield return null;
-            }
-            materialData = materialDataCache[mtllib];
-        }
-
-        foreach (MaterialData m in materialData)
-        {
-            if (m.diffuseTexPath != null && query.TextureSubdivide <= 1)
-            {
-                if (!textureCache.ContainsKey(m.diffuseTexPath))
+                var texturePath = query.GetTexturePath(SetName, ModelVersion, LOD, (int)textureCoordinates.x,
+                    (int)textureCoordinates.y);
+                if (!textureCache.ContainsKey(texturePath))
                 {
                     // Set to null to signal to other tasks that the key is in the process
                     // of being filled
-                    textureCache[m.diffuseTexPath] = null;
+                    textureCache[texturePath] = null;
                     // Do not request compression for textures
-                    var texloader = WWWExtensions.CreateWWW(path: basepath + m.diffuseTexPath, requestCompression: false);
+                    var texloader = WWWExtensions.CreateWWW(path: texturePath, requestCompression: false);
                     yield return texloader;
-
-                    textureCache[m.diffuseTexPath] = texloader.texture;
+                    Texture2D texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
+                    texture.LoadImage(texloader.bytes);
+                    //textures.Add(md.diffuseTexPath, texture);
+                    textureCache[texturePath] = texture;
                 }
 
                 // Loop while other tasks finish creating texture
-                while (textureCache[m.diffuseTexPath] == null)
+                while (textureCache[texturePath] == null)
                 {
                     // Another task is in the process of filling out this cache entry.
                     // Loop until it is set
                     yield return null;
                 }
-                m.diffuseTex = textureCache[m.diffuseTexPath];
+                m.diffuseTex = textureCache[texturePath];
             }
-            if (query.TextureSubdivide > 1)
-            {
-                m.diffuseTexDivisions = query.TextureSubdivide;
-                m.dividedDiffuseTex = new Texture2D[query.TextureSubdivide, query.TextureSubdivide];
 
-                // Download each texture division (in parallel if option is set)
-                for (int texX = 0; texX < query.TextureSubdivide; texX++)
-                {
-                    for (int texY = 0; texY < query.TextureSubdivide; texY++)
-                    {
-                        var texPath = query.TexturePath.Replace("{x}", texX.ToString())
-                            .Replace("{y}", texY.ToString());
-
-                        StartCoroutine(LoadTextureTask(texPath, textureCache));
-                    }
-                }
-
-                // Since above can start off multiple tasks that execute in parallel
-                // we need to make sure they are completed here
-                for (int texX = 0; texX < query.TextureSubdivide; texX++)
-                {
-                    for (int texY = 0; texY < query.TextureSubdivide; texY++)
-                    {
-                        var texPath = query.TexturePath.Replace("{x}", texX.ToString())
-                        .Replace("{y}", texY.ToString());
-                        // Loop while other tasks finish creating texture
-                        while (textureCache[texPath] == null)
-                        {
-                            // Another task is in the process of filling out this cache entry.
-                            // Loop until it is set
-                            yield return null;
-                        }
-                        m.dividedDiffuseTex[texX, texY] = textureCache[texPath];
-                    }
-                }
-            }
+            materialDataCache[materialDataKey] = materialData;
         }
+        while (materialDataCache[materialDataKey] == null)
+        {
+            // Another task is in the process of filling out this cache entry.
+            // Loop until it is set
+            yield return null;
+        }
+        materialData = materialDataCache[materialDataKey];
         Build(buffer, materialData, x, y, z, registerCreatedObjects);
         DebugLog("-LoadCube({0}_{1}_{2})", x, y, z);
-    }
-
-    // Coroutine for getting texture from the network and loading it into the cache
-    private IEnumerator LoadTextureTask(string texturePath, Dictionary<string, Texture2D> textureCache)
-    {
-        if (!textureCache.ContainsKey(texturePath))
-        {
-            // Set to null to signal to other tasks that the key is in the process
-            // of being filled
-            textureCache[texturePath] = null;
-            // Do not request compression for textures
-            var texloader = WWWExtensions.CreateWWW(path: texturePath, requestCompression: false);
-            yield return texloader;
-            textureCache[texturePath] = texloader.texture;
-        }
     }
 
     private void SetGeometryData(string data, GeometryBuffer buffer)
@@ -324,29 +242,33 @@ public class DemoOBJ : MonoBehaviour
                         buffer.PushGroup(p[1].Trim());
                         break;
                     case V:
-                        buffer.PushVertex(new Vector3(cf(p[1]), cf(p[2]), cf(p[3])));
+                        buffer.PushVertex(new Vector3(
+                            CubeBuilderHelpers.cf(p[1]), 
+                            CubeBuilderHelpers.cf(p[2]), 
+                            CubeBuilderHelpers.cf(p[3]))
+                            );
                         break;
                     case VT:
-                        buffer.PushUV(new Vector2(cf(p[1]), cf(p[2])));
+                        buffer.PushUV(new Vector2(CubeBuilderHelpers.cf(p[1]), CubeBuilderHelpers.cf(p[2])));
                         break;
                     case VN:
-                        buffer.PushNormal(new Vector3(cf(p[1]), cf(p[2]), cf(p[3])));
+                        buffer.PushNormal(new Vector3(CubeBuilderHelpers.cf(p[1]), CubeBuilderHelpers.cf(p[2]), CubeBuilderHelpers.cf(p[3])));
                         break;
                     case F:
                         for (int j = 1; j < p.Length; j++)
                         {
                             string[] c = p[j].Trim().Split("/".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
                             FaceIndices fi = new FaceIndices();
-                            fi.vi = ci(c[0]) - 1;
+                            fi.vi = CubeBuilderHelpers.ci(c[0]) - 1;
                             if (c.Length > 1 && c[1] != "")
-                                fi.vu = ci(c[1]) - 1;
+                                fi.vu = CubeBuilderHelpers.ci(c[1]) - 1;
                             if (c.Length > 2 && c[2] != "")
-                                fi.vn = ci(c[2]) - 1;
+                                fi.vn = CubeBuilderHelpers.ci(c[2]) - 1;
                             buffer.PushFace(fi);
                         }
                         break;
                     case MTL:
-                        mtllib = p[1].Trim();
+                        // mtllib = p[1].Trim();
                         break;
                     case UML:
                         buffer.PushMaterialName(p[1].Trim());
@@ -354,182 +276,29 @@ public class DemoOBJ : MonoBehaviour
                 }
             }
         }
-
         // buffer.Trace();
-    }
-
-    private float cf(string v)
-    {
-        return Convert.ToSingle(v.Trim(), new CultureInfo("en-US"));
-    }
-
-    private int ci(string v)
-    {
-        return Convert.ToInt32(v.Trim(), new CultureInfo("en-US"));
-    }
-
-    private bool hasMaterials
-    {
-        get
-        {
-            return mtllib != null;
-        }
-    }
-
-    /* ############## MATERIALS */
-    private class MaterialData
-    {
-        public string name;
-        public Color ambient;
-        public Color diffuse;
-        public Color specular;
-        public float shininess;
-        public float alpha;
-        public int illumType;
-        public int diffuseTexDivisions;
-        public string diffuseTexPath;
-        public Texture2D diffuseTex;
-        public Texture2D[,] dividedDiffuseTex;
-    }
-
-    private void SetMaterialData(string data, List<MaterialData> materialData)
-    {
-        string[] lines = data.Split("\n".ToCharArray());
-
-        MaterialData current = new MaterialData();
-        current.diffuseTexDivisions = 1;
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            string l = lines[i];
-
-            if (l.IndexOf("#") != -1)
-                l = l.Substring(0, l.IndexOf("#"));
-            string[] p = l.Split(" ".ToCharArray());
-
-            switch (p[0])
-            {
-                case NML:
-                    current = new MaterialData();
-                    current.name = p[1].Trim();
-                    materialData.Add(current);
-                    break;
-                case KA:
-                    current.ambient = gc(p);
-                    break;
-                case KD:
-                    current.diffuse = gc(p);
-                    break;
-                case KS:
-                    current.specular = gc(p);
-                    break;
-                case NS:
-                    current.shininess = cf(p[1]) / 1000;
-                    break;
-                case D:
-                case TR:
-                    current.alpha = cf(p[1]);
-                    break;
-                case MAP_KD:
-                    current.diffuseTexPath = p[1].Trim();
-                    break;
-                case ILLUM:
-                    current.illumType = ci(p[1]);
-                    break;
-
-            }
-        }
-    }
-
-    private Material[] GetMaterial(MaterialData md)
-    {
-        Material[] m;
-
-        if (md.diffuseTexDivisions == 2 && UseDividedTexture)
-        {
-            m = new Material[1];
-
-            m[0] = new Material(Shader.Find(("Custom/MPQuadShader")));
-
-            m[0].SetTexture("_MainTex", md.dividedDiffuseTex[0, 1]);
-            m[0].SetVector("_UVExtents", new Vector4(0f, 0f, 0.5f, 0.5f));
-
-            m[0].SetTexture("_MainTex2", md.dividedDiffuseTex[1, 1]);
-            m[0].SetVector("_UVExtents2", new Vector4(0.5f, 0f, 1f, 0.5f));
-
-            m[0].SetTexture("_MainTex3", md.dividedDiffuseTex[0, 0]);
-            m[0].SetVector("_UVExtents3", new Vector4(0f, 0.5f, 0.5f, 1f));
-
-            m[0].SetTexture("_MainTex4", md.dividedDiffuseTex[1, 0]);
-            m[0].SetVector("_UVExtents4", new Vector4(0.5f, 0.5f, 1f, 1f));
-        }
-        else
-        {
-
-            // Use an unlit shader for the model if set
-            if (UseUnlitShader)
-            {
-                m = new Material[] { new Material(Shader.Find(("Unlit/Texture"))) };
-            }
-            else
-            {
-                if (md.illumType == 2)
-                {
-                    m = new Material[] { new Material(Shader.Find("Specular")) };
-                    m[0].SetColor("_SpecColor", md.specular);
-                    m[0].SetFloat("_Shininess", md.shininess);
-                }
-                else
-                {
-                    m = new Material[] { new Material(Shader.Find("Diffuse")) };
-                }
-
-                m[0].SetColor("_Color", md.diffuse);
-            }
-
-            if (md.diffuseTex != null)
-                m[0].SetTexture("_MainTex", md.diffuseTex);
-        }
-        return m;
-    }
-
-    private Color gc(string[] p)
-    {
-        return new Color(cf(p[1]), cf(p[2]), cf(p[3]));
     }
 
     private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, Action<GameObject[]> registerCreatedObjects)
     {
         Dictionary<string, Material[]> materials = new Dictionary<string, Material[]>();
 
-        if (hasMaterials)
+        foreach (MaterialData md in materialData)
         {
-            foreach (MaterialData md in materialData)
-            {
 
-                if (!materialCache.ContainsKey(md.name))
-                {
-                    materialCache[md.name] = GetMaterial(md);
-                }
-                materials.Add(md.name, materialCache[md.name]);
-
-            }
-        }
-        else
-        {
-            const string defaultKey = "default";
-            if (!materialCache.ContainsKey(defaultKey))
+            if (!materialCache.ContainsKey(md.name))
             {
-                materialCache[defaultKey] = new Material[] { new Material(Shader.Find("VertexLit")) };
+                materialCache[md.name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, md);
             }
-            materials.Add(defaultKey, materialCache[defaultKey]);
+            materials.Add(md.name, materialCache[md.name]);
+
         }
 
         GameObject[] ms = new GameObject[buffer.numObjects];
 
         for (int i = 0; i < buffer.numObjects; i++)
         {
-            GameObject go = new GameObject(); // Instantiate(BaseObject);
+            GameObject go = new GameObject();
             go.name = String.Format("cube_{0}_{1}_{2}.{3}", x, y, z, i);
             go.transform.parent = gameObject.transform;
             go.AddComponent(typeof(MeshFilter));
@@ -545,11 +314,3 @@ public class DemoOBJ : MonoBehaviour
         buffer.PopulateMeshes(ms, materials);
     }
 }
-
-
-
-
-
-
-
-

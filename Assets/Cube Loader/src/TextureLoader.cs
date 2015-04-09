@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.Threading;
 using RestSharp;
 using System;
+using Assets.Cube_Loader.src;
 
 public class TextureLoader {
     public event EventHandler DownloadCompleted;
 
-    public CubeQuery Query { get; private set; }
+    public PyriteQuery Query { get; private set; }
+    public PyriteSetVersionDetailLevel DetailLevel { get; set; }
     public List<MaterialData> MaterialDataList { get; private set; }
     public int TextureCount { get; private set; }
 
@@ -18,40 +20,30 @@ public class TextureLoader {
         get { return textures; }
     }
 
-    private Material[] materials;
-    public Material[] Materials
-    {
-        get { return materials; }
-    }
+    private readonly Dictionary<string, Material[]> materialCache = new Dictionary<string, Material[]>();
 
     // holds the downloaded texture data
     private Dictionary<string, byte[]> textureDataCache = new Dictionary<string, byte[]>();
 
-    public TextureLoader(CubeQuery query, List<MaterialData> materialDataList)
+    private bool UseUnlitShader { get; set; }
+
+    public TextureLoader(PyriteQuery query, List<MaterialData> materialDataList, bool useUnlitShader)
     {
         Query = query;
         MaterialDataList = materialDataList;
-        TextureCount = Query.TextureSubdivide * Query.TextureSubdivide;
-        materials = new Material[TextureCount];
+        UseUnlitShader = useUnlitShader;
     }
 
-    public IEnumerator DownloadTextures()
+    public IEnumerator DownloadTextures(string setName, string version, PyriteSetVersionDetailLevel detailLevel)
     {
+        DetailLevel = detailLevel;
+        TextureCount = (int)detailLevel.TextureSetSize.x * (int)detailLevel.TextureSetSize.y;
         foreach (var md in MaterialDataList)
         {
-            for (int texX = 0; texX < Query.TextureSubdivide; texX++)
-            {
-                for (int texY = 0; texY < Query.TextureSubdivide; texY++)
-                {
-                    var texPath = Query.TexturePath.Replace("{x}", texX.ToString())
-                        .Replace("{y}", texY.ToString());
-
-                    yield return ThreadPool.QueueUserWorkItem(new WaitCallback(StartDownloadTexture), texPath);
-                }
-            }
+            var texPath = Query.GetTexturePath(setName, version, detailLevel.Name, md.x, md.y);
+            md.diffuseTexPath = texPath;
+            yield return ThreadPool.QueueUserWorkItem(StartDownloadTexture, texPath);    
         }
-
-
     }
 
     private void StartDownloadTexture(object state)
@@ -80,94 +72,29 @@ public class TextureLoader {
         {
             foreach (var md in MaterialDataList)
             {
-                md.diffuseTexDivisions = Query.TextureSubdivide;
-                md.dividedDiffuseTex = new Texture2D[Query.TextureSubdivide, Query.TextureSubdivide];
-
-                for (int texX = 0; texX < Query.TextureSubdivide; texX++)
+                if (!textures.ContainsKey(md.diffuseTexPath))
                 {
-                    for (int texY = 0; texY < Query.TextureSubdivide; texY++)
-                    {
-                        var texPath = Query.TexturePath.Replace("{x}", texX.ToString())
-                        .Replace("{y}", texY.ToString());
-
-                        byte[] textureData = textureDataCache[texPath];
-
-                        Texture2D texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
-                        texture.LoadImage(textureData);
-                        Textures.Add(texPath, texture);
-
-                        md.dividedDiffuseTex[texX, texY] = texture;
-
-                        
-                    }
+                    byte[] textureData = textureDataCache[md.diffuseTexPath];
+                    Texture2D texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
+                    texture.LoadImage(textureData);
+                    textures.Add(md.diffuseTexPath, texture);
+                    md.diffuseTex = texture;
+                    materialCache[md.name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, md);
+                    yield return null;
                 }
-
-                materials = GetMaterial(md);
-                yield return null;
             }
         }
     }
 
-    public IEnumerator MapTextures(Cube cube)
+    public void MapTextures(Cube cube)
     {
         GameObject gameObject = cube.GameObject;
-        Renderer renderer = gameObject.GetComponent<Renderer>();
-
-        renderer.material = materials[0];
-                
-        yield return null;
-    }
-
-    private Material[] GetMaterial(MaterialData md)
-    {
-        Material[] m;
-
-        if (md.diffuseTexDivisions == 2)
+        if (gameObject != null)
         {
-            m = new Material[1];
-
-            m[0] = new Material(Shader.Find(("Custom/MPQuadShader")));
-
-            m[0].SetTexture("_MainTex", md.dividedDiffuseTex[0, 1]);
-            m[0].SetVector("_UVExtents", new Vector4(0f, 0f, 0.5f, 0.5f));
-
-            m[0].SetTexture("_MainTex2", md.dividedDiffuseTex[1, 1]);
-            m[0].SetVector("_UVExtents2", new Vector4(0.5f, 0f, 1f, 0.5f));
-
-            m[0].SetTexture("_MainTex3", md.dividedDiffuseTex[0, 0]);
-            m[0].SetVector("_UVExtents3", new Vector4(0f, 0.5f, 0.5f, 1f));
-
-            m[0].SetTexture("_MainTex4", md.dividedDiffuseTex[1, 0]);
-            m[0].SetVector("_UVExtents4", new Vector4(0.5f, 0.5f, 1f, 1f));
-
+            var textureCoord = DetailLevel.TextureCoordinatesForCube(cube.MapPosition.x,
+                cube.MapPosition.y);
+            Renderer renderer = gameObject.GetComponent<Renderer>();
+            renderer.materials = materialCache["material_" + (int) textureCoord.x + "_" + (int) textureCoord.y];
         }
-        else
-        {
-
-            // Use an unlit shader for the model if set
-            //if (UseUnlitShader)
-            //{
-            //    m = new Material[] { new Material(Shader.Find(("Unlit/Texture"))) };
-            //}
-            //else
-            //{
-                if (md.illumType == 2)
-                {
-                    m = new Material[] { new Material(Shader.Find("Specular")) };
-                    m[0].SetColor("_SpecColor", md.specular);
-                    m[0].SetFloat("_Shininess", md.shininess);
-                }
-                else
-                {
-                    m = new Material[] { new Material(Shader.Find("Diffuse")) };
-                }
-
-                m[0].SetColor("_Color", md.diffuse);
-            //}
-
-            if (md.diffuseTex != null)
-                m[0].SetTexture("_MainTex", md.diffuseTex);
-        }
-        return m;
     }
 }

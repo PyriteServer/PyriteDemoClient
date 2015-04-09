@@ -8,48 +8,31 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Threading;
+using Assets.Cube_Loader.src;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 public class CubeLoader : MonoBehaviour {
-    /* OBJ file tags */
-    private const string O = "o";
-    private const string G = "g";
-    private const string V = "v";
-    private const string VT = "vt";
-    private const string VN = "vn";
-    private const string F = "f";
-    private const string MTL = "mtllib";
-    private const string UML = "usemtl";
-
-    /* MTL file tags */
-    private const string NML = "newmtl";
-    private const string NS = "Ns"; // Shininess
-    private const string KA = "Ka"; // Ambient component (not supported)
-    private const string KD = "Kd"; // Diffuse component
-    private const string KS = "Ks"; // Specular component
-    private const string D = "d"; 	// Transparency (not supported)
-    private const string TR = "Tr";	// Same as 'd'
-    private const string ILLUM = "illum"; // Illumination model. 1 - diffuse, 2 - specular
-    private const string MAP_KD = "map_Kd"; // Diffuse texture (other textures are not supported)
-
-    private string basepath;
-    private string mtllib;
-    private string mtlOverride;
 
     private bool readyToBuild = false;
     private bool processTextures = true;
 
     private int cubeCount = -1;
-    private int cubesBuilt = 0;
     private int textureCount = 0;
 
-    public CubeQuery Query { get; private set; }
+    public PyriteQuery PyriteQuery { get; private set; }
+    public string PyriteServer;
+    public string SetName;
+    public string ModelVersion;
 
-    public string ObjectIndex;
-    public int Viewport = 1;
-    public bool UseUnlitShader = false;
-    public bool UseEbo = false;
+    public int DetailLevel = 6;
+    private string LOD
+    {
+        get { return "L" + DetailLevel; }
+    }
+
+    public bool UseUnlitShader = true;
+    public bool UseEbo = true;
     public Camera Camera;
 
     public bool UseCameraDetection = false;
@@ -58,35 +41,16 @@ public class CubeLoader : MonoBehaviour {
     public bool EnableDebugLogs = false;
     private readonly Stopwatch _sw = Stopwatch.StartNew();
 
-
     public GameObject PlaceHolderCube;
-
-
-    public int LOD0 = 2;
-    public int LOD1 = 4;
-    public int LOD2 = 6;
-
-    // caching
-    private readonly Dictionary<string, List<MaterialData>> materialDataCache = new Dictionary<string, List<MaterialData>>();
-    private readonly Dictionary<string, Texture2D> textureCache = new Dictionary<string, Texture2D>();
-    private readonly Dictionary<string, Material[]> materialCache = new Dictionary<string, Material[]>();
 
     //queuing
     private Queue<Cube> loadingQueue = new Queue<Cube>();
     private Queue<Cube> buildingQueue = new Queue<Cube>();
-    private Queue<Cube> materialQueue = new Queue<Cube>();
     private Queue<Cube> textureQueue = new Queue<Cube>();
-
-    private List<MaterialData> materialDataList = new List<MaterialData>();
-
 
     private Color[] colorList = { Color.gray, Color.yellow, Color.cyan };
 
-    private event EventHandler MeshCompleted;
-
     private TextureLoader textureLoader;
-
-    private LODGroup lodGroup;
 
     void DebugLog(string fmt, params object[] args)
     {
@@ -105,6 +69,17 @@ public class CubeLoader : MonoBehaviour {
 
     void Start()
     {
+        if (string.IsNullOrEmpty(SetName))
+        {
+            Debug.LogError("Must specify SetName");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(ModelVersion))
+        {
+            Debug.LogError("Must specify ModelVersion");
+            return;
+        }
         StartCoroutine(Load());
     }
 
@@ -115,96 +90,90 @@ public class CubeLoader : MonoBehaviour {
 
     public IEnumerator Load()
     {
-        lodGroup = gameObject.GetComponent<LODGroup>();
-
         // load the cube meta data
-        Query = new CubeQuery(ObjectIndex, this);
-        yield return StartCoroutine(Query.NewLoad());
-        yield return StartCoroutine(Query.LoadViewPorts());
+        PyriteQuery = new PyriteQuery(PyriteServer);
+        yield return StartCoroutine(PyriteQuery.Load());
 
-        mtlOverride = Query.MtlTemplate.Replace("{v}", Viewport.ToString());
+        var pyriteLevel =
+            PyriteQuery.Sets[SetName].Versions[ModelVersion].DetailLevels[LOD];
 
         // load the material files
-        yield return StartCoroutine(LoadMaterials());
-        //yield return StartCoroutine(ProcessTextures()); 
-        
+        // yield return StartCoroutine(LoadMaterials());
+
+        List<MaterialData> materialDataList = new List<MaterialData>();
+        LoadDefaultMaterials(pyriteLevel, materialDataList);
+
         // testing preloading the textures data on a background thread - by this point, we should have the data we need to start downloading
-        textureLoader = new TextureLoader(Query, materialDataList);
+        textureLoader = new TextureLoader(PyriteQuery, materialDataList, UseUnlitShader);
         textureLoader.DownloadCompleted += (s, e) =>
         {
             readyToBuild = true;
         };
 
-        yield return StartCoroutine(textureLoader.DownloadTextures());
-
-        var vlevel = Query.VLevels[Viewport];
-        var cubeMap = vlevel.CubeMap;
+        yield return StartCoroutine(textureLoader.DownloadTextures(SetName, ModelVersion, pyriteLevel));
 
         if (Camera != null || CameraRig != null)
         {
             Transform cTransform = Camera == null ? CameraRig.transform : Camera.transform;
+            DebugLog("Moving camera");
             // Hardcoding some values for now   
-            var x = vlevel.MinExtent.x + (vlevel.Size.x / 2.0f);
-            var y = vlevel.MinExtent.y + (vlevel.Size.y / 2.0f);
-            var z = vlevel.MinExtent.z + (vlevel.Size.z / 2.0f) + (vlevel.Size.z * 1.4f);
-            cTransform.position = new Vector3(x, y, z);
+            var newCameraPosition = pyriteLevel.WorldBoundsMin + (pyriteLevel.WorldBoundsSize) / 2.0f;
+            newCameraPosition += new Vector3(0, 0, pyriteLevel.WorldBoundsSize.z * 1.4f);
+            cTransform.position = newCameraPosition;
 
             cTransform.rotation = Quaternion.Euler(0, 180, 0);
-        }
 
-        int xMax = cubeMap.GetLength(0);
-        int yMax = cubeMap.GetLength(1);
-        int zMax = cubeMap.GetLength(2);
+            DebugLog("Done moving camera");
+        }
 
         int colorSelector = 0;
-        for (int x = 0; x < xMax; x++)
+        for (int i = 0; i < pyriteLevel.Cubes.Length; i++)
         {
-            for (int y = 0; y < yMax; y++)
+            int x = pyriteLevel.Cubes[i].X;
+            int y = pyriteLevel.Cubes[i].Y;
+            int z = pyriteLevel.Cubes[i].Z;
+            if (UseCameraDetection)
             {
-                for (int z = 0; z < zMax; z++)
-                {
-                    if (cubeMap[x, y, z])
-                    {
-                        if (UseCameraDetection)
-                        {
-                            float xPos = vlevel.MinExtent.x + vlevel.Size.x / xMax * x + vlevel.Size.x / xMax * 0.5f;
-                            float yPos = vlevel.MinExtent.y + vlevel.Size.y / yMax * y + vlevel.Size.y / yMax * 0.5f;
-                            float zPos = vlevel.MinExtent.z + vlevel.Size.z / zMax * z + vlevel.Size.z / zMax * 0.5f;
-                            GameObject g =
-                                (GameObject)
-                                //Instantiate(PlaceHolderCube, new Vector3(xPos, yPos, zPos), Quaternion.identity);
-                                    Instantiate(PlaceHolderCube, new Vector3(-xPos, zPos + 600, -yPos), Quaternion.identity);
+                float xPos = pyriteLevel.WorldBoundsMin.x + pyriteLevel.WorldBoundsSize.x / pyriteLevel.SetSize.x * x +
+                             pyriteLevel.WorldBoundsSize.x / pyriteLevel.SetSize.x * 0.5f;
+                float yPos = pyriteLevel.WorldBoundsMin.y + pyriteLevel.WorldBoundsSize.y / pyriteLevel.SetSize.y * y +
+                             pyriteLevel.WorldBoundsSize.y / pyriteLevel.SetSize.y * 0.5f;
+                float zPos = pyriteLevel.WorldBoundsMin.z + pyriteLevel.WorldBoundsSize.z / pyriteLevel.SetSize.z * z +
+                             pyriteLevel.WorldBoundsSize.z / pyriteLevel.SetSize.z * 0.5f;
+
+                GameObject g =
+                    (GameObject)
+                        Instantiate(PlaceHolderCube, new Vector3(-xPos, zPos + 600, -yPos), Quaternion.identity);
 
 
-                            g.transform.parent = gameObject.transform;
-                            g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector % 3];
-                            g.GetComponent<IsRendered>().SetCubePosition(x, y, z, Query, this);
+                g.transform.parent = gameObject.transform;
+                g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector % 3];
+                g.GetComponent<IsRendered>().SetCubePosition(x, y, z, PyriteQuery, this);
 
-                            //g.transform.localScale = new Vector3(vlevel.Size.x/xMax, vlevel.Size.y/yMax, vlevel.Size.z/zMax);
-                            g.transform.localScale = new Vector3(vlevel.Size.x / xMax, vlevel.Size.z / zMax, vlevel.Size.y / yMax);
-                            colorSelector++;
-                        }
-                        else
-                        {
-                            AddToQueue(new Cube() { MapPosition = new UnityEngine.Vector3(x, y, z), Query = Query });
-                        }
-                    }
-                }
+                g.transform.localScale = new Vector3(
+                    pyriteLevel.WorldBoundsSize.x / pyriteLevel.SetSize.x,
+                    pyriteLevel.WorldBoundsSize.z / pyriteLevel.SetSize.z,
+                    pyriteLevel.WorldBoundsSize.y / pyriteLevel.SetSize.y);
+                colorSelector++;
+            }
+            else
+            {
+                AddToQueue(new Cube() { MapPosition = new UnityEngine.Vector3(x, y, z), Query = PyriteQuery });
             }
         }
+
         yield return null;
     }
 
-    private IEnumerator LoadMaterials()
+    private void LoadDefaultMaterials(PyriteSetVersionDetailLevel detailLevel, List<MaterialData> materiaDatas)
     {
-        RestClient client = new RestClient(mtlOverride);
-        RestRequest request = new RestRequest(Method.GET);
-        RestRequestAsyncHandle handle = client.ExecuteAsync(request, (r, h) => {
-            SetMaterialData(r.Content, materialDataList);
-        });
-
-        while(!handle.WebRequest.HaveResponse)
-            yield return null;
+        for (int textureX = 0; textureX < detailLevel.TextureSetSize.x; textureX++)
+        {
+            for (int textureY = 0; textureY < detailLevel.TextureSetSize.y; textureY++)
+            {
+                CubeBuilderHelpers.SetDefaultMaterialData(materiaDatas, textureX, textureY);
+            }
+        }
     }
 
     public void AddToQueue(Cube cube)
@@ -219,19 +188,12 @@ public class CubeLoader : MonoBehaviour {
     public IEnumerator ProcessQueue()
     {
         yield return StartCoroutine(ProcessLoadQueue());
-        //yield return StartCoroutine(ProcessBuildQueue());
 
         if (readyToBuild)
         {
             yield return StartCoroutine(textureLoader.CreateTexturesAndMaterials());
             yield return StartCoroutine(ProcessBuildQueue());
         }
-
-        //if(cubesBuilt == cubeCount)
-        //{
-        //    yield return StartCoroutine(textureLoader.CreateTexturesAndMaterials());
-        //    yield return StartCoroutine(ProcessTextureQueue());
-        //}
     }
 
     private IEnumerator ProcessLoadQueue()
@@ -250,7 +212,7 @@ public class CubeLoader : MonoBehaviour {
             Cube cube = buildingQueue.Dequeue();
 
             yield return StartCoroutine(BuildCube(cube));
-            yield return StartCoroutine(textureLoader.MapTextures(cube));
+            textureLoader.MapTextures(cube);
             DebugLog("Done building: {0} {1} {2}", cube.MapPosition.x, cube.MapPosition.y, cube.MapPosition.z);
         }
     }
@@ -264,16 +226,11 @@ public class CubeLoader : MonoBehaviour {
 
         Debug.Log(string.Format("+LoadCube({0}_{1}_{2})", cube.MapPosition.x, cube.MapPosition.y, cube.MapPosition.z));
 
-        var objectLocationFormat = cube.Query.CubeTemplate.Replace("{x}", "{0}")
-            .Replace("{y}", "{1}")
-                .Replace("{z}", "{2}")
-                .Replace("{v}", Viewport.ToString());
-
-        String path = string.Format(objectLocationFormat, x, y, z);
+        var modelPath = PyriteQuery.GetModelPath(SetName, ModelVersion, LOD, (int)x, (int)y, (int)z);
 
         if(UseEbo)
         {
-            ProcessEbo(path, cube);
+            ProcessEbo(modelPath, cube);
         }
     }
 
@@ -292,86 +249,12 @@ public class CubeLoader : MonoBehaviour {
             if(r.RawBytes !=null)
             {
                 buffer.eboBuffer = r.RawBytes;
-                mtllib = "model.mtl";
-
                 cube.Buffer = buffer;
                 
                 buildingQueue.Enqueue(cube);
                 textureQueue.Enqueue(cube);
             }
         });
-    }
-
-    private void ProcessObj()
-    {
-
-    }
-
-    private void ProcessMaterials(Cube cube)
-    {
-        RestClient client = new RestClient(mtlOverride);
-        RestRequest request = new RestRequest(Method.GET);
-
-        client.ExecuteAsync(request, (r, h) =>
-        {
-            if(!materialCache.ContainsKey(mtllib))
-            {
-
-            }
-
-            SetMaterialData(r.Content, cube.MaterialData);
-
-            buildingQueue.Enqueue(cube);
-        });
-    }
-
-    private void SetMaterialData(string data, List<MaterialData> materialData)
-    {
-        string[] lines = data.Split("\n".ToCharArray());
-
-        MaterialData current = new MaterialData();
-        current.diffuseTexDivisions = 1;
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            string l = lines[i];
-
-            if (l.IndexOf("#") != -1)
-                l = l.Substring(0, l.IndexOf("#"));
-            string[] p = l.Split(" ".ToCharArray());
-
-            switch (p[0])
-            {
-                case NML:
-                    current = new MaterialData();
-                    current.name = p[1].Trim();
-                    materialData.Add(current);
-                    break;
-                case KA:
-                    current.ambient = gc(p);
-                    break;
-                case KD:
-                    current.diffuse = gc(p);
-                    break;
-                case KS:
-                    current.specular = gc(p);
-                    break;
-                case NS:
-                    current.shininess = cf(p[1]) / 1000;
-                    break;
-                case D:
-                case TR:
-                    current.alpha = cf(p[1]);
-                    break;
-                case MAP_KD:
-                    current.diffuseTexPath = p[1].Trim();
-                    break;
-                case ILLUM:
-                    current.illumType = ci(p[1]);
-                    break;
-
-            }
-        }
     }
 
     private byte[] DecompressBytes(byte[] rawBytes)
@@ -390,77 +273,6 @@ public class CubeLoader : MonoBehaviour {
         }
     }
 
-    private void SetGeometryData(string data, GeometryBuffer buffer)
-    {
-        string[] lines = data.Split("\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            string l = lines[i].Trim();
-
-            if (l.IndexOf("#") != -1)
-                l = l.Substring(0, l.IndexOf("#"));
-            string[] p = l.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-            if (p.Length > 1)
-            {
-                switch (p[0])
-                {
-                    case O:
-                        buffer.PushObject(p[1].Trim());
-                        break;
-                    case G:
-                        buffer.PushGroup(p[1].Trim());
-                        break;
-                    case V:
-                        buffer.PushVertex(new Vector3(cf(p[1]), cf(p[2]), cf(p[3])));
-                        break;
-                    case VT:
-                        buffer.PushUV(new Vector2(cf(p[1]), cf(p[2])));
-                        break;
-                    case VN:
-                        buffer.PushNormal(new Vector3(cf(p[1]), cf(p[2]), cf(p[3])));
-                        break;
-                    case F:
-                        for (int j = 1; j < p.Length; j++)
-                        {
-                            string[] c = p[j].Trim().Split("/".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                            FaceIndices fi = new FaceIndices();
-                            fi.vi = ci(c[0]) - 1;
-                            if (c.Length > 1 && c[1] != "")
-                                fi.vu = ci(c[1]) - 1;
-                            if (c.Length > 2 && c[2] != "")
-                                fi.vn = ci(c[2]) - 1;
-                            buffer.PushFace(fi);
-                        }
-                        break;
-                    case MTL:
-                        mtllib = p[1].Trim();
-                        break;
-                    case UML:
-                        buffer.PushMaterialName(p[1].Trim());
-                        break;
-                }
-            }
-        }
-
-        // buffer.Trace();
-    }
-    
-    private float cf(string v)
-    {
-        return Convert.ToSingle(v.Trim(), new CultureInfo("en-US"));
-    }
-
-    private int ci(string v)
-    {
-        return Convert.ToInt32(v.Trim(), new CultureInfo("en-US"));
-    }
-
-    private Color gc(string[] p)
-    {
-        return new Color(cf(p[1]), cf(p[2]), cf(p[3]));
-    }
-
     private IEnumerator BuildCube(Cube cube)
     {
         GameObject[] ms = new GameObject[cube.Buffer.numObjects];
@@ -477,7 +289,6 @@ public class CubeLoader : MonoBehaviour {
 
         cube.GameObject = ms[0];
         cube.Buffer.PopulateMeshes(ms);
-        cubesBuilt++;
         yield return null;
     }
 }

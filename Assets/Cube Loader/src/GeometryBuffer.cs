@@ -1,3 +1,4 @@
+	using System;
 	using UnityEngine;
 	using System.Collections;
 	using System.Collections.Generic;
@@ -117,7 +118,7 @@ using System.IO;
 		public bool hasUVs { get { return uvs.Count > 0; } }
 		public bool hasNormals { get { return normals.Count > 0; } }
 
-		public void PopulateMeshes(GameObject[] gs, Dictionary<string, Material[]> mats) 
+		public void PopulateMeshes(GameObject[] gs, Dictionary<string, Material[]> mats = null) 
 		{
 			if (eboBuffer == null)
 			{
@@ -129,90 +130,8 @@ using System.IO;
 			}
 		}
 
-        public void PopulateMeshes(GameObject[] gs)
-        {
-            if (eboBuffer == null)
-            {
-                //PopulateMeshesObj(gs, mats);
-            }
-            else
-            {
-                PopulateMeshesEbo(gs);
-            }
-        }
-
-        public void PopulateMeshesEbo(GameObject[] gs)
-        {
-
-            int vertexCount;
-            Vector3[] tvertices;
-            Vector2[] tuvs;
-            int[] triangles;
-            using (var s = new MemoryStream(eboBuffer))
-            using (var br = new BinaryReader(s))
-            {
-                // File is prefixed with face count, times 3 for vertices
-                vertexCount = br.ReadUInt16() * 3;
-
-                tvertices = new Vector3[vertexCount];
-                tuvs = new Vector2[vertexCount];
-                triangles = new int[vertexCount];
-
-                for (int i = 0; i < vertexCount; i++)
-                {
-                    triangles[i] = i;
-
-                    switch ((int)br.ReadByte())
-                    {
-                        case (0):
-                            int bufferIndex = (int)br.ReadUInt32();
-                            tvertices[i] = tvertices[bufferIndex];
-                            tuvs[i] = tuvs[bufferIndex];
-                            break;
-                        case (64):
-                            bufferIndex = (int)br.ReadUInt32();
-                            tvertices[i] = tvertices[bufferIndex];
-                            tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
-                            break;
-                        case (128):
-                            throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
-                        case (255):
-                            tvertices[i] = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
-                            tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
-                            break;
-                    }
-                }
-
-            }
-
-            Mesh m = (gs[0].GetComponent(typeof(MeshFilter)) as MeshFilter).mesh;
-            // RPL HACK FIX
-            for (int i = 0; i < tvertices.Length; i++)
-            {
-                Vector3 t = new Vector3(-tvertices[i].x, tvertices[i].z + 600, -tvertices[i].y);
-                tvertices[i] = t;
-            }
-            for (int i = 0; i < triangles.Length; i += 3)
-            {
-                int t0 = triangles[i];
-                int t1 = triangles[i + 1];
-                int t2 = triangles[i + 2];
-
-                triangles[i] = t0;
-                triangles[i + 1] = t2;
-                triangles[i + 2] = t1;
-            }
-            // END HACK  
-            m.vertices = tvertices;
-            m.uv = tuvs;
-            m.triangles = triangles;
-            GroupData gd = objects[0].groups[0];
-            m.RecalculateNormals();
-        }
-
         public void PopulateMeshesEbo(GameObject[] gs, Dictionary<string, Material[]> mats)
         {
-
             int vertexCount;
             Vector3[] tvertices;
             Vector2[] tuvs;
@@ -230,25 +149,32 @@ using System.IO;
                 for (int i = 0; i < vertexCount; i++)
                 {
                     triangles[i] = i;
-
-                    switch ((int)br.ReadByte())
+                    try
                     {
-                        case (0):
-                            int bufferIndex = (int)br.ReadUInt32();
-                            tvertices[i] = tvertices[bufferIndex];
-                            tuvs[i] = tuvs[bufferIndex];
-                            break;
-                        case (64):
-                            bufferIndex = (int)br.ReadUInt32();
-                            tvertices[i] = tvertices[bufferIndex];
-                            tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
-                            break;
-                        case (128):
-                            throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
-                        case (255):
-                            tvertices[i] = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
-                            tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
-                            break;
+                        switch ((int) br.ReadByte())
+                        {
+                            case (0):
+                                int bufferIndex = (int) br.ReadUInt32();
+                                tvertices[i] = tvertices[bufferIndex];
+                                tuvs[i] = tuvs[bufferIndex];
+                                break;
+                            case (64):
+                                bufferIndex = (int) br.ReadUInt32();
+                                tvertices[i] = tvertices[bufferIndex];
+                                tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
+                                break;
+                            case (128):
+                                throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
+                            case (255):
+                                tvertices[i] = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+                                tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
+                                break;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        Debug.Log("Failure with : "+ vertexCount);
+                        throw;
                     }
                 }
 
@@ -278,18 +204,20 @@ using System.IO;
             m.uv = tuvs;
             m.triangles = triangles;
             // m.RecalculateNormals();
-
-            GroupData gd = objects[0].groups[0];
-
-            if (gd.materialName == null)
+            if (mats != null)
             {
-                Dictionary<string, Material[]>.KeyCollection.Enumerator keys = mats.Keys.GetEnumerator();
-                keys.MoveNext();
-                gd.materialName = keys.Current;
-            }
+                GroupData gd = objects[0].groups[0];
 
-            Renderer renderer = gs[0].GetComponent<Renderer>();
-            renderer.materials = mats[gd.materialName];
+                if (gd.materialName == null)
+                {
+                    Dictionary<string, Material[]>.KeyCollection.Enumerator keys = mats.Keys.GetEnumerator();
+                    keys.MoveNext();
+                    gd.materialName = keys.Current;
+                }
+
+                Renderer renderer = gs[0].GetComponent<Renderer>();
+                renderer.materials = mats[gd.materialName];
+            }
         }
 
 		public void PopulateMeshesObj(GameObject[] gs, Dictionary<string, Material[]> mats) {
