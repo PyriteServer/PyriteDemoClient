@@ -25,6 +25,7 @@ namespace Assets.Cube_Loader.src
         private const string SetSizeKey = "setSize";
         private const string TextureSetSizeKey = "textureSetSize";
         private const string WorldBoundsKey = "worldBounds";
+        private const string WorldCubeScaleKey = "worldCubeScale";
         private const string MaxKey = "max";
         private const string MinKey = "min";
         private const string XKey = "x";
@@ -130,6 +131,11 @@ namespace Assets.Cube_Loader.src
                             parsedDetailLevels[k][WorldBoundsKey][MinKey][ZKey].AsFloat
                             );
 
+                        detailLevel.WorldCubeScale = new Vector3(
+                            parsedDetailLevels[k][WorldCubeScaleKey][XKey].AsFloat,
+                            parsedDetailLevels[k][WorldCubeScaleKey][YKey].AsFloat,
+                            parsedDetailLevels[k][WorldCubeScaleKey][ZKey].AsFloat);
+
                         detailLevel.WorldBoundsSize =
                             detailLevel.WorldBoundsMax -
                             detailLevel.WorldBoundsMin;
@@ -154,6 +160,7 @@ namespace Assets.Cube_Loader.src
                             Debug.LogError("Failure getting cube query against: " + cubesUrl);
                             yield break;
                         }
+
                         var parsedCubes = parsedContent[ResultKey].AsArray;
                         detailLevel.Cubes = new PyriteCube[parsedCubes.Count];
                         for (int l = 0; l < detailLevel.Cubes.Length; l++)
@@ -202,6 +209,7 @@ namespace Assets.Cube_Loader.src
         public Vector3 WorldBoundsMax { get; set; }
         public Vector3 WorldBoundsMin { get; set; }
         public Vector3 WorldBoundsSize { get; set; }
+        public Vector3 WorldCubeScale { get; set; }
         public PyriteCube[] Cubes { get; set; }
 
         public Vector2 TextureCoordinatesForCube(float cubeX, float cubeY)

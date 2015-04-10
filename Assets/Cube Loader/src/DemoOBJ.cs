@@ -121,12 +121,12 @@ public class DemoOBJ : MonoBehaviour
             int z = pyriteLevel.Cubes[i].Z;
             if (UseCameraDetection)
             {
-                float xPos = pyriteLevel.WorldBoundsMin.x + pyriteLevel.WorldBoundsSize.x/pyriteLevel.SetSize.x*x +
-                             pyriteLevel.WorldBoundsSize.x/pyriteLevel.SetSize.x*0.5f;
-                float yPos = pyriteLevel.WorldBoundsMin.y + pyriteLevel.WorldBoundsSize.y/pyriteLevel.SetSize.y*y +
-                             pyriteLevel.WorldBoundsSize.y/pyriteLevel.SetSize.y*0.5f;
-                float zPos = pyriteLevel.WorldBoundsMin.z + pyriteLevel.WorldBoundsSize.z/pyriteLevel.SetSize.z*z +
-                             pyriteLevel.WorldBoundsSize.z/pyriteLevel.SetSize.z*0.5f;
+                float xPos = pyriteLevel.WorldBoundsMin.x + pyriteLevel.WorldCubeScale.x * x +
+                             pyriteLevel.WorldCubeScale.x * 0.5f;
+                float yPos = pyriteLevel.WorldBoundsMin.y + pyriteLevel.WorldCubeScale.y * y +
+                             pyriteLevel.WorldCubeScale.y * 0.5f;
+                float zPos = pyriteLevel.WorldBoundsMin.z + pyriteLevel.WorldCubeScale.z * z +
+                             pyriteLevel.WorldCubeScale.z * 0.5f;
 
                 GameObject g =
                     (GameObject)
@@ -138,9 +138,9 @@ public class DemoOBJ : MonoBehaviour
                 g.GetComponent<IsRendered>().SetCubePosition(x, y, z, pyriteQuery, this);
 
                 g.transform.localScale = new Vector3(
-                    pyriteLevel.WorldBoundsSize.x/pyriteLevel.SetSize.x,
-                    pyriteLevel.WorldBoundsSize.z/pyriteLevel.SetSize.z,
-                    pyriteLevel.WorldBoundsSize.y/pyriteLevel.SetSize.y);
+                    pyriteLevel.WorldCubeScale.x,
+                    pyriteLevel.WorldCubeScale.z,
+                    pyriteLevel.WorldCubeScale.y);
                 colorSelector++;
             }
             else
