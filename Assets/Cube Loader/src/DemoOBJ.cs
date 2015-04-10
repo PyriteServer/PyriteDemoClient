@@ -35,16 +35,6 @@ public class DemoOBJ : MonoBehaviour
 
     private Color[] colorList = {Color.gray, Color.yellow, Color.cyan};
 
-    /* OBJ file tags */
-    private const string O = "o";
-    private const string G = "g";
-    private const string V = "v";
-    private const string VT = "vt";
-    private const string VN = "vn";
-    private const string F = "f";
-    private const string MTL = "mtllib";
-    private const string UML = "usemtl";
-
     /* MTL file tags */
     private const string NML = "newmtl";
     private const string NS = "Ns"; // Shininess
@@ -163,14 +153,28 @@ public class DemoOBJ : MonoBehaviour
         List<MaterialData> materialData = new List<MaterialData>();
 
         WWW loader;
-        loader = WWWExtensions.CreateWWW(path: modelPath);
-        yield return loader;
-        if (!string.IsNullOrEmpty(loader.error))
+        if (!UseEbo)
         {
-            Debug.LogError(loader.error);
-            yield break;
+            loader = WWWExtensions.CreateWWW(path: modelPath + "?fmt=obj");
+            yield return loader;
+            if (!string.IsNullOrEmpty(loader.error))
+            {
+                Debug.LogError(loader.error);
+                yield break;
+            }
+            CubeBuilderHelpers.SetGeometryData(loader.GetDecompressedText(), buffer);
         }
-        buffer.eboBuffer = loader.GetDecompressedBytes();
+        else
+        {
+            loader = WWWExtensions.CreateWWW(path: modelPath);
+            yield return loader;
+            if (!string.IsNullOrEmpty(loader.error))
+            {
+                Debug.LogError(loader.error);
+                yield break;
+            }
+            buffer.eboBuffer = loader.GetDecompressedBytes();
+        }
         var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(x, y);
         var materialDataKey = string.Format("model.mtl_{0}_{1}", textureCoordinates.x, textureCoordinates.y);
         if (!materialDataCache.ContainsKey(materialDataKey))
@@ -218,65 +222,6 @@ public class DemoOBJ : MonoBehaviour
         materialData = materialDataCache[materialDataKey];
         Build(buffer, materialData, x, y, z, registerCreatedObjects);
         DebugLog("-LoadCube({0}_{1}_{2})", x, y, z);
-    }
-
-    private void SetGeometryData(string data, GeometryBuffer buffer)
-    {
-        string[] lines = data.Split("\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            string l = lines[i].Trim();
-
-            if (l.IndexOf("#") != -1)
-                l = l.Substring(0, l.IndexOf("#"));
-            string[] p = l.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-            if (p.Length > 1)
-            {
-                switch (p[0])
-                {
-                    case O:
-                        buffer.PushObject(p[1].Trim());
-                        break;
-                    case G:
-                        buffer.PushGroup(p[1].Trim());
-                        break;
-                    case V:
-                        buffer.PushVertex(new Vector3(
-                            CubeBuilderHelpers.cf(p[1]), 
-                            CubeBuilderHelpers.cf(p[2]), 
-                            CubeBuilderHelpers.cf(p[3]))
-                            );
-                        break;
-                    case VT:
-                        buffer.PushUV(new Vector2(CubeBuilderHelpers.cf(p[1]), CubeBuilderHelpers.cf(p[2])));
-                        break;
-                    case VN:
-                        buffer.PushNormal(new Vector3(CubeBuilderHelpers.cf(p[1]), CubeBuilderHelpers.cf(p[2]), CubeBuilderHelpers.cf(p[3])));
-                        break;
-                    case F:
-                        for (int j = 1; j < p.Length; j++)
-                        {
-                            string[] c = p[j].Trim().Split("/".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                            FaceIndices fi = new FaceIndices();
-                            fi.vi = CubeBuilderHelpers.ci(c[0]) - 1;
-                            if (c.Length > 1 && c[1] != "")
-                                fi.vu = CubeBuilderHelpers.ci(c[1]) - 1;
-                            if (c.Length > 2 && c[2] != "")
-                                fi.vn = CubeBuilderHelpers.ci(c[2]) - 1;
-                            buffer.PushFace(fi);
-                        }
-                        break;
-                    case MTL:
-                        // mtllib = p[1].Trim();
-                        break;
-                    case UML:
-                        buffer.PushMaterialName(p[1].Trim());
-                        break;
-                }
-            }
-        }
-        // buffer.Trace();
     }
 
     private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, Action<GameObject[]> registerCreatedObjects)

@@ -228,16 +228,40 @@ public class CubeLoader : MonoBehaviour {
 
         var modelPath = PyriteQuery.GetModelPath(SetName, ModelVersion, LOD, (int)x, (int)y, (int)z);
 
-        if(UseEbo)
+        if (UseEbo)
         {
             ProcessEbo(modelPath, cube);
         }
+        else
+        {
+            ProcessObj(modelPath, cube);
+        }
     }
 
-    private void ProcessEbo(string path, Cube cube)
+    private void ProcessObj(string eboPath, Cube cube)
     {
-        var eboPath = path.Replace(".obj", ".ebo");
+        var objpath = eboPath + "?fmt=obj";
+        GeometryBuffer buffer = new GeometryBuffer();
+        cube.MaterialData = new List<MaterialData>();
 
+        RestClient client = new RestClient(objpath);
+        RestRequest request = new RestRequest(Method.GET);
+        request.AddHeader("Accept-Encoding", "gzip, deflate");
+        client.ExecuteAsync(request, (r, h) =>
+        {
+            if (r.Content != null)
+            {
+                CubeBuilderHelpers.SetGeometryData(r.Content, buffer);
+                cube.Buffer = buffer;
+
+                buildingQueue.Enqueue(cube);
+                textureQueue.Enqueue(cube);
+            }
+        });
+    }
+
+    private void ProcessEbo(string eboPath, Cube cube)
+    {
         GeometryBuffer buffer = new GeometryBuffer();
         cube.MaterialData = new List<MaterialData>();
 
