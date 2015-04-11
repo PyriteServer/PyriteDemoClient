@@ -23,14 +23,8 @@ public class CubeLoader : MonoBehaviour {
     public PyriteQuery PyriteQuery { get; private set; }
     public string PyriteServer;
     public string SetName;
-    public string ModelVersion;
 
     public int DetailLevel = 6;
-    private string LOD
-    {
-        get { return "L" + DetailLevel; }
-    }
-
     public bool UseUnlitShader = true;
     public bool UseEbo = true;
     public Camera Camera;
@@ -51,6 +45,8 @@ public class CubeLoader : MonoBehaviour {
     private Color[] colorList = { Color.gray, Color.yellow, Color.cyan };
 
     private TextureLoader textureLoader;
+
+    private const string ModelVersion = "V1";
 
     void DebugLog(string fmt, params object[] args)
     {
@@ -91,11 +87,11 @@ public class CubeLoader : MonoBehaviour {
     public IEnumerator Load()
     {
         // load the cube meta data
-        PyriteQuery = new PyriteQuery(PyriteServer);
+        PyriteQuery = new PyriteQuery(SetName,ModelVersion, PyriteServer);
         yield return StartCoroutine(PyriteQuery.Load());
 
         var pyriteLevel =
-            PyriteQuery.Sets[SetName].Versions[ModelVersion].DetailLevels[LOD];
+            PyriteQuery.Set.Version.DetailLevels[DetailLevel];
 
         // load the material files
         // yield return StartCoroutine(LoadMaterials());
@@ -110,7 +106,7 @@ public class CubeLoader : MonoBehaviour {
             readyToBuild = true;
         };
 
-        yield return StartCoroutine(textureLoader.DownloadTextures(SetName, ModelVersion, pyriteLevel));
+        yield return StartCoroutine(textureLoader.DownloadTextures(pyriteLevel));
 
         if (Camera != null || CameraRig != null)
         {
@@ -134,21 +130,17 @@ public class CubeLoader : MonoBehaviour {
             int z = pyriteLevel.Cubes[i].Z;
             if (UseCameraDetection)
             {
-                float xPos = pyriteLevel.WorldBoundsMin.x + pyriteLevel.WorldCubeScale.x * x +
-                             pyriteLevel.WorldCubeScale.x * 0.5f;
-                float yPos = pyriteLevel.WorldBoundsMin.y + pyriteLevel.WorldCubeScale.y * y +
-                             pyriteLevel.WorldCubeScale.y * 0.5f;
-                float zPos = pyriteLevel.WorldBoundsMin.z + pyriteLevel.WorldCubeScale.z * z +
-                             pyriteLevel.WorldCubeScale.z * 0.5f;
+                var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pyriteLevel.Cubes[i]);
 
+                // Move cube to the orientation we want also move it up since the model is around -600
                 GameObject g =
                     (GameObject)
-                        Instantiate(PlaceHolderCube, new Vector3(-xPos, zPos + 600, -yPos), Quaternion.identity);
+                        Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + 600, -cubePos.y), Quaternion.identity);
 
 
                 g.transform.parent = gameObject.transform;
                 g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector%3];
-                g.GetComponent<IsRendered>().SetCubePosition(x, y, z, PyriteQuery, this);
+                g.GetComponent<IsRendered>().SetCubePosition(x, y, z, DetailLevel, PyriteQuery, this);
 
                 g.transform.localScale = new Vector3(
                     pyriteLevel.WorldCubeScale.x,
@@ -158,7 +150,7 @@ public class CubeLoader : MonoBehaviour {
             }
             else
             {
-                AddToQueue(new Cube() { MapPosition = new UnityEngine.Vector3(x, y, z), Query = PyriteQuery });
+                AddToQueue(new Cube() { MapPosition = new UnityEngine.Vector3(x, y, z), Query = PyriteQuery , LOD = DetailLevel});
             }
         }
 
@@ -226,7 +218,7 @@ public class CubeLoader : MonoBehaviour {
 
         Debug.Log(string.Format("+LoadCube({0}_{1}_{2})", cube.MapPosition.x, cube.MapPosition.y, cube.MapPosition.z));
 
-        var modelPath = PyriteQuery.GetModelPath(SetName, ModelVersion, LOD, (int)x, (int)y, (int)z);
+        var modelPath = PyriteQuery.GetModelPath(DetailLevel, (int)x, (int)y, (int)z);
 
         if (UseEbo)
         {

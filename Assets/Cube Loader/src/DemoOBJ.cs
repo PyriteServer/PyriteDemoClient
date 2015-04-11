@@ -15,13 +15,8 @@ public class DemoOBJ : MonoBehaviour
     public bool UseUnlitShader = false;
     public bool UseEbo = true;
     public string SetName;
-    public string ModelVersion = "V1";
+    
     public string PyriteServer;
-
-    private string LOD
-    {
-        get { return "L" + DetailLevel; }
-    }
 
     public bool EnableDebugLogs = false;
 
@@ -34,6 +29,8 @@ public class DemoOBJ : MonoBehaviour
     public GameObject CameraRig;
 
     private Color[] colorList = {Color.gray, Color.yellow, Color.cyan};
+
+    int colorSelector = 0;
 
     /* MTL file tags */
     private const string NML = "newmtl";
@@ -49,6 +46,8 @@ public class DemoOBJ : MonoBehaviour
     private readonly Dictionary<string, List<MaterialData>> materialDataCache = new Dictionary<string, List<MaterialData>>();
     private readonly Dictionary<string, Texture2D> textureCache = new Dictionary<string, Texture2D>();
     private readonly Dictionary<string, Material[]> materialCache = new Dictionary<string, Material[]>();
+
+    private const string ModelVersion = "V1";
 
     void DebugLog(string fmt, params object[] args)
     {
@@ -83,12 +82,12 @@ public class DemoOBJ : MonoBehaviour
     {
         DebugLog("+Load()");
 
-        PyriteQuery pyriteQuery = new PyriteQuery(PyriteServer);
+        PyriteQuery pyriteQuery = new PyriteQuery(SetName, ModelVersion, PyriteServer);
         yield return StartCoroutine(pyriteQuery.Load());
         DebugLog("CubeQuery complete.");
         
         var pyriteLevel =
-            pyriteQuery.Sets[SetName].Versions[ModelVersion].DetailLevels[LOD];
+            pyriteQuery.Set.Version.DetailLevels[DetailLevel];
 
         if (CameraRig != null)
         {
@@ -103,29 +102,22 @@ public class DemoOBJ : MonoBehaviour
             DebugLog("Done moving camera");
         }
 
-        int colorSelector = 0;
         for (int i = 0; i < pyriteLevel.Cubes.Length; i++)
         {
             int x = pyriteLevel.Cubes[i].X;
             int y = pyriteLevel.Cubes[i].Y;
             int z = pyriteLevel.Cubes[i].Z;
+            var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pyriteLevel.Cubes[i]);
             if (UseCameraDetection)
             {
-                float xPos = pyriteLevel.WorldBoundsMin.x + pyriteLevel.WorldCubeScale.x * x +
-                             pyriteLevel.WorldCubeScale.x * 0.5f;
-                float yPos = pyriteLevel.WorldBoundsMin.y + pyriteLevel.WorldCubeScale.y * y +
-                             pyriteLevel.WorldCubeScale.y * 0.5f;
-                float zPos = pyriteLevel.WorldBoundsMin.z + pyriteLevel.WorldCubeScale.z * z +
-                             pyriteLevel.WorldCubeScale.z * 0.5f;
-
+                // Move cube to the orientation we want also move it up since the model is around -600
                 GameObject g =
                     (GameObject)
-                        Instantiate(PlaceHolderCube, new Vector3(-xPos, zPos + 600, -yPos), Quaternion.identity);
-
+                        Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + 600, -cubePos.y), Quaternion.identity);
 
                 g.transform.parent = gameObject.transform;
                 g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector%3];
-                g.GetComponent<IsRendered>().SetCubePosition(x, y, z, pyriteQuery, this);
+                g.GetComponent<IsRendered>().SetCubePosition(x, y, z, DetailLevel, pyriteQuery, this);
 
                 g.transform.localScale = new Vector3(
                     pyriteLevel.WorldCubeScale.x,
@@ -135,19 +127,66 @@ public class DemoOBJ : MonoBehaviour
             }
             else
             {
-                StartCoroutine(LoadCube(pyriteQuery, x, y, z));
+                StartCoroutine(LoadCube(pyriteQuery, x, y, z, DetailLevel));
             }
         }
 
         DebugLog("-Load()");
     }
 
-    public IEnumerator LoadCube(PyriteQuery query, int x, int y, int z, Action<GameObject[]> registerCreatedObjects = null)
+    public IEnumerator AddUpgradedDetectorCubes(PyriteQuery pyriteQuery, int x, int y, int z, int lod,
+        Action<IEnumerable<GameObject>> registerCreatedDetectorCubes)
     {
-        DebugLog("+LoadCube({0}_{1}_{2})", x, y, z);
-        var modelPath = query.GetModelPath(SetName, ModelVersion, LOD, x, y, z);
+        int newLod = lod - 1;
+        List<GameObject> createdDetectors = new List<GameObject>();
+        var pyriteLevel = pyriteQuery.Set.Version.DetailLevels[newLod];
+
+        var cubeFactor = pyriteQuery.GetNextCubeFactor(lod);
+        for (int ix = x*(int) cubeFactor.x; ix < (x + 1)*cubeFactor.x; ix++)
+        {
+            for (int iy = y*(int) cubeFactor.y; iy < (y + 1)*cubeFactor.y; iy++)
+            {
+                for (int iz = z*(int) cubeFactor.z; iz < (z + 1)*cubeFactor.z; iz++)
+                {
+                    var possibleNewCube = new PyriteCube()
+                    {
+                        X = ix,
+                        Y = iy,
+                        Z = iz
+                    };
+
+                    if (
+                        pyriteQuery.Set.Version.DetailLevels[lod - 1].Cubes.Contains(possibleNewCube))
+                    {
+                        var cubePos = pyriteLevel.GetWorldCoordinatesForCube(possibleNewCube);
+                        GameObject g =
+                         (GameObject)
+                             Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + 600, -cubePos.y), Quaternion.identity);
+
+                        g.transform.parent = gameObject.transform;
+                        g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector % 3];
+                        g.GetComponent<IsRendered>().SetCubePosition(ix, iy, iz, newLod, pyriteQuery, this);
+
+                        g.transform.localScale = new Vector3(
+                            pyriteLevel.WorldCubeScale.x,
+                            pyriteLevel.WorldCubeScale.z,
+                            pyriteLevel.WorldCubeScale.y);
+                        colorSelector++;
+                        createdDetectors.Add(g);
+                    }
+                }
+            }
+        }
+        registerCreatedDetectorCubes(createdDetectors);
+        yield break;
+    }
+
+    public IEnumerator LoadCube(PyriteQuery query, int x, int y, int z, int lod, Action<GameObject[]> registerCreatedObjects = null)
+    {
+        DebugLog("+LoadCube(L{3}:{0}_{1}_{2})", x, y, z, lod);
+        var modelPath = query.GetModelPath(lod, x, y, z);
         var pyriteLevel =
-            query.Sets[SetName].Versions[ModelVersion].DetailLevels[LOD];
+            query.Set.Version.DetailLevels[lod];
 
         GeometryBuffer buffer = new GeometryBuffer();
         List<MaterialData> materialData = new List<MaterialData>();
@@ -185,7 +224,7 @@ public class DemoOBJ : MonoBehaviour
             foreach (MaterialData m in materialData)
             {
 
-                var texturePath = query.GetTexturePath(SetName, ModelVersion, LOD, (int)textureCoordinates.x,
+                var texturePath = query.GetTexturePath(query.GetLODKey(lod), (int)textureCoordinates.x,
                     (int)textureCoordinates.y);
                 if (!textureCache.ContainsKey(texturePath))
                 {
@@ -220,11 +259,11 @@ public class DemoOBJ : MonoBehaviour
             yield return null;
         }
         materialData = materialDataCache[materialDataKey];
-        Build(buffer, materialData, x, y, z, registerCreatedObjects);
+        Build(buffer, materialData, x, y, z, lod, registerCreatedObjects);
         DebugLog("-LoadCube({0}_{1}_{2})", x, y, z);
     }
 
-    private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, Action<GameObject[]> registerCreatedObjects)
+    private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, int lod, Action<GameObject[]> registerCreatedObjects)
     {
         Dictionary<string, Material[]> materials = new Dictionary<string, Material[]>();
 
@@ -244,7 +283,7 @@ public class DemoOBJ : MonoBehaviour
         for (int i = 0; i < buffer.numObjects; i++)
         {
             GameObject go = new GameObject();
-            go.name = String.Format("cube_{0}_{1}_{2}.{3}", x, y, z, i);
+            go.name = String.Format("cube_L{4}:{0}_{1}_{2}.{3}", x, y, z, i, lod);
             go.transform.parent = gameObject.transform;
             go.AddComponent(typeof(MeshFilter));
             go.AddComponent(typeof(MeshRenderer));

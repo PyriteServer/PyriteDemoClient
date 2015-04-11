@@ -12,6 +12,7 @@ public class Cube
     public GeometryBuffer Buffer { get; set; }
     public List<MaterialData> MaterialData { get; set; }
     public GameObject GameObject { get; set; }
+    public int LOD { get; set; }
 }
 
 public class MaterialData

@@ -34,13 +34,13 @@ public class TextureLoader {
         UseUnlitShader = useUnlitShader;
     }
 
-    public IEnumerator DownloadTextures(string setName, string version, PyriteSetVersionDetailLevel detailLevel)
+    public IEnumerator DownloadTextures(PyriteSetVersionDetailLevel detailLevel)
     {
         DetailLevel = detailLevel;
         TextureCount = (int)detailLevel.TextureSetSize.x * (int)detailLevel.TextureSetSize.y;
         foreach (var md in MaterialDataList)
         {
-            var texPath = Query.GetTexturePath(setName, version, detailLevel.Name, md.x, md.y);
+            var texPath = Query.GetTexturePath(detailLevel.Name, md.x, md.y);
             md.diffuseTexPath = texPath;
             yield return ThreadPool.QueueUserWorkItem(StartDownloadTexture, texPath);    
         }
