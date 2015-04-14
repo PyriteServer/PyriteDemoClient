@@ -199,7 +199,10 @@
                 triangles[i + 2] = t1;
             }
             // END HACK        
-
+            if (tvertices.Length > 65000)
+            {
+                Debug.LogErrorFormat("GameObject {0} had too many vertices", gs[0].name);
+            }
             m.vertices = tvertices;
             m.uv = tuvs;
             m.triangles = triangles;

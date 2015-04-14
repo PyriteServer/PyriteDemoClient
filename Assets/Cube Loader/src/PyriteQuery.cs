@@ -24,7 +24,6 @@
         private const string ZKey = "z";
         private const string OKValue = "OK";
         private readonly string apiUrl = "http://az744221.vo.msecnd.net/";
-        private PyriteSet _set;
 
         public PyriteQuery(string setName, string version, string apiUrl = null)
         {
@@ -36,25 +35,14 @@
             SetName = setName;
             Version = version;
             Loaded = false;
-        }
-
-        public PyriteSet Set
-        {
-            get
-            {
-                if (!Loaded || _set == null)
-                {
-                    throw new InvalidOperationException(
-                        "PyriteQuery has not been loaded yet. You must call Load and wait for it to finish before accessing Set data.");
-                }
-                return _set;
-            }
-            private set { _set = value; }
+            DetailLevels = new Dictionary<int, PyriteSetVersionDetailLevel>();
         }
 
         public string SetName { get; private set; }
         public string Version { get; private set; }
         public bool Loaded { get; private set; }
+
+        public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
 
         public string GetModelPath(int lod, int x, int y, int z)
         {
@@ -83,13 +71,13 @@
 
         public Vector3 GetNextCubeFactor(int lod)
         {
-            var currentSetSize = Set.Version.DetailLevels[lod].SetSize;
-            if (!Set.Version.DetailLevels.ContainsKey(lod - 1))
+            var currentSetSize = DetailLevels[lod].SetSize;
+            if (!DetailLevels.ContainsKey(lod - 1))
             {
                 return Vector3.one;
             }
 
-            var nextSetSize = Set.Version.DetailLevels[lod - 1].SetSize;
+            var nextSetSize = DetailLevels[lod - 1].SetSize;
             return new Vector3(
                 nextSetSize.x/currentSetSize.x,
                 nextSetSize.y/currentSetSize.y,
@@ -104,29 +92,24 @@
 
         public IEnumerator Load()
         {
-            Debug.Log("CubeQuery started against: " + apiUrl);
+            Debug.Log("Query started against: " + apiUrl);
             WWW loader = null;
-            var set = new PyriteSet {Name = SetName};
-            Set = set;
             var setUrl = apiUrl + "/sets/" + SetName + "/";
             loader = WWWExtensions.CreateWWW(setUrl);
             yield return loader;
-            Debug.Log(loader.GetDecompressedText());
             var parsedContent = JSON.Parse(loader.GetDecompressedText());
             if (!parsedContent[StatusKey].Value.Equals(OKValue))
             {
-                Debug.LogError("Failure getting set info for " + set.Name);
+                Debug.LogError("Failure getting set info for " + SetName);
                 yield break;
             }
-            var version = new PyriteSetVersion {Name = Version, Set = set};
-            set.Version = version;
             var versionUrl = setUrl + Version + "/";
             loader = WWWExtensions.CreateWWW(versionUrl);
             yield return loader;
             parsedContent = JSON.Parse(loader.GetDecompressedText());
             if (!parsedContent[StatusKey].Value.Equals(OKValue))
             {
-                Debug.LogError("Failure getting set version info for " + set.Name + " - " + Version);
+                Debug.LogError("Failure getting set version info for " + SetName + " - " + Version);
                 yield break;
             }
             var parsedDetailLevels = parsedContent[ResultKey][DetailLevelsKey].AsArray;
@@ -135,9 +118,9 @@
                 var detailLevel = new PyriteSetVersionDetailLevel
                 {
                     Name = parsedDetailLevels[k][NameKey],
-                    Version = version
+                    Query = this
                 };
-                version.DetailLevels[GetDetailNumberFromName(detailLevel.Name)] = detailLevel;
+                DetailLevels[GetDetailNumberFromName(detailLevel.Name)] = detailLevel;
                 detailLevel.SetSize = new Vector3(
                     parsedDetailLevels[k][SetSizeKey][XKey].AsFloat,
                     parsedDetailLevels[k][SetSizeKey][YKey].AsFloat,
@@ -203,7 +186,7 @@
                     };
                 }
             }
-
+            Debug.Log("Query completed.");
             Loaded = true;
         }
     }
@@ -223,24 +206,21 @@
         {
             return Equals(obj as PyriteCube);
         }
-    }
 
-    public class PyriteSetVersion
-    {
-        public PyriteSetVersion()
+        public override int GetHashCode()
         {
-            DetailLevels = new Dictionary<int, PyriteSetVersionDetailLevel>();
+            var hashCode = 0;
+            hashCode ^= X.GetHashCode();
+            hashCode ^= Y.GetHashCode();
+            hashCode ^= Z.GetHashCode();
+            return hashCode;
         }
-
-        public string Name { get; set; }
-        public PyriteSet Set { get; set; }
-        public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
     }
 
     public class PyriteSetVersionDetailLevel
     {
         public string Name { get; set; }
-        public PyriteSetVersion Version { get; set; }
+        public PyriteQuery Query { get; set; }
         public Vector3 SetSize { get; set; }
         public Vector2 TextureSetSize { get; set; }
         public Vector3 WorldBoundsMax { get; set; }
@@ -267,11 +247,5 @@
                        WorldCubeScale.z*0.5f;
             return new Vector3(xPos, yPos, zPos);
         }
-    }
-
-    public class PyriteSet
-    {
-        public string Name { get; set; }
-        public PyriteSetVersion Version { get; set; }
     }
 }

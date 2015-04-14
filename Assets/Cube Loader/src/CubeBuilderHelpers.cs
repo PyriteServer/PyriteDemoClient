@@ -22,7 +22,6 @@
             var current = new MaterialData();
 
             // newmtl material_0
-            current = new MaterialData();
             current.x = x;
             current.y = y;
             current.name = "material_" + x + "_" + y;
