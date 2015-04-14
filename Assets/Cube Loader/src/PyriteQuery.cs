@@ -1,45 +1,14 @@
-﻿using System.Runtime.InteropServices;
-
-namespace Assets.Cube_Loader.src
+﻿namespace Assets.Cube_Loader.src
 {
     using System;
     using System.Collections;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using Assets.Cube_Loader.Extensions;
+    using Extensions;
     using SimpleJSON;
     using UnityEngine;
 
-
     public class PyriteQuery
     {
-        private readonly string apiUrl = "http://az744221.vo.msecnd.net/";
-
-        private PyriteSet _set = null;
-
-        public PyriteSet Set
-        {
-            get
-            {
-                if (!Loaded || _set == null)
-                {
-                    throw new InvalidOperationException(
-                        "PyriteQuery has not been loaded yet. You must call Load and wait for it to finish before accessing Set data.");
-                }
-                else
-                {
-                    return _set;
-                }
-            }
-            private set { _set = value; }
-        }
-
-        public string SetName { get; private set; }
-        public string Version { get; private set; }
-
-        public bool Loaded { get; private set; }
-
         private const string StatusKey = "status";
         private const string ResultKey = "result";
         private const string NameKey = "name";
@@ -54,6 +23,8 @@ namespace Assets.Cube_Loader.src
         private const string YKey = "y";
         private const string ZKey = "z";
         private const string OKValue = "OK";
+        private readonly string apiUrl = "http://az744221.vo.msecnd.net/";
+        private PyriteSet _set;
 
         public PyriteQuery(string setName, string version, string apiUrl = null)
         {
@@ -66,6 +37,24 @@ namespace Assets.Cube_Loader.src
             Version = version;
             Loaded = false;
         }
+
+        public PyriteSet Set
+        {
+            get
+            {
+                if (!Loaded || _set == null)
+                {
+                    throw new InvalidOperationException(
+                        "PyriteQuery has not been loaded yet. You must call Load and wait for it to finish before accessing Set data.");
+                }
+                return _set;
+            }
+            private set { _set = value; }
+        }
+
+        public string SetName { get; private set; }
+        public string Version { get; private set; }
+        public bool Loaded { get; private set; }
 
         public string GetModelPath(int lod, int x, int y, int z)
         {
@@ -94,17 +83,17 @@ namespace Assets.Cube_Loader.src
 
         public Vector3 GetNextCubeFactor(int lod)
         {
-            var currentSetSize = this.Set.Version.DetailLevels[lod].SetSize;
-            if (!this.Set.Version.DetailLevels.ContainsKey(lod - 1))
+            var currentSetSize = Set.Version.DetailLevels[lod].SetSize;
+            if (!Set.Version.DetailLevels.ContainsKey(lod - 1))
             {
                 return Vector3.one;
             }
 
-            var nextSetSize = this.Set.Version.DetailLevels[lod-1].SetSize;
+            var nextSetSize = Set.Version.DetailLevels[lod - 1].SetSize;
             return new Vector3(
-                nextSetSize.x / currentSetSize.x,
-                nextSetSize.y / currentSetSize.y,
-                nextSetSize.z / currentSetSize.z
+                nextSetSize.x/currentSetSize.x,
+                nextSetSize.y/currentSetSize.y,
+                nextSetSize.z/currentSetSize.z
                 );
         }
 
@@ -117,10 +106,10 @@ namespace Assets.Cube_Loader.src
         {
             Debug.Log("CubeQuery started against: " + apiUrl);
             WWW loader = null;
-            var set = new PyriteSet() { Name = SetName };
+            var set = new PyriteSet {Name = SetName};
             Set = set;
-            var setUrl = apiUrl + "/sets/" + SetName+ "/";
-            loader = WWWExtensions.CreateWWW(path: setUrl);
+            var setUrl = apiUrl + "/sets/" + SetName + "/";
+            loader = WWWExtensions.CreateWWW(setUrl);
             yield return loader;
             Debug.Log(loader.GetDecompressedText());
             var parsedContent = JSON.Parse(loader.GetDecompressedText());
@@ -129,9 +118,9 @@ namespace Assets.Cube_Loader.src
                 Debug.LogError("Failure getting set info for " + set.Name);
                 yield break;
             }
-            var version = new PyriteSetVersion() { Name = Version, Set = set};
+            var version = new PyriteSetVersion {Name = Version, Set = set};
             set.Version = version;
-            string versionUrl = setUrl + Version + "/";
+            var versionUrl = setUrl + Version + "/";
             loader = WWWExtensions.CreateWWW(versionUrl);
             yield return loader;
             parsedContent = JSON.Parse(loader.GetDecompressedText());
@@ -141,9 +130,9 @@ namespace Assets.Cube_Loader.src
                 yield break;
             }
             var parsedDetailLevels = parsedContent[ResultKey][DetailLevelsKey].AsArray;
-            for (int k = 0; k < parsedDetailLevels.Count; k++)
+            for (var k = 0; k < parsedDetailLevels.Count; k++)
             {
-                var detailLevel = new PyriteSetVersionDetailLevel()
+                var detailLevel = new PyriteSetVersionDetailLevel
                 {
                     Name = parsedDetailLevels[k][NameKey],
                     Version = version
@@ -191,7 +180,7 @@ namespace Assets.Cube_Loader.src
                     );
 
                 var cubesUrl = versionUrl + "query/" + detailLevel.Name + "/" +
-                                maxBoundingBoxQuery;
+                               maxBoundingBoxQuery;
 
                 loader = WWWExtensions.CreateWWW(cubesUrl);
                 yield return loader;
@@ -204,13 +193,13 @@ namespace Assets.Cube_Loader.src
 
                 var parsedCubes = parsedContent[ResultKey].AsArray;
                 detailLevel.Cubes = new PyriteCube[parsedCubes.Count];
-                for (int l = 0; l < detailLevel.Cubes.Length; l++)
+                for (var l = 0; l < detailLevel.Cubes.Length; l++)
                 {
-                    detailLevel.Cubes[l] = new PyriteCube()
+                    detailLevel.Cubes[l] = new PyriteCube
                     {
                         X = parsedCubes[l][0].AsInt,
                         Y = parsedCubes[l][1].AsInt,
-                        Z = parsedCubes[l][2].AsInt,
+                        Z = parsedCubes[l][2].AsInt
                     };
                 }
             }
@@ -227,7 +216,7 @@ namespace Assets.Cube_Loader.src
 
         public bool Equals(PyriteCube other)
         {
-            return null != other && other.X == this.X && other.Y == this.Y && other.Z == this.Z;
+            return null != other && other.X == X && other.Y == Y && other.Z == Z;
         }
 
         public override bool Equals(object obj)
@@ -238,15 +227,14 @@ namespace Assets.Cube_Loader.src
 
     public class PyriteSetVersion
     {
-        public string Name { get; set; }
-        public PyriteSet Set { get; set; }
-
-        public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
-
         public PyriteSetVersion()
         {
             DetailLevels = new Dictionary<int, PyriteSetVersionDetailLevel>();
         }
+
+        public string Name { get; set; }
+        public PyriteSet Set { get; set; }
+        public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
     }
 
     public class PyriteSetVersionDetailLevel
@@ -263,20 +251,20 @@ namespace Assets.Cube_Loader.src
 
         public Vector2 TextureCoordinatesForCube(float cubeX, float cubeY)
         {
-            int textureXPosition = (int)(cubeX / (SetSize.x / TextureSetSize.x));
-            int textureYPosition = (int)(cubeY / (SetSize.y / TextureSetSize.y));
+            var textureXPosition = (int) (cubeX/(SetSize.x/TextureSetSize.x));
+            var textureYPosition = (int) (cubeY/(SetSize.y/TextureSetSize.y));
             return new Vector2(textureXPosition, textureYPosition);
         }
 
         // Returns the center of the cube (point at the middle of each axis distance) in world space
         public Vector3 GetWorldCoordinatesForCube(PyriteCube cube)
         {
-            float xPos = WorldBoundsMin.x + WorldCubeScale.x * cube.X +
-                         WorldCubeScale.x * 0.5f;
-            float yPos = WorldBoundsMin.y + WorldCubeScale.y * cube.Y +
-                         WorldCubeScale.y * 0.5f;
-            float zPos = WorldBoundsMin.z + WorldCubeScale.z * cube.Z +
-                         WorldCubeScale.z * 0.5f;
+            var xPos = WorldBoundsMin.x + WorldCubeScale.x*cube.X +
+                       WorldCubeScale.x*0.5f;
+            var yPos = WorldBoundsMin.y + WorldCubeScale.y*cube.Y +
+                       WorldCubeScale.y*0.5f;
+            var zPos = WorldBoundsMin.z + WorldCubeScale.z*cube.Z +
+                       WorldCubeScale.z*0.5f;
             return new Vector3(xPos, yPos, zPos);
         }
     }
@@ -284,11 +272,6 @@ namespace Assets.Cube_Loader.src
     public class PyriteSet
     {
         public string Name { get; set; }
-
         public PyriteSetVersion Version { get; set; }
-
-        public PyriteSet()
-        {
-        }
     }
 }

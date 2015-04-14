@@ -32,17 +32,6 @@ public class DemoOBJ : MonoBehaviour
 
     int colorSelector = 0;
 
-    /* MTL file tags */
-    private const string NML = "newmtl";
-    private const string NS = "Ns"; // Shininess
-    private const string KA = "Ka"; // Ambient component (not supported)
-    private const string KD = "Kd"; // Diffuse component
-    private const string KS = "Ks"; // Specular component
-    private const string D = "d"; 	// Transparency (not supported)
-    private const string TR = "Tr";	// Same as 'd'
-    private const string ILLUM = "illum"; // Illumination model. 1 - diffuse, 2 - specular
-    private const string MAP_KD = "map_Kd"; // Diffuse texture (other textures are not supported)
-
     private readonly Dictionary<string, List<MaterialData>> materialDataCache = new Dictionary<string, List<MaterialData>>();
     private readonly Dictionary<string, Texture2D> textureCache = new Dictionary<string, Texture2D>();
     private readonly Dictionary<string, Material[]> materialCache = new Dictionary<string, Material[]>();
