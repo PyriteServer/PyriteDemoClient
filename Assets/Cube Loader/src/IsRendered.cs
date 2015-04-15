@@ -21,7 +21,7 @@
 
         private bool Upgradable
         {
-            get { return manager != null && childDetectors.Count == 0 && lod > 1; }
+            get { return manager != null && childDetectors.Count == 0 && pyriteQuery.DetailLevels.ContainsKey(lod-1); }
         }
 
         public void SetCubePosition(int x, int y, int z, int lod, PyriteQuery query, DemoOBJ manager)

@@ -78,25 +78,28 @@
             var pyriteLevel =
                 pyriteQuery.DetailLevels[DetailLevel];
 
-            if (CameraRig != null)
-            {
-                DebugLog("Moving camera");
-                // Hardcoding some values for now   
-                var newCameraPosition = pyriteLevel.WorldBoundsMin + (pyriteLevel.WorldBoundsSize)/2.0f;
-                newCameraPosition += new Vector3(0, 0, pyriteLevel.WorldBoundsSize.z*1.4f);
-                CameraRig.transform.position = newCameraPosition;
 
-                CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
-
-                DebugLog("Done moving camera");
-            }
-
+            float xmin, ymin, zmin, xmax, ymax, zmax;
+            xmin = pyriteLevel.WorldBoundsMax.x;
+            ymin = pyriteLevel.WorldBoundsMax.y;
+            zmin = pyriteLevel.WorldBoundsMax.z;
+            xmax = pyriteLevel.WorldBoundsMin.x;
+            ymax = pyriteLevel.WorldBoundsMin.y;
+            zmax = pyriteLevel.WorldBoundsMin.z;
             for (var i = 0; i < pyriteLevel.Cubes.Length; i++)
             {
                 var x = pyriteLevel.Cubes[i].X;
                 var y = pyriteLevel.Cubes[i].Y;
                 var z = pyriteLevel.Cubes[i].Z;
                 var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pyriteLevel.Cubes[i]);
+                xmin = Math.Min(cubePos.x, xmin);
+                ymin = Math.Min(cubePos.y, ymin);
+                zmin = Math.Min(cubePos.z, zmin);
+
+                xmax = Math.Max(cubePos.x, xmax);
+                ymax = Math.Max(cubePos.y, ymax);
+                zmax = Math.Max(cubePos.z, zmax);
+
                 if (UseCameraDetection)
                 {
                     // Move cube to the orientation we want also move it up since the model is around -600
@@ -121,6 +124,20 @@
                 }
             }
 
+            if (CameraRig != null)
+            {
+                DebugLog("Moving camera");
+                // Hardcoding some values for now
+                var min = new Vector3(xmin, ymin, zmin);
+                var max = new Vector3(xmax, ymax, zmax);
+                var newCameraPosition = min + (max - min) / 2.0f;
+                newCameraPosition += new Vector3(0, 0, (max - min).z * 1.4f);
+                CameraRig.transform.position = newCameraPosition;
+
+                CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
+
+                DebugLog("Done moving camera");
+            }
             DebugLog("-Load()");
         }
 
