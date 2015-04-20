@@ -38,7 +38,7 @@
         public bool UseEbo = true;
         public bool UseUnlitShader = true;
 
-        private void DebugLog(string fmt, params object[] args)
+        protected void DebugLog(string fmt, params object[] args)
         {
             if (EnableDebugLogs)
             {
@@ -71,8 +71,8 @@
         {
             DebugLog("+Load()");
 
-            var pyriteQuery = new PyriteQuery(SetName, ModelVersion, PyriteServer);
-            yield return StartCoroutine(pyriteQuery.Load());
+            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer);
+            yield return StartCoroutine(pyriteQuery.LoadAll());
             DebugLog("CubeQuery complete.");
 
             var pyriteLevel =

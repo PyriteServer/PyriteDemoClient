@@ -90,8 +90,8 @@
         public IEnumerator Load()
         {
             // load the cube meta data
-            PyriteQuery = new PyriteQuery(SetName, ModelVersion, PyriteServer);
-            yield return StartCoroutine(PyriteQuery.Load());
+            PyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer);
+            yield return StartCoroutine(PyriteQuery.LoadAll());
 
             var pyriteLevel =
                 PyriteQuery.DetailLevels[DetailLevel];

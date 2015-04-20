@@ -12,6 +12,7 @@
         private const string StatusKey = "status";
         private const string ResultKey = "result";
         private const string NameKey = "name";
+        private const string CubesKey = "cubes";
         private const string DetailLevelsKey = "detailLevels";
         private const string SetSizeKey = "setSize";
         private const string TextureSetSizeKey = "textureSetSize";
@@ -25,7 +26,8 @@
         private const string OKValue = "OK";
         private readonly string apiUrl = "http://az744221.vo.msecnd.net/";
 
-        public PyriteQuery(string setName, string version, string apiUrl = null)
+
+        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl = null)
         {
             if (!string.IsNullOrEmpty(apiUrl))
             {
@@ -36,11 +38,19 @@
             Version = version;
             Loaded = false;
             DetailLevels = new Dictionary<int, PyriteSetVersionDetailLevel>();
+            Manager = manager;
+            SetUrl = this.apiUrl + "/sets/" + SetName + "/";
+            VersionUrl = SetUrl + Version + "/";
         }
 
         public string SetName { get; private set; }
         public string Version { get; private set; }
         public bool Loaded { get; private set; }
+
+        private readonly MonoBehaviour Manager;
+
+        private readonly string VersionUrl;
+        private readonly string SetUrl;
 
         public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
 
@@ -85,17 +95,107 @@
                 );
         }
 
+        public Vector3 GetPreviousCubeFactor(int lod)
+        {
+            var currentSetSize = DetailLevels[lod].SetSize;
+            if (!DetailLevels.ContainsKey(lod + 1))
+            {
+                return Vector3.one;
+            }
+
+            var prevSetSize = DetailLevels[lod + 1].SetSize;
+            return new Vector3(
+                currentSetSize.x / prevSetSize.x,
+                currentSetSize.y / prevSetSize.y,
+                currentSetSize.z / prevSetSize.z
+                );
+        }
+
         private int GetDetailNumberFromName(string levelName)
         {
             return int.Parse(levelName.Substring(1));
         }
 
-        public IEnumerator Load()
+        public IEnumerator Load3x3(Vector3 queryPosition)
         {
-            Debug.Log("Query started against: " + apiUrl);
+            yield return Manager.StartCoroutine(LoadMetadata());
+
+            var cubesUrl = VersionUrl + string.Format("query/3x3/{0},{1},{2}", queryPosition.x, queryPosition.y, queryPosition.z);
+
+            WWW loader = WWWExtensions.CreateWWW(cubesUrl);
+            yield return loader;
+            var parsedContent = JSON.Parse(loader.GetDecompressedText());
+            if (!parsedContent[StatusKey].Value.Equals(OKValue))
+            {
+                Debug.LogError("Failure getting cube query against: " + cubesUrl);
+                yield break;
+            }
+
+            var parsedCubeGroups = parsedContent[ResultKey].AsArray;
+            for (var l = 0; l < parsedCubeGroups.Count; l++)
+            {
+                string lodName = parsedCubeGroups[l][NameKey];
+                var detailLevelNumber  = Int32.Parse(lodName.Substring(1));
+                var parsedCubes = parsedCubeGroups[l][CubesKey].AsArray;
+                DetailLevels[detailLevelNumber].Cubes = new PyriteCube[parsedCubes.Count];
+                for (var c = 0; c < parsedCubes.Count; c++)
+                {
+                    DetailLevels[detailLevelNumber].Cubes[c] = new PyriteCube()
+                    {
+                        X = parsedCubes[c][0].AsInt,
+                        Y = parsedCubes[c][1].AsInt,
+                        Z = parsedCubes[c][2].AsInt
+                    };
+                }
+            }
+        }
+
+        public IEnumerator LoadAll()
+        {
+            yield return Manager.StartCoroutine(LoadMetadata());
+            foreach (var detailLevel in DetailLevels.Values)
+            {
+                var maxBoundingBoxQuery = string.Format("{0},{1},{2}/{3},{4},{5}",
+                    detailLevel.WorldBoundsMin.x,
+                    detailLevel.WorldBoundsMin.y,
+                    detailLevel.WorldBoundsMin.z,
+                    detailLevel.WorldBoundsMax.x,
+                    detailLevel.WorldBoundsMax.y,
+                    detailLevel.WorldBoundsMax.z
+                    );
+
+                var cubesUrl = VersionUrl + "query/" + detailLevel.Name + "/" +
+                               maxBoundingBoxQuery;
+
+                WWW loader = WWWExtensions.CreateWWW(cubesUrl);
+                yield return loader;
+                var parsedContent = JSON.Parse(loader.GetDecompressedText());
+                if (!parsedContent[StatusKey].Value.Equals(OKValue))
+                {
+                    Debug.LogError("Failure getting cube query against: " + cubesUrl);
+                    yield break;
+                }
+
+                var parsedCubes = parsedContent[ResultKey].AsArray;
+                detailLevel.Cubes = new PyriteCube[parsedCubes.Count];
+                for (var l = 0; l < detailLevel.Cubes.Length; l++)
+                {
+                    detailLevel.Cubes[l] = new PyriteCube
+                    {
+                        X = parsedCubes[l][0].AsInt,
+                        Y = parsedCubes[l][1].AsInt,
+                        Z = parsedCubes[l][2].AsInt
+                    };
+                }
+            }
+            Loaded = true;
+        }
+
+        private IEnumerator LoadMetadata()
+        {
+            Debug.Log("Metadata query started against: " + SetUrl);
             WWW loader = null;
-            var setUrl = apiUrl + "/sets/" + SetName + "/";
-            loader = WWWExtensions.CreateWWW(setUrl);
+            loader = WWWExtensions.CreateWWW(SetUrl);
             yield return loader;
             var parsedContent = JSON.Parse(loader.GetDecompressedText());
             if (!parsedContent[StatusKey].Value.Equals(OKValue))
@@ -103,8 +203,7 @@
                 Debug.LogError("Failure getting set info for " + SetName);
                 yield break;
             }
-            var versionUrl = setUrl + Version + "/";
-            loader = WWWExtensions.CreateWWW(versionUrl);
+            loader = WWWExtensions.CreateWWW(VersionUrl);
             yield return loader;
             parsedContent = JSON.Parse(loader.GetDecompressedText());
             if (!parsedContent[StatusKey].Value.Equals(OKValue))
@@ -155,42 +254,8 @@
                 detailLevel.WorldBoundsSize =
                     detailLevel.WorldBoundsMax -
                     detailLevel.WorldBoundsMin;
-
-                var maxBoundingBoxQuery = string.Format("{0},{1},{2}/{3},{4},{5}",
-                    detailLevel.WorldBoundsMin.x,
-                    detailLevel.WorldBoundsMin.y,
-                    detailLevel.WorldBoundsMin.z,
-                    detailLevel.WorldBoundsMax.x,
-                    detailLevel.WorldBoundsMax.y,
-                    detailLevel.WorldBoundsMax.z
-                    );
-
-                var cubesUrl = versionUrl + "query/" + detailLevel.Name + "/" +
-                               maxBoundingBoxQuery;
-
-                loader = WWWExtensions.CreateWWW(cubesUrl);
-                yield return loader;
-                parsedContent = JSON.Parse(loader.GetDecompressedText());
-                if (!parsedContent[StatusKey].Value.Equals(OKValue))
-                {
-                    Debug.LogError("Failure getting cube query against: " + cubesUrl);
-                    yield break;
-                }
-
-                var parsedCubes = parsedContent[ResultKey].AsArray;
-                detailLevel.Cubes = new PyriteCube[parsedCubes.Count];
-                for (var l = 0; l < detailLevel.Cubes.Length; l++)
-                {
-                    detailLevel.Cubes[l] = new PyriteCube
-                    {
-                        X = parsedCubes[l][0].AsInt,
-                        Y = parsedCubes[l][1].AsInt,
-                        Z = parsedCubes[l][2].AsInt
-                    };
-                }
             }
-            Debug.Log("Query completed.");
-            Loaded = true;
+            Debug.Log("Metadata query completed.");
         }
     }
 
