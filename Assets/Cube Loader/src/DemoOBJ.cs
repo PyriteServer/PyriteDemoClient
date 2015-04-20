@@ -36,7 +36,7 @@
         public string SetName;
         public bool UseCameraDetection = false;
         public bool UseEbo = true;
-        public bool UseUnlitShader = false;
+        public bool UseUnlitShader = true;
 
         private void DebugLog(string fmt, params object[] args)
         {
@@ -161,7 +161,6 @@
                             Y = iy,
                             Z = iz
                         };
-
                         if (
                             pyriteQuery.DetailLevels[newLod].Cubes.Contains(possibleNewCube))
                         {
@@ -198,7 +197,6 @@
                 query.DetailLevels[lod];
 
             var buffer = new GeometryBuffer();
-            var materialData = new List<MaterialData>();
 
             WWW loader;
             if (!UseEbo)
@@ -244,13 +242,15 @@
                 }
                 buffer.eboBuffer = eboCache[modelPath];
             }
+
             var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(x, y);
-            var materialDataKey = string.Format("model.mtl_{0}_{1}", textureCoordinates.x, textureCoordinates.y);
+            var materialDataKey = string.Format("model.mtl_{0}_{1}_{2}", textureCoordinates.x, textureCoordinates.y, lod);
             if (!materialDataCache.ContainsKey(materialDataKey))
             {
+                var materialData = new List<MaterialData>();
                 materialDataCache[materialDataKey] = null;
                 CubeBuilderHelpers.SetDefaultMaterialData(materialData, (int) textureCoordinates.x,
-                    (int) textureCoordinates.y);
+                    (int) textureCoordinates.y, lod);
 
                 foreach (var m in materialData)
                 {
@@ -264,9 +264,13 @@
                         // Do not request compression for textures
                         var texloader = WWWExtensions.CreateWWW(texturePath, false);
                         yield return texloader;
+                        
+                        if (!string.IsNullOrEmpty(texloader.error))
+                        {
+                            Debug.LogError("Error getting texture: " + texloader.error);
+                        }
                         var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
                         texture.LoadImage(texloader.bytes);
-                        //textures.Add(md.diffuseTexPath, texture);
                         textureCache[texturePath] = texture;
                     }
 
@@ -279,7 +283,6 @@
                     }
                     m.diffuseTex = textureCache[texturePath];
                 }
-
                 materialDataCache[materialDataKey] = materialData;
             }
             while (materialDataCache[materialDataKey] == null)
@@ -288,9 +291,8 @@
                 // Loop until it is set
                 yield return null;
             }
-            materialData = materialDataCache[materialDataKey];
-            Build(buffer, materialData, x, y, z, lod, registerCreatedObjects);
-            DebugLog("-LoadCube({0}_{1}_{2})", x, y, z);
+            Build(buffer, materialDataCache[materialDataKey], x, y, z, lod, registerCreatedObjects);
+            DebugLog("-LoadCube(L{3}:{0}_{1}_{2})", x, y, z, lod);
         }
 
         private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, int lod,
@@ -300,11 +302,11 @@
 
             foreach (var md in materialData)
             {
-                if (!materialCache.ContainsKey(md.name))
+                if (!materialCache.ContainsKey(md.Name))
                 {
-                    materialCache[md.name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, md);
+                    materialCache[md.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, md);
                 }
-                materials.Add(md.name, materialCache[md.name]);
+                materials.Add(md.Name, materialCache[md.Name]);
             }
 
             var ms = new GameObject[buffer.numObjects];

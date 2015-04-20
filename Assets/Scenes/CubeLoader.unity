@@ -337,9 +337,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f0328f508dd8e4488ef12556cb0807b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ModelVersion: V1
+  ModelVersion: V2
   CameraRig: {fileID: 0}
-  DetailLevel: 6
+  DetailLevel: 4
   EnableDebugLogs: 1
   PlaceHolderCube: {fileID: 0}
   PyriteServer: 

@@ -17,15 +17,14 @@
         private const string MTL = "mtllib";
         private const string UML = "usemtl";
 
-        public static void SetDefaultMaterialData(List<MaterialData> materialDatas, int x, int y)
+        public static void SetDefaultMaterialData(List<MaterialData> materialDatas, int x, int y, int lod)
         {
             var current = new MaterialData();
 
             // newmtl material_0
             current.x = x;
             current.y = y;
-            current.name = "material_" + x + "_" + y;
-            materialDatas.Add(current);
+            current.lod = lod;
 
             // Ka 0.200000 0.200000 0.200000
             current.ambient = gc(new[] {"Ka", "0.200000", "0.200000", "0.200000"});
@@ -47,6 +46,8 @@
 
             // map_Kd model.jpg
             current.diffuseTexPath = "model.jpg";
+
+            materialDatas.Add(current);
         }
 
         private static float cf(string v)

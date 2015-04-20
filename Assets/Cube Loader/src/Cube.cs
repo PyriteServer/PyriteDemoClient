@@ -19,7 +19,8 @@
 
     public class MaterialData
     {
-        public string name;
+        private const string nameFormat = "materialData_L{0}_{1}_{2}";
+
         public Color ambient;
         public Color diffuse;
         public Color specular;
@@ -30,5 +31,11 @@
         public Texture2D diffuseTex;
         public int x;
         public int y;
+        public int lod;
+
+        public string Name
+        {
+            get { return string.Format(nameFormat, lod, x, y); }
+        }
     }
 }

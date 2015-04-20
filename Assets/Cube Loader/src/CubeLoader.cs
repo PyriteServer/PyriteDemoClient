@@ -172,7 +172,7 @@
             {
                 for (int textureY = 0; textureY < detailLevel.TextureSetSize.y; textureY++)
                 {
-                    CubeBuilderHelpers.SetDefaultMaterialData(materiaDatas, textureX, textureY);
+                    CubeBuilderHelpers.SetDefaultMaterialData(materiaDatas, textureX, textureY, detailLevel.Value);
                 }
             }
         }

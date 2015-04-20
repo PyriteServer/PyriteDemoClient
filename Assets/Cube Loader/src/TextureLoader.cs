@@ -79,7 +79,7 @@ public class TextureLoader {
                     texture.LoadImage(textureData);
                     textures.Add(md.diffuseTexPath, texture);
                     md.diffuseTex = texture;
-                    materialCache[md.name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, md);
+                    materialCache[md.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, md);
                     yield return null;
                 }
             }

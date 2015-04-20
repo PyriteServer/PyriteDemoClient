@@ -120,6 +120,9 @@
                     Name = parsedDetailLevels[k][NameKey],
                     Query = this
                 };
+
+                detailLevel.Value = Int32.Parse(detailLevel.Name.Substring(1));
+
                 DetailLevels[GetDetailNumberFromName(detailLevel.Name)] = detailLevel;
                 detailLevel.SetSize = new Vector3(
                     parsedDetailLevels[k][SetSizeKey][XKey].AsFloat,
@@ -220,6 +223,7 @@
     public class PyriteSetVersionDetailLevel
     {
         public string Name { get; set; }
+        public int Value { get; set; }
         public PyriteQuery Query { get; set; }
         public Vector3 SetSize { get; set; }
         public Vector2 TextureSetSize { get; set; }
