@@ -6,121 +6,121 @@
 
     public class GeometryBuffer {
 
-        private List<ObjectData> objects;
-        public List<Vector3> vertices;
-        public List<Vector2> uvs;
-        public List<Vector3> normals;
-        public byte[] eboBuffer;
+        private List<ObjectData> _objects;
+        public List<Vector3> Vertices;
+        public List<Vector2> Uvs;
+        public List<Vector3> Normals;
+        public byte[] EboBuffer;
         
-        private ObjectData current;
+        private ObjectData _current;
         private class ObjectData {
-            public string name;
-            public List<GroupData> groups;
-            public List<FaceIndices> allFaces;
+            public string Name;
+            public List<GroupData> Groups;
+            public List<FaceIndices> AllFaces;
             public ObjectData() {
-                groups = new List<GroupData>();
-                allFaces = new List<FaceIndices>();
+                Groups = new List<GroupData>();
+                AllFaces = new List<FaceIndices>();
             }
         }
         
-        private GroupData curgr;
+        private GroupData _curgr;
         private class GroupData {
-            public string name;
-            public string materialName;
-            public List<FaceIndices> faces;
+            public string Name;
+            public string MaterialName;
+            public List<FaceIndices> Faces;
             public GroupData() {
-                faces = new List<FaceIndices>();
+                Faces = new List<FaceIndices>();
             }
-            public bool isEmpty { get { return faces.Count == 0; } }
+            public bool IsEmpty { get { return Faces.Count == 0; } }
         }
         
         public GeometryBuffer() {
-            objects = new List<ObjectData>();
+            _objects = new List<ObjectData>();
             ObjectData d = new ObjectData();
-            d.name = "default";
-            objects.Add(d);
-            current = d;
+            d.Name = "default";
+            _objects.Add(d);
+            _current = d;
             
             GroupData g = new GroupData();
-            g.name = "default";
-            d.groups.Add(g);
-            curgr = g;
+            g.Name = "default";
+            d.Groups.Add(g);
+            _curgr = g;
             
-            vertices = new List<Vector3>();
-            uvs = new List<Vector2>();
-            normals = new List<Vector3>();
+            Vertices = new List<Vector3>();
+            Uvs = new List<Vector2>();
+            Normals = new List<Vector3>();
         }
         
         public void PushObject(string name) {
             //Debug.Log("Adding new object " + name + ". Current is empty: " + isEmpty);
-            if(isEmpty) objects.Remove(current);
+            if(IsEmpty) _objects.Remove(_current);
             
             ObjectData n = new ObjectData();
-            n.name = name;
-            objects.Add(n);
+            n.Name = name;
+            _objects.Add(n);
             
             GroupData g = new GroupData();
-            g.name = "default";
-            n.groups.Add(g);
+            g.Name = "default";
+            n.Groups.Add(g);
             
-            curgr = g;
-            current = n;
+            _curgr = g;
+            _current = n;
         }
         
         public void PushGroup(string name) {
-            if(curgr.isEmpty) current.groups.Remove(curgr);
+            if(_curgr.IsEmpty) _current.Groups.Remove(_curgr);
             GroupData g = new GroupData();
-            g.name = name;
-            current.groups.Add(g);
-            curgr = g;
+            g.Name = name;
+            _current.Groups.Add(g);
+            _curgr = g;
         }
         
         public void PushMaterialName(string name) {
             //Debug.Log("Pushing new material " + name + " with curgr.empty=" + curgr.isEmpty);
-            if(!curgr.isEmpty) PushGroup(name);
-            if(curgr.name == "default") curgr.name = name;
-            curgr.materialName = name;
+            if(!_curgr.IsEmpty) PushGroup(name);
+            if(_curgr.Name == "default") _curgr.Name = name;
+            _curgr.MaterialName = name;
         }
         
         public void PushVertex(Vector3 v) {
-            vertices.Add(v);
+            Vertices.Add(v);
         }
         
-        public void PushUV(Vector2 v) {
-            uvs.Add(v);
+        public void PushUv(Vector2 v) {
+            Uvs.Add(v);
         }
         
         public void PushNormal(Vector3 v) {
-            normals.Add(v);
+            Normals.Add(v);
         }
         
         public void PushFace(FaceIndices f) {
-            curgr.faces.Add(f);
-            current.allFaces.Add(f);
+            _curgr.Faces.Add(f);
+            _current.AllFaces.Add(f);
         }
         
         public void Trace() {
-            Debug.Log("OBJ has " + objects.Count + " object(s)");
-            Debug.Log("OBJ has " + vertices.Count + " vertice(s)");
-            Debug.Log("OBJ has " + uvs.Count + " uv(s)");
-            Debug.Log("OBJ has " + normals.Count + " normal(s)");
-            foreach(ObjectData od in objects) {
-                Debug.Log(od.name + " has " + od.groups.Count + " group(s)");
-                foreach(GroupData gd in od.groups) {
-                    Debug.Log(od.name + "/" + gd.name + " has " + gd.faces.Count + " faces(s)");
+            Debug.Log("OBJ has " + _objects.Count + " object(s)");
+            Debug.Log("OBJ has " + Vertices.Count + " vertice(s)");
+            Debug.Log("OBJ has " + Uvs.Count + " uv(s)");
+            Debug.Log("OBJ has " + Normals.Count + " normal(s)");
+            foreach(ObjectData od in _objects) {
+                Debug.Log(od.Name + " has " + od.Groups.Count + " group(s)");
+                foreach(GroupData gd in od.Groups) {
+                    Debug.Log(od.Name + "/" + gd.Name + " has " + gd.Faces.Count + " faces(s)");
                 }
             }
             
         }
         
-        public int numObjects { get { return objects.Count; } }	
-        public bool isEmpty { get { return vertices.Count == 0; } }
-        public bool hasUVs { get { return uvs.Count > 0; } }
-        public bool hasNormals { get { return normals.Count > 0; } }
+        public int NumObjects { get { return _objects.Count; } }	
+        public bool IsEmpty { get { return Vertices.Count == 0; } }
+        public bool HasUVs { get { return Uvs.Count > 0; } }
+        public bool HasNormals { get { return Normals.Count > 0; } }
 
         public void PopulateMeshes(GameObject[] gs, Dictionary<string, Material[]> mats = null) 
         {
-            if (eboBuffer == null)
+            if (EboBuffer == null)
             {
                 PopulateMeshesObj(gs, mats);
             }
@@ -137,7 +137,7 @@
             Vector2[] tuvs;
 
             int[] triangles;
-            using (var s = new MemoryStream(eboBuffer))
+            using (var s = new MemoryStream(EboBuffer))
             using (var br = new BinaryReader(s))
             {
                 // File is prefixed with face count, times 3 for vertices
@@ -209,55 +209,55 @@
             // m.RecalculateNormals();
             if (mats != null)
             {
-                GroupData gd = objects[0].groups[0];
+                GroupData gd = _objects[0].Groups[0];
 
-                if (gd.materialName == null)
+                if (gd.MaterialName == null)
                 {
                     Dictionary<string, Material[]>.KeyCollection.Enumerator keys = mats.Keys.GetEnumerator();
                     keys.MoveNext();
-                    gd.materialName = keys.Current;
+                    gd.MaterialName = keys.Current;
                 }
 
                 Renderer renderer = gs[0].GetComponent<Renderer>();
-                renderer.materials = mats[gd.materialName];
+                renderer.materials = mats[gd.MaterialName];
             }
         }
 
         public void PopulateMeshesObj(GameObject[] gs, Dictionary<string, Material[]> mats) {
-            if(gs.Length != numObjects) return; // Should not happen unless obj file is corrupt...
+            if(gs.Length != NumObjects) return; // Should not happen unless obj file is corrupt...
             
             for(int i = 0; i < gs.Length; i++) {
-                ObjectData od = objects[i];
+                ObjectData od = _objects[i];
                 
-                if(od.name != "default") gs[i].name = od.name;
+                if(od.Name != "default") gs[i].name = od.Name;
                 
-                Vector3[] tvertices = new Vector3[od.allFaces.Count];
-                Vector2[] tuvs = new Vector2[od.allFaces.Count];
-                Vector3[] tnormals = new Vector3[od.allFaces.Count];
-                int[] triangles = new int[od.allFaces.Count];
+                Vector3[] tvertices = new Vector3[od.AllFaces.Count];
+                Vector2[] tuvs = new Vector2[od.AllFaces.Count];
+                Vector3[] tnormals = new Vector3[od.AllFaces.Count];
+                int[] triangles = new int[od.AllFaces.Count];
             
                 int k = 0;
-                foreach(FaceIndices fi in od.allFaces)
+                foreach(FaceIndices fi in od.AllFaces)
                 {
                     triangles[k] = k;
-                    tvertices[k] = vertices[fi.vi];
-                    if(hasUVs)
+                    tvertices[k] = Vertices[fi.Vi];
+                    if(HasUVs)
                     {
                         try
                         {
-                            tuvs[k] = uvs[fi.vu];
+                            tuvs[k] = Uvs[fi.Vu];
                         }
                         catch (Exception ex)
                         {
                             Debug.LogError("Exception: " + ex.ToString());
-                            Debug.LogError("vu vs uvs.Count: " + fi.vu + " " + uvs.Count);
+                            Debug.LogError("vu vs uvs.Count: " + fi.Vu + " " + Uvs.Count);
                             throw;
 
                         }
                     }
-                    if(hasNormals)
+                    if(HasNormals)
                     {
-                        tnormals[k] = normals[fi.vn];
+                        tnormals[k] = Normals[fi.Vn];
                     }
                     k++;
                 }
@@ -284,23 +284,23 @@
 
                 m.vertices = tvertices;
                 m.triangles = triangles;
-                if(hasUVs) m.uv = tuvs;
-                if(hasNormals) m.normals = tnormals;
+                if(HasUVs) m.uv = tuvs;
+                if(HasNormals) m.normals = tnormals;
                 if (mats != null)
                 {
-                    if (od.groups.Count == 1)
+                    if (od.Groups.Count == 1)
                     {
-                        GroupData gd = od.groups[0];
+                        GroupData gd = od.Groups[0];
 
-                        if (gd.materialName == null)
+                        if (gd.MaterialName == null)
                         {
                             Dictionary<string, Material[]>.KeyCollection.Enumerator keys = mats.Keys.GetEnumerator();
                             keys.MoveNext();
-                            gd.materialName = keys.Current;
+                            gd.MaterialName = keys.Current;
                         }
 
                         Renderer renderer = gs[i].GetComponent<Renderer>();
-                        renderer.materials = mats[gd.materialName];
+                        renderer.materials = mats[gd.MaterialName];
 
                     }
                     else

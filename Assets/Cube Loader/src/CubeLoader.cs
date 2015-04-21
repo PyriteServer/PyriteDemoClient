@@ -17,11 +17,11 @@
     public class CubeLoader : MonoBehaviour
     {
 
-        private bool readyToBuild = false;
-        private bool processTextures = true;
+        private bool _readyToBuild = false;
+        private bool _processTextures = true;
 
-        private int cubeCount = -1;
-        private int textureCount = 0;
+        private int _cubeCount = -1;
+        private int _textureCount = 0;
 
         public PyriteQuery PyriteQuery { get; private set; }
         public string PyriteServer;
@@ -41,13 +41,13 @@
         public GameObject PlaceHolderCube;
 
         //queuing
-        private Queue<Cube> loadingQueue = new Queue<Cube>();
-        private Queue<Cube> buildingQueue = new Queue<Cube>();
-        private Queue<Cube> textureQueue = new Queue<Cube>();
+        private Queue<Cube> _loadingQueue = new Queue<Cube>();
+        private Queue<Cube> _buildingQueue = new Queue<Cube>();
+        private Queue<Cube> _textureQueue = new Queue<Cube>();
 
-        private Color[] colorList = {Color.gray, Color.yellow, Color.cyan};
+        private Color[] _colorList = {Color.gray, Color.yellow, Color.cyan};
 
-        private TextureLoader textureLoader;
+        private TextureLoader _textureLoader;
 
         public string ModelVersion = "V1";
 
@@ -103,13 +103,13 @@
             LoadDefaultMaterials(pyriteLevel, materialDataList);
 
             // testing preloading the textures data on a background thread - by this point, we should have the data we need to start downloading
-            textureLoader = new TextureLoader(PyriteQuery, materialDataList, UseUnlitShader);
-            textureLoader.DownloadCompleted += (s, e) =>
+            _textureLoader = new TextureLoader(PyriteQuery, materialDataList, UseUnlitShader);
+            _textureLoader.DownloadCompleted += (s, e) =>
             {
-                readyToBuild = true;
+                _readyToBuild = true;
             };
 
-            yield return StartCoroutine(textureLoader.DownloadTextures(pyriteLevel));
+            yield return StartCoroutine(_textureLoader.DownloadTextures(pyriteLevel));
 
             if (Camera != null || CameraRig != null)
             {
@@ -143,7 +143,7 @@
 
 
                     g.transform.parent = gameObject.transform;
-                    g.GetComponent<MeshRenderer>().material.color = colorList[colorSelector%3];
+                    g.GetComponent<MeshRenderer>().material.color = _colorList[colorSelector%3];
                     g.GetComponent<IsRendered>().SetCubePosition(x, y, z, DetailLevel, PyriteQuery, this);
 
                     g.transform.localScale = new Vector3(
@@ -158,7 +158,7 @@
                     {
                         MapPosition = new UnityEngine.Vector3(x, y, z),
                         Query = PyriteQuery,
-                        LOD = DetailLevel
+                        Lod = DetailLevel
                     });
                 }
             }
@@ -179,41 +179,41 @@
 
         public void AddToQueue(Cube cube)
         {
-            if (cubeCount == -1)
-                cubeCount = 0;
+            if (_cubeCount == -1)
+                _cubeCount = 0;
 
-            cubeCount++;
-            loadingQueue.Enqueue(cube);
+            _cubeCount++;
+            _loadingQueue.Enqueue(cube);
         }
 
         public IEnumerator ProcessQueue()
         {
             yield return StartCoroutine(ProcessLoadQueue());
 
-            if (readyToBuild)
+            if (_readyToBuild)
             {
-                yield return StartCoroutine(textureLoader.CreateTexturesAndMaterials());
+                yield return StartCoroutine(_textureLoader.CreateTexturesAndMaterials());
                 yield return StartCoroutine(ProcessBuildQueue());
             }
         }
 
         private IEnumerator ProcessLoadQueue()
         {
-            while (loadingQueue.Count > 0)
+            while (_loadingQueue.Count > 0)
             {
-                ThreadPool.QueueUserWorkItem(new WaitCallback(LoadCubue), loadingQueue.Dequeue());
+                ThreadPool.QueueUserWorkItem(new WaitCallback(LoadCubue), _loadingQueue.Dequeue());
                 yield return null;
             }
         }
 
         public IEnumerator ProcessBuildQueue()
         {
-            while (buildingQueue.Count > 0)
+            while (_buildingQueue.Count > 0)
             {
-                Cube cube = buildingQueue.Dequeue();
+                Cube cube = _buildingQueue.Dequeue();
 
                 yield return StartCoroutine(BuildCube(cube));
-                textureLoader.MapTextures(cube);
+                _textureLoader.MapTextures(cube);
                 DebugLog("Done building: {0} {1} {2}", cube.MapPosition.x, cube.MapPosition.y, cube.MapPosition.z);
             }
         }
@@ -255,8 +255,8 @@
                     CubeBuilderHelpers.SetGeometryData(r.Content, buffer);
                     cube.Buffer = buffer;
 
-                    buildingQueue.Enqueue(cube);
-                    textureQueue.Enqueue(cube);
+                    _buildingQueue.Enqueue(cube);
+                    _textureQueue.Enqueue(cube);
                 }
             });
         }
@@ -273,11 +273,11 @@
             {
                 if (r.RawBytes != null)
                 {
-                    buffer.eboBuffer = r.RawBytes;
+                    buffer.EboBuffer = r.RawBytes;
                     cube.Buffer = buffer;
 
-                    buildingQueue.Enqueue(cube);
-                    textureQueue.Enqueue(cube);
+                    _buildingQueue.Enqueue(cube);
+                    _textureQueue.Enqueue(cube);
                 }
             });
         }
@@ -300,9 +300,9 @@
 
         private IEnumerator BuildCube(Cube cube)
         {
-            GameObject[] ms = new GameObject[cube.Buffer.numObjects];
+            GameObject[] ms = new GameObject[cube.Buffer.NumObjects];
 
-            for (int i = 0; i < cube.Buffer.numObjects; i++)
+            for (int i = 0; i < cube.Buffer.NumObjects; i++)
             {
                 GameObject go = new GameObject();
                 go.name = String.Format("cube_{0}_{1}_{2}.{3}", cube.MapPosition.x, cube.MapPosition.y,

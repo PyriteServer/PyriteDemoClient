@@ -2,7 +2,7 @@ using System;
 
 public struct FaceIndices
 {
-	public int vi;
-	public int vu;
-	public int vn;
+	public int Vi;
+	public int Vu;
+	public int Vn;
 }

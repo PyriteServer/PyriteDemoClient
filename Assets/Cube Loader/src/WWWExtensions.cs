@@ -9,7 +9,7 @@
     using UnityEngine;
 
 
-    public static class WWWExtensions
+    public static class WwwExtensions
     {
         private const string ContentEncodingHeaderName = "CONTENT-ENCODING";
         private const string GzipContentEncodingValue = "gzip";

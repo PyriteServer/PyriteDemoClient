@@ -8,59 +8,61 @@
 
     public class IsRendered : MonoBehaviour
     {
-        private readonly List<GameObject> childDetectors = new List<GameObject>();
-        private readonly List<GameObject> cubes = new List<GameObject>();
-        private Cube cube;
-        private CubeLoader cubeLoader;
-        private int lod;
-        private DemoOBJ manager;
-        private MeshRenderer meshRenderer;
-        private PyriteQuery pyriteQuery;
-        private Renderer render;
-        private int x, y, z;
+        private readonly List<GameObject> _childDetectors = new List<GameObject>();
+        private readonly List<GameObject> _cubes = new List<GameObject>();
+        private Cube _cube;
+        private CubeLoader _cubeLoader;
+        private int _lod;
+        private PyriteLoader _manager;
+        private MeshRenderer _meshRenderer;
+        private PyriteQuery _pyriteQuery;
+        private Renderer _render;
+        private int _x, _y, _z;
 
         private bool Upgradable
         {
-            get { return manager != null && childDetectors.Count == 0 && pyriteQuery.DetailLevels.ContainsKey(lod-1); }
+            get
+            {
+                return _manager != null && _childDetectors.Count == 0 && _pyriteQuery.DetailLevels.ContainsKey(_lod - 1);
+            }
         }
 
-        public void SetCubePosition(int x, int y, int z, int lod, PyriteQuery query, DemoOBJ manager)
+        public void SetCubePosition(int x, int y, int z, int lod, PyriteQuery query, PyriteLoader manager)
         {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.lod = lod;
-            pyriteQuery = query;
-            this.manager = manager;
+            _x = x;
+            _y = y;
+            _z = z;
+            _lod = lod;
+            _pyriteQuery = query;
+            _manager = manager;
             name = string.Format("PH_L{3}:{0}_{1}_{2}", x, y, z, lod);
-            // Debug.LogFormat("Init: {0}", this);
         }
 
         public void SetCubePosition(int x, int y, int z, int lod, PyriteQuery query, CubeLoader manager)
         {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.lod = lod;
-            pyriteQuery = query;
-            cubeLoader = manager;
+            _x = x;
+            _y = y;
+            _z = z;
+            _lod = lod;
+            _pyriteQuery = query;
+            _cubeLoader = manager;
             name = string.Format("PH_L{3}:{0}_{1}_{2}", x, y, z, lod);
         }
 
         // Use this for initialization
         private void Start()
         {
-            render = GetComponent<Renderer>();
-            meshRenderer = GetComponent<MeshRenderer>();
+            _render = GetComponent<Renderer>();
+            _meshRenderer = GetComponent<MeshRenderer>();
         }
 
         private void OnWillRenderObject()
         {
             if (Camera.current == Camera.main)
             {
-                if (cubes.Count == 0 && childDetectors.Count == 0)
+                if (_cubes.Count == 0 && _childDetectors.Count == 0)
                 {
-                    meshRenderer.enabled = false;
+                    _meshRenderer.enabled = false;
                     StartCoroutine(OnRenderRoutine());
                 }
             }
@@ -68,21 +70,22 @@
 
         private IEnumerator OnRenderRoutine()
         {
-            if (manager != null)
+            if (_manager != null)
             {
                 yield return StartCoroutine(
-                    manager.LoadCube(pyriteQuery, x, y, z, lod, createdObjects => { cubes.AddRange(createdObjects); }));
+                    _manager.LoadCube(_pyriteQuery, _x, _y, _z, _lod,
+                        createdObjects => { _cubes.AddRange(createdObjects); }));
                 yield return StartCoroutine(StopRenderCheck(Camera.main));
             }
-            else if (cubeLoader != null)
+            else if (_cubeLoader != null)
             {
-                cube = new Cube {MapPosition = new Vector3(x, y, z), Query = pyriteQuery, LOD = lod};
-                cubeLoader.AddToQueue(cube);
-                while (cube.GameObject == null)
+                _cube = new Cube {MapPosition = new Vector3(_x, _y, _z), Query = _pyriteQuery, Lod = _lod};
+                _cubeLoader.AddToQueue(_cube);
+                while (_cube.GameObject == null)
                 {
                     yield return null;
                 }
-                cubes.AddRange(new[] {cube.GameObject});
+                _cubes.AddRange(new[] {_cube.GameObject});
                 yield return StartCoroutine(StopRenderCheck(Camera.main));
             }
         }
@@ -95,54 +98,52 @@
 
         public void DestroyChildren()
         {
-            // Debug.LogFormat("DestroyChildren {0}", this);
-            if (cubes != null)
+            if (_cubes != null)
             {
-                foreach (var cube in cubes)
+                foreach (var cube in _cubes)
                 {
                     Destroy(cube);
                 }
-                cubes.Clear();
+                _cubes.Clear();
             }
 
-            if (this.cube != null)
+            if (_cube != null)
             {
-                cube.GameObject = null;
-                cube = null;
+                _cube.GameObject = null;
+                _cube = null;
             }
 
-            foreach (var detector in childDetectors)
+            foreach (var detector in _childDetectors)
             {
                 detector.GetComponent<IsRendered>().DestroyChildren();
                 Destroy(detector);
             }
-            childDetectors.Clear();
+            _childDetectors.Clear();
         }
 
         public override string ToString()
         {
-            return string.Format("ph L{0}:{1},{2},{3}", lod, x, y, z);
+            return string.Format("ph L{0}:{1},{2},{3}", _lod, _x, _y, _z);
         }
 
         private IEnumerator StopRenderCheck(Camera camera)
         {
             while (true)
             {
-                if (!render.IsVisibleFrom(camera))
+                if (!_render.IsVisibleFrom(camera))
                 {
-                    meshRenderer.enabled = true;
+                    _meshRenderer.enabled = true;
                     DestroyChildren();
                     break;
                 }
                 if (Upgradable && ShouldUpgrade(camera))
                 {
-                    // Debug.LogFormat("Upgrading: {0}", this);
                     yield return
-                        StartCoroutine(manager.AddUpgradedDetectorCubes(pyriteQuery, x, y, z, lod,
+                        StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lod,
                             addedDetectors =>
                             {
                                 DestroyChildren();
-                                childDetectors.AddRange(addedDetectors);
+                                _childDetectors.AddRange(addedDetectors);
                             }));
                 }
 

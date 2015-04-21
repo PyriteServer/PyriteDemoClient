@@ -419,6 +419,8 @@ MonoBehaviour:
   UseCameraDetection: 0
   UseEbo: 1
   UseUnlitShader: 1
+  UseWww: 1
+  MaxConcurrentRequests: 0
   QueryPosition: {x: 0, y: 0, z: 0}
   TargetGameObject: {fileID: 1608615648}
   SkipLowerDetailedCubes: 1

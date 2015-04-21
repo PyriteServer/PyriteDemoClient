@@ -14,16 +14,16 @@ public class TextureLoader {
     public List<MaterialData> MaterialDataList { get; private set; }
     public int TextureCount { get; private set; }
 
-    private Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>();
+    private Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
     public Dictionary<string, Texture2D> Textures
     {
-        get { return textures; }
+        get { return _textures; }
     }
 
-    private readonly Dictionary<string, Material[]> materialCache = new Dictionary<string, Material[]>();
+    private readonly Dictionary<string, Material[]> _materialCache = new Dictionary<string, Material[]>();
 
     // holds the downloaded texture data
-    private Dictionary<string, byte[]> textureDataCache = new Dictionary<string, byte[]>();
+    private Dictionary<string, byte[]> _textureDataCache = new Dictionary<string, byte[]>();
 
     private bool UseUnlitShader { get; set; }
 
@@ -40,8 +40,8 @@ public class TextureLoader {
         TextureCount = (int)detailLevel.TextureSetSize.x * (int)detailLevel.TextureSetSize.y;
         foreach (var md in MaterialDataList)
         {
-            var texPath = Query.GetTexturePath(detailLevel.Name, md.x, md.y);
-            md.diffuseTexPath = texPath;
+            var texPath = Query.GetTexturePath(detailLevel.Name, md.X, md.Y);
+            md.DiffuseTexPath = texPath;
             yield return ThreadPool.QueueUserWorkItem(StartDownloadTexture, texPath);    
         }
     }
@@ -55,10 +55,10 @@ public class TextureLoader {
         client.ExecuteAsync(texRequest, (r, h) =>
         {
             if(r.ResponseStatus == ResponseStatus.Completed && r.RawBytes != null)
-                textureDataCache.Add(texPath, r.RawBytes);
+                _textureDataCache.Add(texPath, r.RawBytes);
 
             // if this is the last texture to download, then signal that it's done
-            if (textureDataCache.Count == TextureCount)
+            if (_textureDataCache.Count == TextureCount)
             {
                 if (DownloadCompleted != null)
                     DownloadCompleted(this, EventArgs.Empty);
@@ -68,18 +68,18 @@ public class TextureLoader {
 
     public IEnumerator CreateTexturesAndMaterials()
     {
-        while(textures.Count < TextureCount)
+        while(_textures.Count < TextureCount)
         {
             foreach (var md in MaterialDataList)
             {
-                if (!textures.ContainsKey(md.diffuseTexPath))
+                if (!_textures.ContainsKey(md.DiffuseTexPath))
                 {
-                    byte[] textureData = textureDataCache[md.diffuseTexPath];
+                    byte[] textureData = _textureDataCache[md.DiffuseTexPath];
                     Texture2D texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
                     texture.LoadImage(textureData);
-                    textures.Add(md.diffuseTexPath, texture);
-                    md.diffuseTex = texture;
-                    materialCache[md.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, md);
+                    _textures.Add(md.DiffuseTexPath, texture);
+                    md.DiffuseTex = texture;
+                    _materialCache[md.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, md);
                     yield return null;
                 }
             }
@@ -94,7 +94,7 @@ public class TextureLoader {
             var textureCoord = DetailLevel.TextureCoordinatesForCube(cube.MapPosition.x,
                 cube.MapPosition.y);
             Renderer renderer = gameObject.GetComponent<Renderer>();
-            renderer.materials = materialCache["material_" + (int) textureCoord.x + "_" + (int) textureCoord.y];
+            renderer.materials = _materialCache["materialData_L" + DetailLevel.Value + "_" + (int) textureCoord.x + "_" + (int) textureCoord.y];
         }
     }
 }

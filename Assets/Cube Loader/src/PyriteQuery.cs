@@ -23,8 +23,8 @@
         private const string XKey = "x";
         private const string YKey = "y";
         private const string ZKey = "z";
-        private const string OKValue = "OK";
-        private readonly string apiUrl = "http://az744221.vo.msecnd.net/";
+        private const string OkValue = "OK";
+        private readonly string _apiUrl = "http://az744221.vo.msecnd.net/";
 
 
         public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl = null)
@@ -32,49 +32,49 @@
             if (!string.IsNullOrEmpty(apiUrl))
             {
                 Debug.Log("Overriding PyriteServer url to " + apiUrl);
-                this.apiUrl = apiUrl;
+                _apiUrl = apiUrl;
             }
             SetName = setName;
             Version = version;
             Loaded = false;
             DetailLevels = new Dictionary<int, PyriteSetVersionDetailLevel>();
-            Manager = manager;
-            SetUrl = this.apiUrl + "/sets/" + SetName + "/";
-            VersionUrl = SetUrl + Version + "/";
+            _manager = manager;
+            _setUrl = _apiUrl + "/sets/" + SetName + "/";
+            _versionUrl = _setUrl + Version + "/";
         }
 
         public string SetName { get; private set; }
         public string Version { get; private set; }
         public bool Loaded { get; private set; }
 
-        private readonly MonoBehaviour Manager;
+        private readonly MonoBehaviour _manager;
 
-        private readonly string VersionUrl;
-        private readonly string SetUrl;
+        private readonly string _versionUrl;
+        private readonly string _setUrl;
 
         public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
 
         public string GetModelPath(int lod, int x, int y, int z)
         {
-            return GetModelPath(GetLODKey(lod), x, y, z);
+            return GetModelPath(GetLodKey(lod), x, y, z);
         }
 
         public string GetModelPath(string lod, int x, int y, int z)
         {
-            return string.Format("{0}/sets/{1}/{2}/models/{3}/{4},{5},{6}", apiUrl, SetName, Version, lod, x, y, z);
+            return string.Format("{0}/sets/{1}/{2}/models/{3}/{4},{5},{6}", _apiUrl, SetName, Version, lod, x, y, z);
         }
 
         public string GetTexturePath(int lod, int x, int y)
         {
-            return GetTexturePath(GetLODKey(lod), x, y);
+            return GetTexturePath(GetLodKey(lod), x, y);
         }
 
         public string GetTexturePath(string lod, int x, int y)
         {
-            return string.Format("{0}/sets/{1}/{2}/textures/{3}/{4},{5}", apiUrl, SetName, Version, lod, x, y);
+            return string.Format("{0}/sets/{1}/{2}/textures/{3}/{4},{5}", _apiUrl, SetName, Version, lod, x, y);
         }
 
-        public string GetLODKey(int lod)
+        public string GetLodKey(int lod)
         {
             return "L" + lod;
         }
@@ -105,9 +105,9 @@
 
             var prevSetSize = DetailLevels[lod + 1].SetSize;
             return new Vector3(
-                currentSetSize.x / prevSetSize.x,
-                currentSetSize.y / prevSetSize.y,
-                currentSetSize.z / prevSetSize.z
+                currentSetSize.x/prevSetSize.x,
+                currentSetSize.y/prevSetSize.y,
+                currentSetSize.z/prevSetSize.z
                 );
         }
 
@@ -116,16 +116,17 @@
             return int.Parse(levelName.Substring(1));
         }
 
-        public IEnumerator Load3x3(Vector3 queryPosition)
+        public IEnumerator Load3X3(Vector3 queryPosition)
         {
-            yield return Manager.StartCoroutine(LoadMetadata());
+            yield return _manager.StartCoroutine(LoadMetadata());
 
-            var cubesUrl = VersionUrl + string.Format("query/3x3/{0},{1},{2}", queryPosition.x, queryPosition.y, queryPosition.z);
+            var cubesUrl = _versionUrl +
+                           string.Format("query/3x3/{0},{1},{2}", queryPosition.x, queryPosition.y, queryPosition.z);
 
-            WWW loader = WWWExtensions.CreateWWW(cubesUrl);
+            var loader = WwwExtensions.CreateWWW(cubesUrl);
             yield return loader;
             var parsedContent = JSON.Parse(loader.GetDecompressedText());
-            if (!parsedContent[StatusKey].Value.Equals(OKValue))
+            if (!parsedContent[StatusKey].Value.Equals(OkValue))
             {
                 Debug.LogError("Failure getting cube query against: " + cubesUrl);
                 yield break;
@@ -135,12 +136,12 @@
             for (var l = 0; l < parsedCubeGroups.Count; l++)
             {
                 string lodName = parsedCubeGroups[l][NameKey];
-                var detailLevelNumber  = Int32.Parse(lodName.Substring(1));
+                var detailLevelNumber = Int32.Parse(lodName.Substring(1));
                 var parsedCubes = parsedCubeGroups[l][CubesKey].AsArray;
                 DetailLevels[detailLevelNumber].Cubes = new PyriteCube[parsedCubes.Count];
                 for (var c = 0; c < parsedCubes.Count; c++)
                 {
-                    DetailLevels[detailLevelNumber].Cubes[c] = new PyriteCube()
+                    DetailLevels[detailLevelNumber].Cubes[c] = new PyriteCube
                     {
                         X = parsedCubes[c][0].AsInt,
                         Y = parsedCubes[c][1].AsInt,
@@ -152,7 +153,7 @@
 
         public IEnumerator LoadAll()
         {
-            yield return Manager.StartCoroutine(LoadMetadata());
+            yield return _manager.StartCoroutine(LoadMetadata());
             foreach (var detailLevel in DetailLevels.Values)
             {
                 var maxBoundingBoxQuery = string.Format("{0},{1},{2}/{3},{4},{5}",
@@ -164,13 +165,13 @@
                     detailLevel.WorldBoundsMax.z
                     );
 
-                var cubesUrl = VersionUrl + "query/" + detailLevel.Name + "/" +
+                var cubesUrl = _versionUrl + "query/" + detailLevel.Name + "/" +
                                maxBoundingBoxQuery;
 
-                WWW loader = WWWExtensions.CreateWWW(cubesUrl);
+                var loader = WwwExtensions.CreateWWW(cubesUrl);
                 yield return loader;
                 var parsedContent = JSON.Parse(loader.GetDecompressedText());
-                if (!parsedContent[StatusKey].Value.Equals(OKValue))
+                if (!parsedContent[StatusKey].Value.Equals(OkValue))
                 {
                     Debug.LogError("Failure getting cube query against: " + cubesUrl);
                     yield break;
@@ -193,20 +194,20 @@
 
         private IEnumerator LoadMetadata()
         {
-            Debug.Log("Metadata query started against: " + SetUrl);
+            Debug.Log("Metadata query started against: " + _setUrl);
             WWW loader = null;
-            loader = WWWExtensions.CreateWWW(SetUrl);
+            loader = WwwExtensions.CreateWWW(_setUrl);
             yield return loader;
             var parsedContent = JSON.Parse(loader.GetDecompressedText());
-            if (!parsedContent[StatusKey].Value.Equals(OKValue))
+            if (!parsedContent[StatusKey].Value.Equals(OkValue))
             {
                 Debug.LogError("Failure getting set info for " + SetName);
                 yield break;
             }
-            loader = WWWExtensions.CreateWWW(VersionUrl);
+            loader = WwwExtensions.CreateWWW(_versionUrl);
             yield return loader;
             parsedContent = JSON.Parse(loader.GetDecompressedText());
-            if (!parsedContent[StatusKey].Value.Equals(OKValue))
+            if (!parsedContent[StatusKey].Value.Equals(OkValue))
             {
                 Debug.LogError("Failure getting set version info for " + SetName + " - " + Version);
                 yield break;

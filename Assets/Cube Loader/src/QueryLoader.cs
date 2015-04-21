@@ -9,7 +9,7 @@
     using UnityEngine;
     using Debug = UnityEngine.Debug;
 
-    public class QueryLoader : DemoOBJ
+    public class QueryLoader : PyriteLoader
     {
         // Position to use for query if object is not specified
         public Vector3 QueryPosition;
@@ -51,21 +51,21 @@
                     TargetGameObject.transform.position.y - 600 
                     );
 
-                yield return StartCoroutine(pyriteQuery.Load3x3(transformedPosition));
+                yield return StartCoroutine(pyriteQuery.Load3X3(transformedPosition));
             }
             else
             {
-                yield return StartCoroutine(pyriteQuery.Load3x3(QueryPosition));
+                yield return StartCoroutine(pyriteQuery.Load3X3(QueryPosition));
             }
             DebugLog("CubeQuery complete.");
 
-            float xmin, ymin, zmin, xmax, ymax, zmax;
-            xmin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.x;
-            ymin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.y;
-            zmin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.z;
-            xmax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.x;
-            ymax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.y;
-            zmax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.z;
+            
+            float xmin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.x;
+            float ymin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.y;
+            float zmin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.z;
+            float xmax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.x;
+            float ymax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.y;
+            float zmax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.z;
 
             Dictionary<int, HashSet<PyriteCube>> cubesToSkip = new Dictionary<int, HashSet<PyriteCube>>();
             foreach (var pyriteLevel in pyriteQuery.DetailLevels.Values)

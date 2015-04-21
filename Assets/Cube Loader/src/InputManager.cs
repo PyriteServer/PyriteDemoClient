@@ -6,53 +6,53 @@ public class InputManager : MonoBehaviour
     public float RotationDeltaRate = 90;
     public float TranslationDeltaRate = 50.0f;
 
-    private float camPitch = 30;
-    private float yaw = 0;
-    float move_x;
-    float move_y;
-    float move_z;
-    private Quaternion cameraOrientation;
-    private Quaternion rigOrientation;
-    private Camera pivotCamera;
-    private Transform targetPosition;
+    private float _camPitch = 30;
+    private float _yaw = 0;
+    float _moveX;
+    float _moveY;
+    float _moveZ;
+    private Quaternion _cameraOrientation;
+    private Quaternion _rigOrientation;
+    private Camera _pivotCamera;
+    private Transform _targetPosition;
 
     void Start()
     {
-        pivotCamera = GetComponentInChildren<Camera>();
-        targetPosition = transform;
+        _pivotCamera = GetComponentInChildren<Camera>();
+        _targetPosition = transform;
     }
 
     void Update()
     {        
-        move_x = Input.GetAxis("Horizontal") * Time.deltaTime * TranslationDeltaRate;
-        move_y = Input.GetAxis("Vertical") * Time.deltaTime * TranslationDeltaRate;
-        move_z = Input.GetAxis("Forward") * Time.deltaTime * TranslationDeltaRate;
+        _moveX = Input.GetAxis("Horizontal") * Time.deltaTime * TranslationDeltaRate;
+        _moveY = Input.GetAxis("Vertical") * Time.deltaTime * TranslationDeltaRate;
+        _moveZ = Input.GetAxis("Forward") * Time.deltaTime * TranslationDeltaRate;
 
-        yaw += Input.GetAxis("HorizontalTurn") * Time.deltaTime * RotationDeltaRate;
-        camPitch += Input.GetAxis("VerticalTurn") * Time.deltaTime * RotationDeltaRate;
+        _yaw += Input.GetAxis("HorizontalTurn") * Time.deltaTime * RotationDeltaRate;
+        _camPitch += Input.GetAxis("VerticalTurn") * Time.deltaTime * RotationDeltaRate;
 
         if (Input.GetButton("XboxLB"))
         {
-            move_y -= Time.deltaTime * TranslationDeltaRate;
+            _moveY -= Time.deltaTime * TranslationDeltaRate;
         }
         if (Input.GetButton("XboxRB"))
         {
-            move_y += Time.deltaTime * TranslationDeltaRate;
+            _moveY += Time.deltaTime * TranslationDeltaRate;
         }
 
 
-        targetPosition.Translate(Vector3.up * move_y, Space.World);
-        targetPosition.Translate(Vector3.forward * move_z + Vector3.right * move_x, Space.Self);                
+        _targetPosition.Translate(Vector3.up * _moveY, Space.World);
+        _targetPosition.Translate(Vector3.forward * _moveZ + Vector3.right * _moveX, Space.Self);                
     }
 
     void FixedUpdate()
     {
-        transform.position = Vector3.Lerp(transform.position, targetPosition.position, 1f);
+        transform.position = Vector3.Lerp(transform.position, _targetPosition.position, 1f);
 
-        rigOrientation.eulerAngles = new Vector3(0, LimitAngles(yaw), 0);
-        transform.rotation = Quaternion.Lerp(transform.rotation, rigOrientation, Time.time);
-        cameraOrientation.eulerAngles = new Vector3(LimitAngles(camPitch), transform.rotation.eulerAngles.y, 0);
-        pivotCamera.transform.rotation = Quaternion.Lerp(pivotCamera.transform.rotation, cameraOrientation, Time.time);
+        _rigOrientation.eulerAngles = new Vector3(0, LimitAngles(_yaw), 0);
+        transform.rotation = Quaternion.Lerp(transform.rotation, _rigOrientation, Time.time);
+        _cameraOrientation.eulerAngles = new Vector3(LimitAngles(_camPitch), transform.rotation.eulerAngles.y, 0);
+        _pivotCamera.transform.rotation = Quaternion.Lerp(_pivotCamera.transform.rotation, _cameraOrientation, Time.time);
 
         var planePoint = transform.position;
         planePoint.y = 0;

@@ -14,28 +14,28 @@
         public GeometryBuffer Buffer { get; set; }
         public List<MaterialData> MaterialData { get; set; }
         public GameObject GameObject { get; set; }
-        public int LOD { get; set; }
+        public int Lod { get; set; }
     }
 
     public class MaterialData
     {
-        private const string nameFormat = "materialData_L{0}_{1}_{2}";
+        private const string NameFormat = "materialData_L{0}_{1}_{2}";
 
-        public Color ambient;
-        public Color diffuse;
-        public Color specular;
-        public float shininess;
-        public float alpha;
-        public int illumType;
-        public string diffuseTexPath;
-        public Texture2D diffuseTex;
-        public int x;
-        public int y;
-        public int lod;
+        public Color Ambient;
+        public Color Diffuse;
+        public Color Specular;
+        public float Shininess;
+        public float Alpha;
+        public int IllumType;
+        public string DiffuseTexPath;
+        public Texture2D DiffuseTex;
+        public int X;
+        public int Y;
+        public int Lod;
 
         public string Name
         {
-            get { return string.Format(nameFormat, lod, x, y); }
+            get { return string.Format(NameFormat, Lod, X, Y); }
         }
     }
 }
