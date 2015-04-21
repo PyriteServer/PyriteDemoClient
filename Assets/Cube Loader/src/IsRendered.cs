@@ -18,6 +18,7 @@
         private PyriteQuery _pyriteQuery;
         private Renderer _render;
         private int _x, _y, _z;
+        private LoadCubeRequest _loadCubeRequest;
 
         private bool Upgradable
         {
@@ -72,10 +73,23 @@
         {
             if (_manager != null)
             {
-                yield return StartCoroutine(
-                    _manager.LoadCube(_pyriteQuery, _x, _y, _z, _lod,
-                        createdObjects => { _cubes.AddRange(createdObjects); }));
-                yield return StartCoroutine(StopRenderCheck(Camera.main));
+                _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObjects =>
+                        {
+                            if (!_loadCubeRequest.Cancelled)
+                            {
+                                _cubes.AddRange(createdObjects);
+                                StartCoroutine(StopRenderCheck(Camera.main));
+                            }
+                            else
+                            {
+                                foreach (var createdObject in createdObjects)
+                                {
+                                    Destroy(createdObject);
+                                }
+                            }
+                        });
+
+                _manager.EnqueueLoadCubeRequest(_loadCubeRequest);
             }
             else if (_cubeLoader != null)
             {
@@ -98,6 +112,11 @@
 
         public void DestroyChildren()
         {
+            if (_loadCubeRequest != null)
+            {
+                _loadCubeRequest.Cancelled = true;
+            }
+
             if (_cubes != null)
             {
                 foreach (var cube in _cubes)

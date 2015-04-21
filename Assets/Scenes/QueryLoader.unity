@@ -377,7 +377,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1608615648}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -308}
+  m_LocalPosition: {x: 0, y: 0, z: -295.399994}
   m_LocalScale: {x: 35, y: 35, z: 35}
   m_Children: []
   m_Father: {fileID: 0}
@@ -421,9 +421,11 @@ MonoBehaviour:
   UseUnlitShader: 1
   UseWww: 1
   MaxConcurrentRequests: 0
+  MaxLoaderRoutines: 8
   QueryPosition: {x: 0, y: 0, z: 0}
   TargetGameObject: {fileID: 1608615648}
   SkipLowerDetailedCubes: 1
+  Reference: L2
 --- !u!4 &2132541550
 Transform:
   m_ObjectHideFlags: 0

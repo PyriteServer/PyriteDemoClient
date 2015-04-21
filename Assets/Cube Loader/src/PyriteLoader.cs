@@ -46,6 +46,8 @@
 
         private readonly HashSet<string> _activeRequests = new HashSet<string>();
 
+        private readonly Queue<LoadCubeRequest> _loadCubeRequests = new Queue<LoadCubeRequest>();
+
         private IEnumerator StartRequest(string path)
         {
             if (MaxConcurrentRequests == 0)
@@ -79,6 +81,39 @@
             }
         }
 
+        private void LogResponseError(IRestResponse response, string path = "")
+        {
+            if (response == null)
+            {
+                Debug.LogErrorFormat("Response is null [{0}]", path);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(response.ErrorMessage))
+            {
+                Debug.LogErrorFormat("Response.ErrorMessage: {0} [{1}]", response.ErrorMessage, path);
+            }
+
+            if (response.ErrorException != null)
+            {
+                Debug.LogErrorFormat("Response.ErrorException: {0} [{1}]", response.ErrorException, path);
+            }
+        }
+
+        private void LogWwwError(WWW www, string path)
+        {
+            if (www == null)
+            {
+                Debug.LogErrorFormat("WWW is null [{0}]", path);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(www.error))
+            {
+                Debug.LogErrorFormat("WWW.error: {0} [{1}]", www.error, path);
+            }
+        }
+
         private void Start()
         {
             if (string.IsNullOrEmpty(SetName))
@@ -93,10 +128,21 @@
                 return;
             }
 
-
             DebugLog("+Start()");
             StartCoroutine(Load());
             DebugLog("-Start()");
+        }
+
+        private void Update()
+        {
+            while (_loadCubeRequests.Count > 0)
+            {
+                var request = _loadCubeRequests.Dequeue();
+                if (!request.Cancelled)
+                {
+                    StartCoroutine(ProcessLoadCubeRequest(request));
+                }
+            }
         }
 
         public IEnumerator Load()
@@ -151,7 +197,8 @@
                 }
                 else
                 {
-                    StartCoroutine(LoadCube(pyriteQuery, x, y, z, DetailLevel));
+                    var loadRequest = new LoadCubeRequest(x, y, z, DetailLevel, pyriteQuery, null);
+                    EnqueueLoadCubeRequest(loadRequest);
                 }
             }
 
@@ -219,13 +266,18 @@
             yield break;
         }
 
-        public IEnumerator LoadCube(PyriteQuery query, int x, int y, int z, int lod,
-            Action<GameObject[]> registerCreatedObjects = null)
+        public void EnqueueLoadCubeRequest(LoadCubeRequest loadRequest)
         {
-            DebugLog("+LoadCube(L{3}:{0}_{1}_{2})", x, y, z, lod);
-            var modelPath = query.GetModelPath(lod, x, y, z);
+            _loadCubeRequests.Enqueue(loadRequest);
+        }
+
+        private IEnumerator ProcessLoadCubeRequest(LoadCubeRequest loadRequest)
+        {
+
+            DebugLog("+LoadCube(L{3}:{0}_{1}_{2})", loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod);
+            var modelPath = loadRequest.Query.GetModelPath(loadRequest.Lod, loadRequest.X, loadRequest.Y, loadRequest.Z);
             var pyriteLevel =
-                query.DetailLevels[lod];
+                loadRequest.Query.DetailLevels[loadRequest.Lod];
 
             var buffer = new GeometryBuffer();
 
@@ -243,6 +295,7 @@
                         request.AddHeader("Accept-Encoding", "gzip, deflate");
                         client.ExecuteAsync(request, (r, h) =>
                         {
+                            LogResponseError(r, modelPath);
                             if (r.RawBytes != null)
                             {
                                 _objCache[modelPath] = r.Content;
@@ -257,11 +310,7 @@
                     {
                         loader = WwwExtensions.CreateWWW(modelPath + "?fmt=obj");
                         yield return loader;
-                        if (!string.IsNullOrEmpty(loader.error))
-                        {
-                            Debug.LogError(loader.error);
-                            yield break;
-                        }
+                        LogWwwError(loader, modelPath);
                         _objCache[modelPath] = loader.GetDecompressedText();
                     }
                     while (_objCache[modelPath] == null)
@@ -289,6 +338,7 @@
                         request.AddHeader("Accept-Encoding", "gzip, deflate");
                         client.ExecuteAsync(request, (r, h) =>
                         {
+                            LogResponseError(r, modelPath);
                             if (r.RawBytes != null)
                             {
                                 _eboCache[modelPath] = r.RawBytes;
@@ -303,11 +353,7 @@
                     {
                         loader = WwwExtensions.CreateWWW(modelPath);
                         yield return loader;
-                        if (!string.IsNullOrEmpty(loader.error))
-                        {
-                            Debug.LogError(loader.error);
-                            yield break;
-                        }
+                        LogWwwError(loader, modelPath);
                         _eboCache[modelPath] = loader.GetDecompressedBytes();
                     }
                     while (_eboCache[modelPath] == null)
@@ -326,18 +372,18 @@
                 buffer.EboBuffer = _eboCache[modelPath];
             }
 
-            var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(x, y);
-            var materialDataKey = string.Format("model.mtl_{0}_{1}_{2}", textureCoordinates.x, textureCoordinates.y, lod);
+            var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(loadRequest.X, loadRequest.Y);
+            var materialDataKey = string.Format("model.mtl_{0}_{1}_{2}", textureCoordinates.x, textureCoordinates.y, loadRequest.Lod);
             if (!_materialDataCache.ContainsKey(materialDataKey))
             {
                 var materialData = new List<MaterialData>();
                 _materialDataCache[materialDataKey] = null;
                 CubeBuilderHelpers.SetDefaultMaterialData(materialData, (int) textureCoordinates.x,
-                    (int) textureCoordinates.y, lod);
+                    (int)textureCoordinates.y, loadRequest.Lod);
 
                 foreach (var m in materialData)
                 {
-                    var texturePath = query.GetTexturePath(query.GetLodKey(lod), (int) textureCoordinates.x,
+                    var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Query.GetLodKey(loadRequest.Lod), (int)textureCoordinates.x,
                         (int) textureCoordinates.y);
                     if (!_textureCache.ContainsKey(texturePath))
                     {
@@ -353,6 +399,7 @@
                             request.AddHeader("Accept-Encoding", "gzip, deflate");
                             client.ExecuteAsync(request, (r, h) =>
                             {
+                                LogResponseError(r, texturePath);
                                 if (r.RawBytes != null)
                                 {
                                     textureData = r.RawBytes;
@@ -368,10 +415,7 @@
                             // Do not request compression for textures
                             var texloader = WwwExtensions.CreateWWW(texturePath, false);
                             yield return texloader;
-                            if (!string.IsNullOrEmpty(texloader.error))
-                            {
-                                Debug.LogError("Error getting texture: " + texloader.error);
-                            }
+                            LogWwwError(texloader, texturePath);
                             textureData = texloader.bytes;
                         }
 
@@ -403,8 +447,8 @@
                 // Loop until it is set
                 yield return null;
             }
-            Build(buffer, _materialDataCache[materialDataKey], x, y, z, lod, registerCreatedObjects);
-            DebugLog("-LoadCube(L{3}:{0}_{1}_{2})", x, y, z, lod);
+            Build(buffer, _materialDataCache[materialDataKey], loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod, loadRequest.RegisterCreatedObjects);
+            DebugLog("-LoadCube(L{3}:{0}_{1}_{2})", loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod);
         }
 
         private void Build(GeometryBuffer buffer, List<MaterialData> materialData, int x, int y, int z, int lod,

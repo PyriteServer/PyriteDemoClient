@@ -116,12 +116,12 @@
             return int.Parse(levelName.Substring(1));
         }
 
-        public IEnumerator Load3X3(Vector3 queryPosition)
+        public IEnumerator Load3X3(string reference, Vector3 queryPosition)
         {
             yield return _manager.StartCoroutine(LoadMetadata());
 
             var cubesUrl = _versionUrl +
-                           string.Format("query/3x3/{0},{1},{2}", queryPosition.x, queryPosition.y, queryPosition.z);
+                           string.Format("query/3x3/{0}/{1},{2},{3}", reference, queryPosition.x, queryPosition.y, queryPosition.z);
 
             var loader = WwwExtensions.CreateWWW(cubesUrl);
             yield return loader;

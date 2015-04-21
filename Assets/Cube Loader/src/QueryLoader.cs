@@ -18,6 +18,8 @@
         // Indicates if cubes from lower details should be skipped when a higher one is present within the cube space
         public bool SkipLowerDetailedCubes = true;
 
+        public string Reference = "L2";
+
         private void Start()
         {
             if (string.IsNullOrEmpty(SetName))
@@ -51,11 +53,11 @@
                     TargetGameObject.transform.position.y - 600 
                     );
 
-                yield return StartCoroutine(pyriteQuery.Load3X3(transformedPosition));
+                yield return StartCoroutine(pyriteQuery.Load3X3(Reference, transformedPosition));
             }
             else
             {
-                yield return StartCoroutine(pyriteQuery.Load3X3(QueryPosition));
+                yield return StartCoroutine(pyriteQuery.Load3X3(Reference, QueryPosition));
             }
             DebugLog("CubeQuery complete.");
 
@@ -105,7 +107,8 @@
                     xmax = Math.Max(cubePos.x, xmax);
                     ymax = Math.Max(cubePos.y, ymax);
                     zmax = Math.Max(cubePos.z, zmax);
-                    StartCoroutine(LoadCube(pyriteQuery, x, y, z, pyriteLevel.Value));
+                    var loadRequest = new LoadCubeRequest(x, y, z, pyriteLevel.Value, pyriteQuery, null);
+                    EnqueueLoadCubeRequest(loadRequest);
                 }
             }
 
