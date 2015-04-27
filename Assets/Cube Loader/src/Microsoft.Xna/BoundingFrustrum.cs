@@ -454,31 +454,61 @@ namespace Microsoft.Xna.Framework
 
         private void CreatePlanes()
         {
+            this.left = new Plane() { normal = new Vector3(-this.matrix.M14 - this.matrix.M11, 
+                -this.matrix.M24 - this.matrix.M21, 
+                -this.matrix.M34 - this.matrix.M31), 
+                distance = -this.matrix.M44 - this.matrix.M41 };
+
+            this.right = new Plane() { normal = new Vector3(this.matrix.M11 - this.matrix.M14, 
+                this.matrix.M21 - this.matrix.M24, 
+                this.matrix.M31 - this.matrix.M34), 
+                distance = this.matrix.M41 - this.matrix.M44 };
+
+            this.top = new Plane() { normal = new Vector3(this.matrix.M12 - this.matrix.M14, 
+                this.matrix.M22 - this.matrix.M24,
+                this.matrix.M32 - this.matrix.M34), 
+                distance = this.matrix.M42 - this.matrix.M44 };
+
+            this.bottom = new Plane() { normal = new Vector3(-this.matrix.M14 - this.matrix.M12, 
+                -this.matrix.M24 - this.matrix.M22, 
+                -this.matrix.M34 - this.matrix.M32), 
+                distance = -this.matrix.M44 - this.matrix.M42 };
+
+            this.near = new Plane() { normal = new Vector3(-this.matrix.M13, 
+                -this.matrix.M23, 
+                -this.matrix.M33), 
+                distance = -this.matrix.M43 };
+
+            this.far = new Plane() { normal = new Vector3(this.matrix.M13 - this.matrix.M14, 
+                this.matrix.M23 - this.matrix.M24, 
+                this.matrix.M33 - this.matrix.M34), 
+                distance = this.matrix.M43 - this.matrix.M44 };
+
             // Pre-calculate the different planes needed
-            this.left = new Plane(-this.matrix.M14 - this.matrix.M11, -this.matrix.M24 - this.matrix.M21,
-                                  -this.matrix.M34 - this.matrix.M31, -this.matrix.M44 - this.matrix.M41);
+            //this.left = new Plane(-this.matrix.M14 - this.matrix.M11, -this.matrix.M24 - this.matrix.M21,
+            //                      -this.matrix.M34 - this.matrix.M31, -this.matrix.M44 - this.matrix.M41);
 
-            this.right = new Plane(this.matrix.M11 - this.matrix.M14, this.matrix.M21 - this.matrix.M24,
-                                   this.matrix.M31 - this.matrix.M34, this.matrix.M41 - this.matrix.M44);
+            //this.right = new Plane(this.matrix.M11 - this.matrix.M14, this.matrix.M21 - this.matrix.M24,
+            //                       this.matrix.M31 - this.matrix.M34, this.matrix.M41 - this.matrix.M44);
 
-            this.top = new Plane(this.matrix.M12 - this.matrix.M14, this.matrix.M22 - this.matrix.M24,
-                                 this.matrix.M32 - this.matrix.M34, this.matrix.M42 - this.matrix.M44);
+            //this.top = new Plane(this.matrix.M12 - this.matrix.M14, this.matrix.M22 - this.matrix.M24,
+            //                     this.matrix.M32 - this.matrix.M34, this.matrix.M42 - this.matrix.M44);
 
-            this.bottom = new Plane(-this.matrix.M14 - this.matrix.M12, -this.matrix.M24 - this.matrix.M22,
-                                    -this.matrix.M34 - this.matrix.M32, -this.matrix.M44 - this.matrix.M42);
+            //this.bottom = new Plane(-this.matrix.M14 - this.matrix.M12, -this.matrix.M24 - this.matrix.M22,
+            //                        -this.matrix.M34 - this.matrix.M32, -this.matrix.M44 - this.matrix.M42);
 
-            this.near = new Plane(-this.matrix.M13, -this.matrix.M23, -this.matrix.M33, -this.matrix.M43);
+            //this.near = new Plane(-this.matrix.M13, -this.matrix.M23, -this.matrix.M33, -this.matrix.M43);
 
 
-            this.far = new Plane(this.matrix.M13 - this.matrix.M14, this.matrix.M23 - this.matrix.M24,
-                                 this.matrix.M33 - this.matrix.M34, this.matrix.M43 - this.matrix.M44);
+            //this.far = new Plane(this.matrix.M13 - this.matrix.M14, this.matrix.M23 - this.matrix.M24,
+            //                     this.matrix.M33 - this.matrix.M34, this.matrix.M43 - this.matrix.M44);
 
-            this.NormalizePlane(ref this.left);
-            this.NormalizePlane(ref this.right);
-            this.NormalizePlane(ref this.top);
-            this.NormalizePlane(ref this.bottom);
-            this.NormalizePlane(ref this.near);
-            this.NormalizePlane(ref this.far);
+            this.normalizePlane(ref this.left);
+            this.normalizePlane(ref this.right);
+            this.normalizePlane(ref this.top);
+            this.normalizePlane(ref this.bottom);
+            this.normalizePlane(ref this.near);
+            this.normalizePlane(ref this.far);
         }
 
         private static Vector3 IntersectionPoint(ref Plane a, ref Plane b, ref Plane c)
@@ -491,23 +521,26 @@ namespace Microsoft.Xna.Framework
             // Note: N refers to the normal, d refers to the displacement. '.' means dot product. '*' means cross product
 
             Vector3 v1, v2, v3;
-            float f = -Vector3.Dot(a.Normal, Vector3.Cross(b.Normal, c.Normal));
+            float f = -Vector3.Dot(a.normal, Vector3.Cross(b.normal, c.normal));
 
-            v1 = (a.D * (Vector3.Cross(b.Normal, c.Normal)));
-            v2 = (b.D * (Vector3.Cross(c.Normal, a.Normal)));
-            v3 = (c.D * (Vector3.Cross(a.Normal, b.Normal)));
+            v1 = (a.distance * (Vector3.Cross(b.normal, c.normal)));
+            v2 = (b.distance * (Vector3.Cross(c.normal, a.normal)));
+            v3 = (c.distance * (Vector3.Cross(a.normal, b.normal)));
 
-            Vector3 vec = new Vector3(v1.X + v2.X + v3.X, v1.Y + v2.Y + v3.Y, v1.Z + v2.Z + v3.Z);
+            Vector3 vec = new Vector3(v1.x + v2.x + v3.x, v1.y + v2.y + v3.y, v1.z + v2.z + v3.z);
             return vec / f;
         }
 
-        private void NormalizePlane(ref Plane p)
+        private void normalizePlane(ref Plane p)
         {
-            float factor = 1f / p.Normal.Length();
-            p.Normal.X *= factor;
-            p.Normal.Y *= factor;
-            p.Normal.Z *= factor;
-            p.D *= factor;
+            float factor = 1f / p.normal.magnitude;
+
+            Vector3 normal = new Vector3(p.normal.x * factor, p.normal.y * factor, p.normal.z * factor);
+            //p.normal.x *= factor;
+            //p.normal.y *= factor;
+            //p.normal.z *= factor;
+            p.normal = normal;
+            p.distance *= factor;
         }
 
         #endregion

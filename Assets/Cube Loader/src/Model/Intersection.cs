@@ -10,14 +10,14 @@ namespace Pyrite.Client.Model
     {
         private readonly bool hasHit = false;
 
-        public Intersection()
-        {
-            this.Position = Vector3.zero;
-            this.Normal = Vector3.zero;
-            this.Ray = new Ray();
-            this.Distance = float.MaxValue;
-            this.Object = default(TObject);
-        }
+        //public Intersection()
+        //{
+        //    this.Position = Vector3.zero;
+        //    this.Normal = Vector3.zero;
+        //    this.Ray = new Ray();
+        //    this.Distance = float.MaxValue;
+        //    this.Object = default(TObject);
+        //}
 
         public Intersection(Vector3 hitPos, Vector3 hitNormal, Ray ray, double distance)
         {

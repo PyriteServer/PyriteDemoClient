@@ -33,18 +33,21 @@ namespace Microsoft.Xna.Framework
 
         public static Plane Normalize(Plane value)
         {
-            Plane ret;
-            Normalize(ref value, out ret);
-            return ret;
+            return Normalize(value);
         }
 
-        public static void Normalize(ref Plane value, out Plane result)
+        public static Plane Normalize(ref Plane value)
         {
+            Plane result = new Plane();
+
             float factor;
+
             result.normal = Vector3.Normalize(value.normal);
             factor = (float)Math.Sqrt(result.normal.x * result.normal.x + result.normal.y * result.normal.y + result.normal.z * result.normal.z) /
                             (float)Math.Sqrt(value.normal.x * value.normal.x + value.normal.y * value.normal.y + value.normal.z * value.normal.z);
             result.distance = value.distance * factor;
+
+            return result;
         }
     }
 }
