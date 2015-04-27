@@ -341,9 +341,9 @@ MonoBehaviour:
   CameraRig: {fileID: 0}
   DetailLevel: 4
   EnableDebugLogs: 1
-  PlaceHolderCube: {fileID: 0}
-  PyriteServer: 
-  SetName: 
+  PlaceHolderCube: {fileID: 135038, guid: 2f934764d71518942b1b6029f72c985b, type: 2}
+  PyriteServer: http://pyrite.azurewebsites.net/
+  SetName: PerthNew
   UseCameraDetection: 0
   UseEbo: 1
   UseUnlitShader: 1
