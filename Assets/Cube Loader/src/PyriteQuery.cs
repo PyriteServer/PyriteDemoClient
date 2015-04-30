@@ -16,6 +16,7 @@
         private const string DetailLevelsKey = "detailLevels";
         private const string SetSizeKey = "setSize";
         private const string TextureSetSizeKey = "textureSetSize";
+        private const string ModelBoundsKey = "modelBounds";
         private const string WorldBoundsKey = "worldBounds";
         private const string WorldCubeScaleKey = "worldCubeScale";
         private const string MaxKey = "max";
@@ -235,6 +236,18 @@
                     parsedDetailLevels[k][TextureSetSizeKey][YKey].AsFloat
                     );
 
+                detailLevel.ModelBoundsMax = new Vector3(
+                    parsedDetailLevels[k][ModelBoundsKey][MaxKey][XKey].AsFloat,
+                    parsedDetailLevels[k][ModelBoundsKey][MaxKey][YKey].AsFloat,
+                    parsedDetailLevels[k][ModelBoundsKey][MaxKey][ZKey].AsFloat
+                    );
+
+                detailLevel.ModelBoundsMin = new Vector3(
+                    parsedDetailLevels[k][ModelBoundsKey][MinKey][XKey].AsFloat,
+                    parsedDetailLevels[k][ModelBoundsKey][MinKey][YKey].AsFloat,
+                    parsedDetailLevels[k][ModelBoundsKey][MinKey][ZKey].AsFloat
+                    );
+
                 detailLevel.WorldBoundsMax = new Vector3(
                     parsedDetailLevels[k][WorldBoundsKey][MaxKey][XKey].AsFloat,
                     parsedDetailLevels[k][WorldBoundsKey][MaxKey][YKey].AsFloat,
@@ -293,6 +306,8 @@
         public PyriteQuery Query { get; set; }
         public Vector3 SetSize { get; set; }
         public Vector2 TextureSetSize { get; set; }
+        public Vector3 ModelBoundsMin { get; set; }
+        public Vector3 ModelBoundsMax { get; set; }
         public Vector3 WorldBoundsMax { get; set; }
         public Vector3 WorldBoundsMin { get; set; }
         public Vector3 WorldBoundsSize { get; set; }
