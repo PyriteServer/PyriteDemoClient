@@ -1,10 +1,6 @@
 ﻿namespace Assets.Cube_Loader.src
 {
-    using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using Assets.Cube_Loader.src;
     using UnityEngine;
 
     public class Cube
