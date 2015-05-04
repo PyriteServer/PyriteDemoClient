@@ -16,7 +16,7 @@
 
         public static string GetDecompressedText(this WWW www)
         {
-        #if UNITY_STANDALONE_WIN
+        #if UNITY_STANDALONE_WIN || UNITY_WEBGL
             string contentEncoding;
             if (www.responseHeaders == null ||
                 !www.responseHeaders.TryGetValue(ContentEncodingHeaderName, out contentEncoding) ||
@@ -39,7 +39,7 @@
 
         public static byte[] GetDecompressedBytes(this WWW www)
         {
-        #if UNITY_STANDALONE_WIN
+        #if UNITY_STANDALONE_WIN || UNITY_WEBGL
             string contentEncoding;
             if (www.responseHeaders == null ||
                 !www.responseHeaders.TryGetValue(ContentEncodingHeaderName, out contentEncoding) ||
