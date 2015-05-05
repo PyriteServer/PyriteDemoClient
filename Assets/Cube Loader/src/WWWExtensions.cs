@@ -16,7 +16,7 @@
 
         public static string GetDecompressedText(this WWW www)
         {
-        #if UNITY_STANDALONE_WIN
+        #if UNITY_STANDALONE_WIN || UNITY_WEBGL
             string contentEncoding;
             if (www.responseHeaders == null ||
                 !www.responseHeaders.TryGetValue(ContentEncodingHeaderName, out contentEncoding) ||
@@ -39,7 +39,7 @@
 
         public static byte[] GetDecompressedBytes(this WWW www)
         {
-        #if UNITY_STANDALONE_WIN
+        #if UNITY_STANDALONE_WIN || UNITY_WEBGL
             string contentEncoding;
             if (www.responseHeaders == null ||
                 !www.responseHeaders.TryGetValue(ContentEncodingHeaderName, out contentEncoding) ||
@@ -79,7 +79,9 @@
             Dictionary<string, string> headers = new Dictionary<string, string>();
             if (requestCompression)
             {
+            #if UNITY_WEBGL
                 headers.Add("Accept-Encoding", "gzip, deflate");
+            #endif
             }
 
             return new WWW(path, null, headers);

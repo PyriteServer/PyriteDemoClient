@@ -4,8 +4,9 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Linq;
     using Extensions;
+    using Microsoft.Xna.Framework;
+    using Model;
     using RestSharp;
     using UnityEngine;
     using Debug = UnityEngine.Debug;
@@ -41,8 +42,7 @@
         public bool UseUnlitShader = true;
         public bool UseWww = false;
 
-        [Range(0, 100)] 
-        public int MaxConcurrentRequests = 8;
+        [Range(0, 100)] public int MaxConcurrentRequests = 8;
 
         private readonly HashSet<string> _activeRequests = new HashSet<string>();
 
@@ -145,6 +145,16 @@
             }
         }
 
+        private PyriteCube CreateCubeFromCubeBounds(CubeBounds cubeBounds)
+        {
+            return new PyriteCube
+            {
+                X = (int) cubeBounds.BoundingBox.Min.x,
+                Y = (int) cubeBounds.BoundingBox.Min.y,
+                Z = (int) cubeBounds.BoundingBox.Min.z
+            };
+        }
+
         public IEnumerator Load()
         {
             DebugLog("+Load()");
@@ -156,26 +166,15 @@
             var pyriteLevel =
                 pyriteQuery.DetailLevels[DetailLevel];
 
-            var xmin = pyriteLevel.WorldBoundsMax.x;
-            var ymin = pyriteLevel.WorldBoundsMax.y;
-            var zmin = pyriteLevel.WorldBoundsMax.z;
-            var xmax = pyriteLevel.WorldBoundsMin.x;
-            var ymax = pyriteLevel.WorldBoundsMin.y;
-            var zmax = pyriteLevel.WorldBoundsMin.z;
+            var allOctCubes = pyriteQuery.DetailLevels[DetailLevel].Octree.AllItems();
 
-            for (var i = 0; i < pyriteLevel.Cubes.Length; i++)
+            foreach (var octCube in allOctCubes)
             {
-                var x = pyriteLevel.Cubes[i].X;
-                var y = pyriteLevel.Cubes[i].Y;
-                var z = pyriteLevel.Cubes[i].Z;
-                var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pyriteLevel.Cubes[i]);
-                xmin = Math.Min(cubePos.x, xmin);
-                ymin = Math.Min(cubePos.y, ymin);
-                zmin = Math.Min(cubePos.z, zmin);
-
-                xmax = Math.Max(cubePos.x, xmax);
-                ymax = Math.Max(cubePos.y, ymax);
-                zmax = Math.Max(cubePos.z, zmax);
+                var pCube = CreateCubeFromCubeBounds(octCube);
+                var x = pCube.X;
+                var y = pCube.Y;
+                var z = pCube.Z;
+                var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pCube);
 
                 if (UseCameraDetection)
                 {
@@ -206,8 +205,13 @@
             {
                 DebugLog("Moving camera");
                 // Hardcoding some values for now
-                var min = new Vector3(xmin, ymin, zmin);
-                var max = new Vector3(xmax, ymax, zmax);
+
+                var min = new Vector3(pyriteLevel.ModelBoundsMin.x, pyriteLevel.ModelBoundsMin.y,
+                    pyriteLevel.ModelBoundsMin.z);
+                var max = new Vector3(pyriteLevel.ModelBoundsMax.x, pyriteLevel.ModelBoundsMax.y,
+                    pyriteLevel.ModelBoundsMax.z);
+                min += pyriteLevel.WorldCubeScale/2;
+                max -= pyriteLevel.WorldCubeScale/2;
                 var newCameraPosition = min + (max - min)/2.0f;
                 newCameraPosition += new Vector3(0, 0, (max - min).z*1.4f);
                 CameraRig.transform.position = newCameraPosition;
@@ -227,40 +231,30 @@
             var pyriteLevel = pyriteQuery.DetailLevels[newLod];
 
             var cubeFactor = pyriteQuery.GetNextCubeFactor(lod);
-            for (var ix = x*(int) cubeFactor.x; ix < (x + 1)*cubeFactor.x; ix++)
+            var min = new Vector3(x*(int) cubeFactor.x + 0.5f, y*(int) cubeFactor.y + 0.5f, z*(int) cubeFactor.z + 0.5f);
+            var max = new Vector3((x + 1)*(int) cubeFactor.x - 0.5f, (y + 1)*(int) cubeFactor.y - 0.5f,
+                (z + 1)*(int) cubeFactor.z - 0.5f);
+            var intersections =
+                pyriteQuery.DetailLevels[newLod].Octree.AllIntersections(new BoundingBox {Min = min, Max = max});
+            foreach (var i in intersections)
             {
-                for (var iy = y*(int) cubeFactor.y; iy < (y + 1)*cubeFactor.y; iy++)
-                {
-                    for (var iz = z*(int) cubeFactor.z; iz < (z + 1)*cubeFactor.z; iz++)
-                    {
-                        var possibleNewCube = new PyriteCube
-                        {
-                            X = ix,
-                            Y = iy,
-                            Z = iz
-                        };
-                        if (
-                            pyriteQuery.DetailLevels[newLod].Cubes.Contains(possibleNewCube))
-                        {
-                            var cubePos = pyriteLevel.GetWorldCoordinatesForCube(possibleNewCube);
-                            var g =
-                                (GameObject)
-                                    Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + 600, -cubePos.y),
-                                        Quaternion.identity);
+                var newCube = CreateCubeFromCubeBounds(i.Object);
+                var cubePos = pyriteLevel.GetWorldCoordinatesForCube(newCube);
+                var g =
+                    (GameObject)
+                        Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + 600, -cubePos.y),
+                            Quaternion.identity);
 
-                            g.transform.parent = gameObject.transform;
-                            g.GetComponent<MeshRenderer>().material.color = _colorList[_colorSelector%_colorList.Length];
-                            g.GetComponent<IsRendered>().SetCubePosition(ix, iy, iz, newLod, pyriteQuery, this);
+                g.transform.parent = gameObject.transform;
+                g.GetComponent<MeshRenderer>().material.color = _colorList[_colorSelector%_colorList.Length];
+                g.GetComponent<IsRendered>().SetCubePosition(newCube.X, newCube.Y, newCube.Z, newLod, pyriteQuery, this);
 
-                            g.transform.localScale = new Vector3(
-                                pyriteLevel.WorldCubeScale.x,
-                                pyriteLevel.WorldCubeScale.z,
-                                pyriteLevel.WorldCubeScale.y);
-                            _colorSelector++;
-                            createdDetectors.Add(g);
-                        }
-                    }
-                }
+                g.transform.localScale = new Vector3(
+                    pyriteLevel.WorldCubeScale.x,
+                    pyriteLevel.WorldCubeScale.z,
+                    pyriteLevel.WorldCubeScale.y);
+                _colorSelector++;
+                createdDetectors.Add(g);
             }
             registerCreatedDetectorCubes(createdDetectors);
             yield break;
@@ -273,7 +267,6 @@
 
         private IEnumerator ProcessLoadCubeRequest(LoadCubeRequest loadRequest)
         {
-
             DebugLog("+LoadCube(L{3}:{0}_{1}_{2})", loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod);
             var modelPath = loadRequest.Query.GetModelPath(loadRequest.Lod, loadRequest.X, loadRequest.Y, loadRequest.Z);
             var pyriteLevel =
@@ -373,17 +366,19 @@
             }
 
             var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(loadRequest.X, loadRequest.Y);
-            var materialDataKey = string.Format("model.mtl_{0}_{1}_{2}", textureCoordinates.x, textureCoordinates.y, loadRequest.Lod);
+            var materialDataKey = string.Format("model.mtl_{0}_{1}_{2}", textureCoordinates.x, textureCoordinates.y,
+                loadRequest.Lod);
             if (!_materialDataCache.ContainsKey(materialDataKey))
             {
                 var materialData = new List<MaterialData>();
                 _materialDataCache[materialDataKey] = null;
                 CubeBuilderHelpers.SetDefaultMaterialData(materialData, (int) textureCoordinates.x,
-                    (int)textureCoordinates.y, loadRequest.Lod);
+                    (int) textureCoordinates.y, loadRequest.Lod);
 
                 foreach (var m in materialData)
                 {
-                    var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Query.GetLodKey(loadRequest.Lod), (int)textureCoordinates.x,
+                    var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Query.GetLodKey(loadRequest.Lod),
+                        (int) textureCoordinates.x,
                         (int) textureCoordinates.y);
                     if (!_textureCache.ContainsKey(texturePath))
                     {
@@ -447,7 +442,8 @@
                 // Loop until it is set
                 yield return null;
             }
-            Build(buffer, _materialDataCache[materialDataKey], loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod, loadRequest.RegisterCreatedObjects);
+            Build(buffer, _materialDataCache[materialDataKey], loadRequest.X, loadRequest.Y, loadRequest.Z,
+                loadRequest.Lod, loadRequest.RegisterCreatedObjects);
             DebugLog("-LoadCube(L{3}:{0}_{1}_{2})", loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod);
         }
 

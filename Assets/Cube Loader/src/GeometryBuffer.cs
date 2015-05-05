@@ -3,6 +3,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.IO;
+	using System.Linq;
 
     public class GeometryBuffer {
 
@@ -142,32 +143,35 @@
             {
                 // File is prefixed with face count, times 3 for vertices
                 vertexCount = br.ReadUInt16() * 3;
+				
+				SortedList<int, Vector3> vertices = new SortedList<int, Vector3>();
+				SortedList<int, Vector2> uvs = new SortedList<int, Vector2>();
 
-                tvertices = new Vector3[vertexCount];
-                tuvs = new Vector2[vertexCount];
                 triangles = new int[vertexCount];
+
+				// Enumerate vertices
                 for (int i = 0; i < vertexCount; i++)
                 {
-                    triangles[i] = i;
                     try
                     {
                         switch ((int) br.ReadByte())
                         {
                             case (0):
                                 int bufferIndex = (int) br.ReadUInt32();
-                                tvertices[i] = tvertices[bufferIndex];
-                                tuvs[i] = tuvs[bufferIndex];
+								triangles[i] = vertices.IndexOfKey(bufferIndex);
                                 break;
                             case (64):
                                 bufferIndex = (int) br.ReadUInt32();
-                                tvertices[i] = tvertices[bufferIndex];
-                                tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
+								vertices.Add(i, vertices[bufferIndex]);
+								uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
+								triangles[i] = vertices.IndexOfKey(i);
                                 break;
                             case (128):
                                 throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
                             case (255):
-                                tvertices[i] = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
-                                tuvs[i] = new Vector2(br.ReadSingle(), br.ReadSingle());
+                                vertices.Add(i, new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
+                                uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
+								triangles[i] = vertices.IndexOfKey(i);
                                 break;
                         }
                     }
@@ -177,6 +181,9 @@
                         throw;
                     }
                 }
+
+				tvertices = vertices.Values.ToArray();
+				tuvs = uvs.Values.ToArray();
 
             }
 
