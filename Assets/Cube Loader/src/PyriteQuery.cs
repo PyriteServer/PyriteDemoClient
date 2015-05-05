@@ -28,11 +28,7 @@
         private const string YKey = "y";
         private const string ZKey = "z";
         private const string OkValue = "OK";
-#if UNITY_WEBGL
-        private readonly string _apiUrl = "http://pyrite.azurewebsites.net/";
-#else
         private readonly string _apiUrl = "http://api.pyrite3d.org/";
-#endif
 
         public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl = null)
         {
