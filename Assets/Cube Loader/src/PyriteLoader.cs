@@ -128,6 +128,11 @@
                 return;
             }
 
+            // testing the WWW in WebGL
+//#if UNITY_WEBGL
+//            UseWww = true;
+//#endif
+
             DebugLog("+Start()");
             StartCoroutine(Load());
             DebugLog("-Start()");
