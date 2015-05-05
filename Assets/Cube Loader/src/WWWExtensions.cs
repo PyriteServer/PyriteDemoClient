@@ -79,7 +79,9 @@
             Dictionary<string, string> headers = new Dictionary<string, string>();
             if (requestCompression)
             {
+            #if UNITY_WEBGL
                 headers.Add("Accept-Encoding", "gzip, deflate");
+            #endif
             }
 
             return new WWW(path, null, headers);

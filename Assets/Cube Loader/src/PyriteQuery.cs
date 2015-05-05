@@ -4,6 +4,9 @@
     using System.Collections;
     using System.Collections.Generic;
     using Extensions;
+    using Microsoft.Xna.Framework;
+    using Model;
+    using Pyrite.Client.Model;
     using SimpleJSON;
     using UnityEngine;
 
@@ -183,6 +186,7 @@
 
                 var parsedCubes = parsedContent[ResultKey].AsArray;
                 detailLevel.Cubes = new PyriteCube[parsedCubes.Count];
+                detailLevel.Octree = new OcTree<CubeBounds>();
                 for (var l = 0; l < detailLevel.Cubes.Length; l++)
                 {
                     detailLevel.Cubes[l] = new PyriteCube
@@ -191,7 +195,11 @@
                         Y = parsedCubes[l][1].AsInt,
                         Z = parsedCubes[l][2].AsInt
                     };
+                    Vector3 min = new Vector3(detailLevel.Cubes[l].X, detailLevel.Cubes[l].Y, detailLevel.Cubes[l].Z);
+                    Vector3 max = min + Vector3.one;
+                    detailLevel.Octree.Add(new CubeBounds() {BoundingBox = new BoundingBox(min, max)});
                 }
+                detailLevel.Octree.UpdateTree();
             }
             Loaded = true;
         }
@@ -316,6 +324,7 @@
         public Vector3 WorldBoundsSize { get; set; }
         public Vector3 WorldCubeScale { get; set; }
         public PyriteCube[] Cubes { get; set; }
+        public OcTree<CubeBounds> Octree { get; set; }
 
         public Vector2 TextureCoordinatesForCube(float cubeX, float cubeY)
         {
