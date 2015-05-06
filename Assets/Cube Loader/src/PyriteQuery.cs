@@ -126,7 +126,7 @@
             var cubesUrl = _versionUrl +
                            string.Format("query/3x3/{0}/{1},{2},{3}", reference, queryPosition.x, queryPosition.y, queryPosition.z);
 
-            var loader = WwwExtensions.CreateWWW(cubesUrl);
+            var loader = WwwExtensions.CreateWWW(cubesUrl, true);
             yield return loader;
             var parsedContent = JSON.Parse(loader.GetDecompressedText());
             if (!parsedContent[StatusKey].Value.Equals(OkValue))
@@ -171,7 +171,7 @@
                 var cubesUrl = _versionUrl + "query/" + detailLevel.Name + "/" +
                                maxBoundingBoxQuery;
 
-                var loader = WwwExtensions.CreateWWW(cubesUrl);
+                var loader = WwwExtensions.CreateWWW(cubesUrl, true);
                 yield return loader;
                 var parsedContent = JSON.Parse(loader.GetDecompressedText());
                 if (!parsedContent[StatusKey].Value.Equals(OkValue))

@@ -90,15 +90,14 @@
         /// <summary>
         /// Create and return a WWW instance
         /// 
-        /// The WWW instance is configured to perform a GET operation against the specified path and
-        /// also sets the request header indicating that compressed results will be accepted
+        /// The WWW instance is configured to perform a GET operation against the specified path
         /// 
         /// </summary>
         /// <param name="path">The path to GET</param>
         /// <returns></returns>
         public static WWW CreateWWW(string path)
         {
-            return CreateWWW(path, true);
+            return CreateWWW(path, false);
         }
     }
 }

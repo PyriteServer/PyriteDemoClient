@@ -301,7 +301,7 @@
                     }
                     else
                     {
-                        loader = WwwExtensions.CreateWWW(modelPath + "?fmt=obj");
+                        loader = WwwExtensions.CreateWWW(modelPath + "?fmt=obj", true);
                         yield return loader;
                         LogWwwError(loader, modelPath);
                         _objCache[modelPath] = loader.GetDecompressedText();
@@ -328,7 +328,6 @@
                     {
                         var client = new RestClient(modelPath);
                         var request = new RestRequest(Method.GET);
-                        request.AddHeader("Accept-Encoding", "gzip, deflate");
                         client.ExecuteAsync(request, (r, h) =>
                         {
                             LogResponseError(r, modelPath);
@@ -391,7 +390,6 @@
                         {
                             var client = new RestClient(texturePath);
                             var request = new RestRequest(Method.GET);
-                            request.AddHeader("Accept-Encoding", "gzip, deflate");
                             client.ExecuteAsync(request, (r, h) =>
                             {
                                 LogResponseError(r, texturePath);
