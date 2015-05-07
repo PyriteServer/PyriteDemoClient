@@ -73,19 +73,16 @@
         {
             if (_manager != null)
             {
-                _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObjects =>
+                _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObject =>
                         {
                             if (!_loadCubeRequest.Cancelled)
                             {
-                                _cubes.AddRange(createdObjects);
+                                _cubes.Add(createdObject);
                                 StartCoroutine(StopRenderCheck(Camera.main));
                             }
                             else
                             {
-                                foreach (var createdObject in createdObjects)
-                                {
-                                    Destroy(createdObject);
-                                }
+                                Destroy(createdObject);
                             }
                         });
 

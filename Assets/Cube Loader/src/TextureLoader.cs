@@ -20,7 +20,7 @@ public class TextureLoader {
         get { return _textures; }
     }
 
-    private readonly Dictionary<string, Material[]> _materialCache = new Dictionary<string, Material[]>();
+    private readonly Dictionary<string, Material> _materialCache = new Dictionary<string, Material>();
 
     // holds the downloaded texture data
     private Dictionary<string, byte[]> _textureDataCache = new Dictionary<string, byte[]>();
@@ -94,7 +94,7 @@ public class TextureLoader {
             var textureCoord = DetailLevel.TextureCoordinatesForCube(cube.MapPosition.x,
                 cube.MapPosition.y);
             Renderer renderer = gameObject.GetComponent<Renderer>();
-            renderer.materials = _materialCache["materialData_L" + DetailLevel.Value + "_" + (int) textureCoord.x + "_" + (int) textureCoord.y];
+            renderer.materials = new Material[] { _materialCache["materialData_L" + DetailLevel.Value + "_" + (int)textureCoord.x + "_" + (int)textureCoord.y] };
         }
     }
 }

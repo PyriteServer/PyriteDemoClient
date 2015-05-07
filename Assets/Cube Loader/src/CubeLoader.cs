@@ -166,13 +166,13 @@
             yield return null;
         }
 
-        private void LoadDefaultMaterials(PyriteSetVersionDetailLevel detailLevel, List<MaterialData> materiaDatas)
+        private void LoadDefaultMaterials(PyriteSetVersionDetailLevel detailLevel, List<MaterialData> materialDatas)
         {
             for (int textureX = 0; textureX < detailLevel.TextureSetSize.x; textureX++)
             {
                 for (int textureY = 0; textureY < detailLevel.TextureSetSize.y; textureY++)
                 {
-                    CubeBuilderHelpers.SetDefaultMaterialData(materiaDatas, textureX, textureY, detailLevel.Value);
+                    materialDatas.Add(CubeBuilderHelpers.GetDefaultMaterialData(textureX, textureY, detailLevel.Value));
                 }
             }
         }
@@ -229,37 +229,8 @@
 
             var modelPath = PyriteQuery.GetModelPath(DetailLevel, (int) x, (int) y, (int) z);
 
-            if (UseEbo)
-            {
-                ProcessEbo(modelPath, cube);
-            }
-            else
-            {
-                ProcessObj(modelPath, cube);
-            }
-        }
-
-        private void ProcessObj(string eboPath, Cube cube)
-        {
-            var objpath = eboPath + "?fmt=obj";
-            GeometryBuffer buffer = new GeometryBuffer();
-            cube.MaterialData = new List<MaterialData>();
-
-            RestClient client = new RestClient(objpath);
-            RestRequest request = new RestRequest(Method.GET);
-            request.AddHeader("Accept-Encoding", "gzip, deflate");
-            client.ExecuteAsync(request, (r, h) =>
-            {
-                if (r.Content != null)
-                {
-                    CubeBuilderHelpers.SetGeometryData(r.Content, buffer);
-                    cube.Buffer = buffer;
-
-                    _buildingQueue.Enqueue(cube);
-                    _textureQueue.Enqueue(cube);
-                }
-            });
-        }
+            ProcessEbo(modelPath, cube);            
+        }     
 
         private void ProcessEbo(string eboPath, Cube cube)
         {
@@ -273,7 +244,7 @@
             {
                 if (r.RawBytes != null)
                 {
-                    buffer.EboBuffer = r.RawBytes;
+                    buffer.Buffer = r.RawBytes;
                     cube.Buffer = buffer;
 
                     _buildingQueue.Enqueue(cube);
@@ -300,21 +271,16 @@
 
         private IEnumerator BuildCube(Cube cube)
         {
-            GameObject[] ms = new GameObject[cube.Buffer.NumObjects];
+            GameObject gameObject = new GameObject();
 
-            for (int i = 0; i < cube.Buffer.NumObjects; i++)
-            {
-                GameObject go = new GameObject();
-                go.name = String.Format("cube_{0}_{1}_{2}.{3}", cube.MapPosition.x, cube.MapPosition.y,
-                    cube.MapPosition.z, i);
-                go.transform.parent = gameObject.transform;
-                go.AddComponent(typeof (MeshFilter));
-                go.AddComponent(typeof (MeshRenderer));
-                ms[i] = go;
-            }
+            gameObject.name = String.Format("cube_{0}_{1}_{2}", cube.MapPosition.x, cube.MapPosition.y,
+                cube.MapPosition.z);
+            gameObject.transform.parent = gameObject.transform;
+            gameObject.AddComponent(typeof (MeshFilter));
+            gameObject.AddComponent(typeof (MeshRenderer));
 
-            cube.GameObject = ms[0];
-            cube.Buffer.PopulateMeshes(ms);
+            cube.GameObject = gameObject;
+            cube.Buffer.PopulateMeshes(gameObject, null);
             yield return null;
         }
     }

@@ -17,7 +17,7 @@
         private const string Mtl = "mtllib";
         private const string Uml = "usemtl";
 
-        public static void SetDefaultMaterialData(List<MaterialData> materialDatas, int x, int y, int lod)
+        public static MaterialData GetDefaultMaterialData(int x, int y, int lod)
         {
             var current = new MaterialData();
 
@@ -47,7 +47,7 @@
             // map_Kd model.jpg
             current.DiffuseTexPath = "model.jpg";
 
-            materialDatas.Add(current);
+            return current;
         }
 
         private static float Cf(string v)
@@ -65,97 +65,34 @@
             return new Color(Cf(p[1]), Cf(p[2]), Cf(p[3]));
         }
 
-        public static Material[] GetMaterial(bool useUnlitShader, MaterialData md)
+        public static Material GetMaterial(bool useUnlitShader, MaterialData md)
         {
-            Material[] m;
+            Material m;
             // Use an unlit shader for the model if set
             if (useUnlitShader)
             {
-                m = new[] {new Material(Shader.Find(("Unlit/Texture")))};
+                m = new Material(Shader.Find(("Unlit/Texture")));
             }
             else
             {
                 if (md.IllumType == 2)
                 {
-                    m = new[] {new Material(Shader.Find("Specular"))};
-                    m[0].SetColor("_SpecColor", md.Specular);
-                    m[0].SetFloat("_Shininess", md.Shininess);
+                    m = new Material(Shader.Find("Specular"));
+                    m.SetColor("_SpecColor", md.Specular);
+                    m.SetFloat("_Shininess", md.Shininess);
                 }
                 else
                 {
-                    m = new[] {new Material(Shader.Find("Diffuse"))};
+                    m = new Material(Shader.Find("Diffuse"));
                 }
 
-                m[0].SetColor("_Color", md.Diffuse);
+                m.SetColor("_Color", md.Diffuse);
             }
 
             if (md.DiffuseTex != null)
-                m[0].SetTexture("_MainTex", md.DiffuseTex);
+                m.SetTexture("_MainTex", md.DiffuseTex);
 
             return m;
-        }
-
-        public static void SetGeometryData(string data, GeometryBuffer buffer)
-        {
-            var lines = data.Split("\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-
-            for (var i = 0; i < lines.Length; i++)
-            {
-                var l = lines[i].Trim();
-
-                if (l.IndexOf("#") != -1)
-                    l = l.Substring(0, l.IndexOf("#"));
-                var p = l.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                if (p.Length > 1)
-                {
-                    switch (p[0])
-                    {
-                        case O:
-                            buffer.PushObject(p[1].Trim());
-                            break;
-                        case G:
-                            buffer.PushGroup(p[1].Trim());
-                            break;
-                        case V:
-                            buffer.PushVertex(new Vector3(
-                                Cf(p[1]),
-                                Cf(p[2]),
-                                Cf(p[3]))
-                                );
-                            break;
-                        case Vt:
-                            buffer.PushUv(new Vector2(Cf(p[1]), Cf(p[2])));
-                            break;
-                        case Vn:
-                            buffer.PushNormal(new Vector3(Cf(p[1]), Cf(p[2]), Cf(p[3])));
-                            break;
-                        case F:
-                            for (var j = 1; j < p.Length; j++)
-                            {
-                                var c = p[j].Trim().Split("/".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                                var fi = new FaceIndices();
-                                fi.Vi = Ci(c[0]) - 1;
-                                if (c.Length > 1)
-                                {
-                                    fi.Vu = Ci(c[1]) - 1;
-                                }
-                                if (c.Length > 2)
-                                {
-                                    fi.Vn = Ci(c[2]) - 1;
-                                }
-                                buffer.PushFace(fi);
-                            }
-                            break;
-                        case Mtl:
-                            // mtllib = p[1].Trim();
-                            break;
-                        case Uml:
-                            buffer.PushMaterialName(p[1].Trim());
-                            break;
-                    }
-                }
-            }
-            // buffer.Trace();
         }
     }
 }

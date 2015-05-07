@@ -7,11 +7,11 @@
     {
         public readonly int X, Y, Z, Lod;
         public readonly PyriteQuery Query;
-        public readonly Action<GameObject[]> RegisterCreatedObjects;
+        public readonly Action<GameObject> RegisterCreatedObjects;
         private string _name;
 
         public LoadCubeRequest(int x, int y, int z, int lod, PyriteQuery query,
-            Action<GameObject[]> registerCreatedObjects)
+            Action<GameObject> registerCreatedObjects)
         {
             X = x;
             Y = y;
