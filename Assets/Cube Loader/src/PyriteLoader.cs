@@ -49,6 +49,8 @@
         public string SetName;
         public bool UseCameraDetection = false;
         public bool UseUnlitShader = true;
+        public bool UseFileCache = true;
+        
 
         [Range(0, 100)] public int MaxConcurrentRequests = 8;
 
@@ -310,23 +312,32 @@
 
                 _eboCache[modelPath] = null;
                 yield return StartCoroutine(StartRequest(modelPath));
-               
-                var client = new RestClient(modelPath);
-                var request = new RestRequest(Method.GET);
-                client.ExecuteAsync(request, (r, h) =>
+                if (UseFileCache)
                 {
-                    LogResponseError(r, modelPath);
-                    if (r.RawBytes != null)
+                    CacheWebRequest.GetBytes(modelPath, (modelBytes) =>
                     {
-                        _eboCache[modelPath] = new GeometryBuffer(600, true) { Buffer = r.RawBytes };
-                    }
-                    else
+                        _eboCache[modelPath] = new GeometryBuffer(600, true) {Buffer = modelBytes};
+                    });
+                }
+                else
+                {
+                    var client = new RestClient(modelPath);
+                    var request = new RestRequest(Method.GET);
+                    client.ExecuteAsync(request, (r, h) =>
                     {
-                        _eboCache.Remove(modelPath);
-                        Debug.LogError("Error getting model data");
-                    }
-                });
-               
+                        LogResponseError(r, modelPath);
+                        if (r.RawBytes != null)
+                        {
+                            _eboCache[modelPath] = new GeometryBuffer(600, true) {Buffer = r.RawBytes};
+                        }
+                        else
+                        {
+                            _eboCache.Remove(modelPath);
+                            Debug.LogError("Error getting model data");
+                        }
+                    });
+                }
+
                 while (_eboCache[modelPath] == null)
                 {
                     yield return null;
@@ -371,22 +382,31 @@
                     _textureCache[texturePath] = null;
                     yield return StartCoroutine(StartRequest(texturePath));
                     byte[] textureData = null;
-                    
-                    var client = new RestClient(texturePath);
-                    var request = new RestRequest(Method.GET);
-                    client.ExecuteAsync(request, (r, h) =>
+                    if (UseFileCache)
                     {
-                        LogResponseError(r, texturePath);
-                        if (r.RawBytes != null)
+                        CacheWebRequest.GetBytes(texturePath, (textureBytes) =>
                         {
-                            textureData = r.RawBytes;
-                        }
-                        else
+                            textureData = textureBytes;
+                        });
+                    }
+                    else
+                    {
+                        var client = new RestClient(texturePath);
+                        var request = new RestRequest(Method.GET);
+                        client.ExecuteAsync(request, (r, h) =>
                         {
-                            Debug.LogError("Error getting texture data");
-                        }
-                    });
-                    
+                            LogResponseError(r, texturePath);
+                            if (r.RawBytes != null)
+                            {
+                                textureData = r.RawBytes;
+                            }
+                            else
+                            {
+                                Debug.LogError("Error getting texture data");
+                            }
+                        });
+                    }
+
 
                     while (textureData == null)
                     {
