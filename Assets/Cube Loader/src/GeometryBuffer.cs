@@ -1,108 +1,119 @@
-    using System;
-    using UnityEngine;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.IO;
-	using System.Linq;
+using System;
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
-    public class GeometryBuffer {
-        public byte[] Buffer;   
-        
-        public GeometryBuffer() {
+public class GeometryBuffer {
+    public byte[] Buffer;
+
+    public Vector3[] Vertices { get; set; }
+    public Vector2[] UVs { get; set; }
+    public int[] Triangles { get; set; }
+
+    public bool Processed { get; private set; }
+
+    public GeometryBuffer() {
            
-        }
+    }
 
-        public void PopulateMeshes(GameObject gameObject, Material material) 
+    public void Process()
+    {
+        if (Processed) return;
+
+        using (var s = new MemoryStream(Buffer))
+        using (var br = new BinaryReader(s))
         {
-            int vertexCount;
-            Vector3[] tvertices;
-            Vector2[] tuvs;
+            // File is prefixed with face count, times 3 for vertices
+            int vertexCount = br.ReadUInt16() * 3;
 
-            int[] triangles;
-            using (var s = new MemoryStream(Buffer))
-            using (var br = new BinaryReader(s))
+            SortedList<int, Vector3> vertices = new SortedList<int, Vector3>();
+            SortedList<int, Vector2> uvs = new SortedList<int, Vector2>();
+
+            Triangles = new int[vertexCount];
+
+            // Enumerate vertices
+            for (int i = 0; i < vertexCount; i++)
             {
-                // File is prefixed with face count, times 3 for vertices
-                vertexCount = br.ReadUInt16() * 3;
-				
-				SortedList<int, Vector3> vertices = new SortedList<int, Vector3>();
-				SortedList<int, Vector2> uvs = new SortedList<int, Vector2>();
-
-                triangles = new int[vertexCount];
-
-				// Enumerate vertices
-                for (int i = 0; i < vertexCount; i++)
+                try
                 {
-                    try
+                    switch ((int)br.ReadByte())
                     {
-                        switch ((int) br.ReadByte())
-                        {
-                            case (0):
-                                int bufferIndex = (int) br.ReadUInt32();
-								triangles[i] = vertices.IndexOfKey(bufferIndex);
-                                break;
-                            case (64):
-                                bufferIndex = (int) br.ReadUInt32();
-								vertices.Add(i, vertices[bufferIndex]);
-								uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
-								triangles[i] = vertices.IndexOfKey(i);
-                                break;
-                            case (128):
-                                throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
-                            case (255):
-                                vertices.Add(i, new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
-                                uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
-								triangles[i] = vertices.IndexOfKey(i);
-                                break;
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        Debug.Log("Failure with : "+ vertexCount);
-                        throw;
+                        case (0):
+                            int bufferIndex = (int)br.ReadUInt32();
+                            Triangles[i] = vertices.IndexOfKey(bufferIndex);
+                            break;
+                        case (64):
+                            bufferIndex = (int)br.ReadUInt32();
+                            vertices.Add(i, vertices[bufferIndex]);
+                            uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
+                            Triangles[i] = vertices.IndexOfKey(i);
+                            break;
+                        case (128):
+                            throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
+                        case (255):
+                            vertices.Add(i, new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
+                            uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
+                            Triangles[i] = vertices.IndexOfKey(i);
+                            break;
                     }
                 }
-
-				tvertices = vertices.Values.ToArray();
-				tuvs = uvs.Values.ToArray();
-
+                catch (Exception)
+                {
+                    Debug.Log("Failure with : " + vertexCount);
+                    throw;
+                }
             }
 
-            Mesh m = (gameObject.GetComponent(typeof(MeshFilter)) as MeshFilter).mesh;
+            Vertices = vertices.Values.ToArray();
+            UVs = uvs.Values.ToArray();
 
-            // RPL HACK FIX
-            for (int i = 0; i < tvertices.Length; i++)
-            {
-                Vector3 t = new Vector3(-tvertices[i].x, tvertices[i].z + 600, -tvertices[i].y);
-                tvertices[i] = t;
-            }
-            for (int i = 0; i < triangles.Length; i += 3)
-            {
-                int t0 = triangles[i];
-                int t1 = triangles[i + 1];
-                int t2 = triangles[i + 2];
+        }
 
-                triangles[i] = t0;
-                triangles[i + 1] = t2;
-                triangles[i + 2] = t1;
-            }
-            // END HACK 
-                   
-            if (tvertices.Length > 65000)
-            {
-                Debug.LogErrorFormat("GameObject {0} had too many vertices", gameObject.name);
-            }
+        // RPL HACK FIX
+        for (int i = 0; i < Vertices.Length; i++)
+        {
+            Vector3 t = new Vector3(-Vertices[i].x, Vertices[i].z + 600, -Vertices[i].y);
+            Vertices[i] = t;
+        }
+        for (int i = 0; i < Triangles.Length; i += 3)
+        {
+            int t0 = Triangles[i];
+            int t1 = Triangles[i + 1];
+            int t2 = Triangles[i + 2];
 
-            m.vertices = tvertices;
-            m.uv = tuvs;
-            m.triangles = triangles;
+            Triangles[i] = t0;
+            Triangles[i + 1] = t2;
+            Triangles[i + 2] = t1;
+        }
+        // END HACK 
 
-            // m.RecalculateNormals();
+        Processed = true;
+        Buffer = null;
+    }
 
-            if (material != null)
-            {
-                Renderer renderer = gameObject.GetComponent<Renderer>();
-                renderer.materials = new Material[] { material };
-            }
+    public void PopulateMeshes(GameObject gameObject, Material material) 
+    {
+        if (!Processed) Process();
+
+        if (Vertices.Length > 65000)
+        {
+            Debug.LogErrorFormat("GameObject {0} had too many vertices", gameObject.name);
+        }
+
+        Mesh m = (gameObject.GetComponent(typeof(MeshFilter)) as MeshFilter).mesh;
+
+        m.vertices = Vertices;
+        m.uv = UVs;
+        m.triangles = Triangles;
+
+        // m.RecalculateNormals();
+
+        if (material != null)
+        {
+            Renderer renderer = gameObject.GetComponent<Renderer>();
+            renderer.materials = new Material[] { material };
         }
     }
+}
