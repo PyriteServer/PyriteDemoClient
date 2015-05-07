@@ -13,9 +13,12 @@ public class GeometryBuffer {
     public int[] Triangles { get; set; }
 
     public bool Processed { get; private set; }
+    public float YOffset { get; set; }
+    public bool InvertedData { get; set; }
 
-    public GeometryBuffer() {
-           
+    public GeometryBuffer(float yOffset = 0, bool invertedData = false) {
+        YOffset = yOffset;
+        InvertedData = invertedData;
     }
 
     public void Process()
@@ -27,6 +30,8 @@ public class GeometryBuffer {
         {
             // File is prefixed with face count, times 3 for vertices
             int vertexCount = br.ReadUInt16() * 3;
+
+            float x, y, z;
 
             SortedList<int, Vector3> vertices = new SortedList<int, Vector3>();
             SortedList<int, Vector2> uvs = new SortedList<int, Vector2>();
@@ -53,7 +58,21 @@ public class GeometryBuffer {
                         case (128):
                             throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
                         case (255):
-                            vertices.Add(i, new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()));
+                            if (InvertedData)
+                            {
+                                x = br.ReadSingle() * -1;
+                                z = br.ReadSingle() * -1;
+                                y = br.ReadSingle();
+                            }
+                            else
+                            {
+                                x = br.ReadSingle();
+                                y = br.ReadSingle();
+                                z = br.ReadSingle();
+                            }
+
+                            vertices.Add(i, new Vector3(x, y + YOffset, z));
+
                             uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
                             Triangles[i] = vertices.IndexOfKey(i);
                             break;
@@ -71,23 +90,17 @@ public class GeometryBuffer {
 
         }
 
-        // RPL HACK FIX
-        for (int i = 0; i < Vertices.Length; i++)
+        if (InvertedData)
         {
-            Vector3 t = new Vector3(-Vertices[i].x, Vertices[i].z + 600, -Vertices[i].y);
-            Vertices[i] = t;
-        }
-        for (int i = 0; i < Triangles.Length; i += 3)
-        {
-            int t0 = Triangles[i];
-            int t1 = Triangles[i + 1];
-            int t2 = Triangles[i + 2];
+            for (int i = 0; i < Triangles.Length; i += 3)
+            {
+                int t1 = Triangles[i + 1];
+                int t2 = Triangles[i + 2];
 
-            Triangles[i] = t0;
-            Triangles[i + 1] = t2;
-            Triangles[i + 2] = t1;
+                Triangles[i + 1] = t2;
+                Triangles[i + 2] = t1;
+            }
         }
-        // END HACK 
 
         Processed = true;
         Buffer = null;

@@ -10,6 +10,7 @@
     using RestSharp;
     using UnityEngine;
     using Debug = UnityEngine.Debug;
+    using System.Net;
 
     public class PyriteLoader : MonoBehaviour
     {
@@ -45,9 +46,7 @@
         public string PyriteServer;
         public string SetName;
         public bool UseCameraDetection = false;
-        public bool UseEbo = true;
         public bool UseUnlitShader = true;
-        public bool UseWww = false;
 
         [Range(0, 100)] public int MaxConcurrentRequests = 8;
 
@@ -303,30 +302,22 @@
 
                 _eboCache[modelPath] = null;
                 yield return StartCoroutine(StartRequest(modelPath));
-                if (!UseWww)
+               
+                var client = new RestClient(modelPath);
+                var request = new RestRequest(Method.GET);
+                client.ExecuteAsync(request, (r, h) =>
                 {
-                    var client = new RestClient(modelPath);
-                    var request = new RestRequest(Method.GET);
-                    client.ExecuteAsync(request, (r, h) =>
+                    LogResponseError(r, modelPath);
+                    if (r.RawBytes != null)
                     {
-                        LogResponseError(r, modelPath);
-                        if (r.RawBytes != null)
-                        {
-                            _eboCache[modelPath] = new GeometryBuffer { Buffer = r.RawBytes };
-                        }
-                        else
-                        {
-                            Debug.LogError("Error getting model data");
-                        }
-                    });
-                }
-                else
-                {
-                    loader = WwwExtensions.CreateWWW(modelPath);
-                    yield return loader;
-                    LogWwwError(loader, modelPath);
-                    _eboCache[modelPath] = new GeometryBuffer { Buffer = loader.GetDecompressedBytes() } ;
-                }
+                        _eboCache[modelPath] = new GeometryBuffer(600, true) { Buffer = r.RawBytes };
+                    }
+                    else
+                    {
+                        Debug.LogError("Error getting model data");
+                    }
+                });
+               
                 while (_eboCache[modelPath] == null)
                 {
                     yield return null;
@@ -366,31 +357,22 @@
                     _textureCache[texturePath] = null;
                     yield return StartCoroutine(StartRequest(texturePath));
                     byte[] textureData = null;
-                    if (!UseWww)
+                    
+                    var client = new RestClient(texturePath);
+                    var request = new RestRequest(Method.GET);
+                    client.ExecuteAsync(request, (r, h) =>
                     {
-                        var client = new RestClient(texturePath);
-                        var request = new RestRequest(Method.GET);
-                        client.ExecuteAsync(request, (r, h) =>
+                        LogResponseError(r, texturePath);
+                        if (r.RawBytes != null)
                         {
-                            LogResponseError(r, texturePath);
-                            if (r.RawBytes != null)
-                            {
-                                textureData = r.RawBytes;
-                            }
-                            else
-                            {
-                                Debug.LogError("Error getting texture data");
-                            }
-                        });
-                    }
-                    else
-                    {
-                        // Do not request compression for textures
-                        var texloader = WwwExtensions.CreateWWW(texturePath, false);
-                        yield return texloader;
-                        LogWwwError(texloader, texturePath);
-                        textureData = texloader.bytes;
-                    }
+                            textureData = r.RawBytes;
+                        }
+                        else
+                        {
+                            Debug.LogError("Error getting texture data");
+                        }
+                    });
+                    
 
                     while (textureData == null)
                     {
