@@ -9,7 +9,7 @@ namespace Assets.Cube_Loader.src
     public class DictionaryCache<TKey, TValue> : IDictionary<TKey, TValue>
     {
         private Dictionary<TKey, TValue> _dictionary = new Dictionary<TKey, TValue>();
-        private Queue<TKey> _queue = new Queue<TKey>();
+        private LinkedList<TKey> _queue = new LinkedList<TKey>();
 
         public int MaximumLength { get; set; }
 
@@ -77,11 +77,12 @@ namespace Assets.Cube_Loader.src
         {
             if (_dictionary.Count >= MaximumLength)
             {
-                _dictionary.Remove(_queue.Dequeue());
+                _dictionary.Remove(_queue.Last());
+                _queue.RemoveLast();
             }
 
             _dictionary.Add(key, value);
-            _queue.Enqueue(key);
+            _queue.AddFirst(key);
         }
 
         public void Clear()
@@ -117,7 +118,8 @@ namespace Assets.Cube_Loader.src
 
         public bool Remove(TKey key)
         {
-            throw new NotImplementedException();
+            _dictionary.Remove(key);
+            return _queue.Remove(key);
         }
 
         public bool TryGetValue(TKey key, out TValue value)

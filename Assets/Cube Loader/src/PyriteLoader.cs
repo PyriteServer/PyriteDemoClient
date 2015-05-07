@@ -23,10 +23,10 @@
         };
 
         private readonly DictionaryCache<string, GeometryBuffer> _eboCache = new DictionaryCache<string, GeometryBuffer>(200);
-        private readonly Dictionary<string, Material> _materialCache = new Dictionary<string, Material>();
+        private readonly DictionaryCache<string, Material> _materialCache = new DictionaryCache<string, Material>(100);
 
-        private readonly Dictionary<string, MaterialData> _materialDataCache =
-            new Dictionary<string, MaterialData>();
+        private readonly DictionaryCache<string, MaterialData> _materialDataCache =
+            new DictionaryCache<string, MaterialData>(100);
 
         private readonly Dictionary<string, string> _objCache = new Dictionary<string, string>();
         private readonly Dictionary<string, Texture2D> _textureCache = new Dictionary<string, Texture2D>();
@@ -35,6 +35,8 @@
         private GUIStyle _guiStyle = new GUIStyle();
         private int EboCacheHits = 0;
         private int EboCacheMisses = 0;
+        private int MaterialCacheHits = 0;
+        private int MaterialCacheMisses = 0;
 
         // End counter bits
 
@@ -162,7 +164,13 @@
                     EboCacheMisses = EboCacheHits = 0;
                 }
 
-                GUI.Label(new Rect(10,10,200,50), "Cache Hits: " + EboCacheHits + " Cache Misses: " + EboCacheMisses, _guiStyle);
+                if (MaterialCacheHits + MaterialCacheMisses > 1000)
+                {
+                    MaterialCacheMisses = MaterialCacheHits = 0;
+                }
+
+                GUI.Label(new Rect(10,10,200,50), "Mesh Cache Hits: " + EboCacheHits + " Misses: " + EboCacheMisses, _guiStyle);
+                GUI.Label(new Rect(10,40, 200,50), "Material Cache Hits: " + MaterialCacheHits + " Misses: " + MaterialCacheMisses, _guiStyle);
             }
         }
 
@@ -314,6 +322,7 @@
                     }
                     else
                     {
+                        _eboCache.Remove(modelPath);
                         Debug.LogError("Error getting model data");
                     }
                 });
@@ -335,14 +344,19 @@
                 // Loop until it is set
                 yield return null;
             }
+
+            // Set the geometrybuffer
             buffer = _eboCache[modelPath];
-            
+
 
             var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(loadRequest.X, loadRequest.Y);
             var materialDataKey = string.Format("model.mtl_{0}_{1}_{2}", textureCoordinates.x, textureCoordinates.y,
                 loadRequest.Lod);
             if (!_materialDataCache.ContainsKey(materialDataKey))
             {
+                // Cache counter
+                MaterialCacheMisses++;
+
                 var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int)textureCoordinates.x, (int)textureCoordinates.y, loadRequest.Lod);
                 _materialDataCache[materialDataKey] = null;
                 
@@ -395,6 +409,10 @@
                 materialData.DiffuseTex = _textureCache[texturePath];
                 
                 _materialDataCache[materialDataKey] = materialData;
+            }
+            else
+            {
+                MaterialCacheHits++;
             }
             while (_materialDataCache[materialDataKey] == null)
             {

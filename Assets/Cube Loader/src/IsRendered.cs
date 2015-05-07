@@ -125,7 +125,7 @@
 
             if (_cube != null)
             {
-                _cube.GameObject = null;
+                Destroy(_cube.GameObject);
                 _cube = null;
             }
 
@@ -135,6 +135,7 @@
                 Destroy(detector);
             }
             _childDetectors.Clear();
+           
         }
 
         public override string ToString()
@@ -150,6 +151,7 @@
                 {
                     _meshRenderer.enabled = true;
                     DestroyChildren();
+                    Resources.UnloadUnusedAssets();
                     break;
                 }
                 if (Upgradable && ShouldUpgrade(camera))
@@ -159,6 +161,7 @@
                             addedDetectors =>
                             {
                                 DestroyChildren();
+                                Resources.UnloadUnusedAssets();
                                 _childDetectors.AddRange(addedDetectors);
                             }));
                 }
