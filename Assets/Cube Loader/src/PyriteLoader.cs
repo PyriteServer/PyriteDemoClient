@@ -14,7 +14,6 @@
 
     public class PyriteLoader : MonoBehaviour
     {
-        public string ModelVersion = "V2";
         private readonly Stopwatch _sw = Stopwatch.StartNew();
 
         private readonly Color[] _colorList =
@@ -44,6 +43,8 @@
 		private const int RETRY_LIMIT = 2;
 		private int _colorSelector;
 
+		private float _geometryBufferAltitudeTransform;
+
         public GameObject CameraRig;
         
         public bool EnableDebugLogs = false;
@@ -51,9 +52,12 @@
 
 		[Header("Server Options")]
         public string PyriteServer;
+		[Range(0, 100)] 
+		public int MaxConcurrentRequests = 8;
 
 		[Header("Set Options (required)")]
 		public int DetailLevel = 6;
+		public string ModelVersion = "V2";
         public string SetName;
 
 		[Header("Debug Options")]
@@ -61,9 +65,6 @@
         public bool UseUnlitShader = true;
         public bool UseFileCache = true;
 		public bool ShowDebugText = true;
-        
-
-        [Range(0, 100)] public int MaxConcurrentRequests = 8;
 
         private readonly HashSet<string> _activeRequests = new HashSet<string>();
 
@@ -238,13 +239,13 @@
                 var y = pCube.Y;
                 var z = pCube.Z;
                 var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pCube);
+				_geometryBufferAltitudeTransform = 0 - pyriteLevel.ModelBoundsMin.z;
 
                 if (UseCameraDetection)
                 {
-                    // Move cube to the orientation we want also move it up since the model is around -600
                     var g =
                         (GameObject)
-                            Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + 600, -cubePos.y),
+							Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y),
                                 Quaternion.identity);
 
                     g.transform.parent = gameObject.transform;
@@ -267,16 +268,19 @@
             if (CameraRig != null)
             {
                 DebugLog("Moving camera");
-                // Hardcoding some values for now
+                // Hardcodes the coordinate inversions which are parameterized on the geometry buffer
 
-                var min = new Vector3(pyriteLevel.ModelBoundsMin.x, pyriteLevel.ModelBoundsMin.y,
-                    pyriteLevel.ModelBoundsMin.z);
-                var max = new Vector3(pyriteLevel.ModelBoundsMax.x, pyriteLevel.ModelBoundsMax.y,
-                    pyriteLevel.ModelBoundsMax.z);
-                min += pyriteLevel.WorldCubeScale/2;
-                max -= pyriteLevel.WorldCubeScale/2;
+                var min = new Vector3(
+					-pyriteLevel.ModelBoundsMin.x, 
+					pyriteLevel.ModelBoundsMin.z + _geometryBufferAltitudeTransform,
+                    -pyriteLevel.ModelBoundsMin.y);
+                var max = new Vector3(
+					-pyriteLevel.ModelBoundsMax.x, 
+					pyriteLevel.ModelBoundsMax.z + _geometryBufferAltitudeTransform,
+                    -pyriteLevel.ModelBoundsMax.y);
+
                 var newCameraPosition = min + (max - min)/2.0f;
-                newCameraPosition += new Vector3(0, 0, (max - min).z*1.4f);
+                newCameraPosition += new Vector3(0, (max - min).y*1.4f, 0);
                 CameraRig.transform.position = newCameraPosition;
 
                 CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
@@ -366,9 +370,9 @@
                                 }
                                 else
                                 {
-                                    FileCacheMisses++;
+                                    FileCacheMisses++;			
                                 }
-                                _eboCache[modelPath] = new GeometryBuffer(600, true) {Buffer = modelResponse.Content};
+								_eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true) {Buffer = modelResponse.Content};
                             }
 
                             // Signal to waiting routine that request has returned
@@ -384,7 +388,7 @@
                             LogResponseError(r, modelPath);
                             if (r.RawBytes != null)
                             {
-                                _eboCache[modelPath] = new GeometryBuffer(600, true) {Buffer = r.RawBytes};
+								_eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true) {Buffer = r.RawBytes};
                             }
                             else
                             {
