@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Text;
     using System.Threading;
     using RestSharp;
     using UnityEngine;
@@ -21,6 +22,8 @@
         private static readonly int _maxCacheSize = 3000;
         // The path to the cache location on disk
         private static string _temporaryCachePath;
+
+        private static readonly char[] InvalidFileCharacters = Path.GetInvalidFileNameChars();
 
         // MRU index for cache items. The key points to the node in the list that can be used to delete it or refresh it (move it to the end)
         private static readonly Dictionary<string, LinkedListNode<string>> _cacheFileIndex =
@@ -63,12 +66,14 @@
 
         private static string GetCacheFilePath(string originalPath)
         {
-            foreach (var invalidChar in Path.GetInvalidFileNameChars())
+            var sb = new StringBuilder(originalPath);
+            foreach (var invalidChar in InvalidFileCharacters)
             {
-                originalPath = originalPath.Replace(invalidChar, '_');
+                sb.Replace(invalidChar, '_');
+                // originalPath = originalPath.Replace(invalidChar, '_');
             }
 
-            return Path.Combine(TemporaryCachePath, originalPath);
+            return TemporaryCachePath + Path.DirectorySeparatorChar + sb;
         }
 
         private static void EvictCacheEntry()
