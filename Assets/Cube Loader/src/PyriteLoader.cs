@@ -28,7 +28,6 @@
         private readonly DictionaryCache<string, MaterialData> _materialDataCache =
             new DictionaryCache<string, MaterialData>(100);
 
-        private readonly Dictionary<string, string> _objCache = new Dictionary<string, string>();
         private readonly Dictionary<string, Texture2D> _textureCache = new Dictionary<string, Texture2D>();
 
         // Debug Text Counters and misc bits
@@ -37,6 +36,10 @@
         private int EboCacheMisses = 0;
         private int MaterialCacheHits = 0;
         private int MaterialCacheMisses = 0;
+
+        private int FileCacheHits = 0;
+        private int FileCacheMisses = 0;
+        private const int RETRY_LIMIT = 2;
 
         // End counter bits
 
@@ -171,8 +174,14 @@
                     MaterialCacheMisses = MaterialCacheHits = 0;
                 }
 
-                GUI.Label(new Rect(10,10,200,50), "Mesh Cache Hits: " + EboCacheHits + " Misses: " + EboCacheMisses, _guiStyle);
-                GUI.Label(new Rect(10,40, 200,50), "Material Cache Hits: " + MaterialCacheHits + " Misses: " + MaterialCacheMisses, _guiStyle);
+                int yOffset = 10;
+                GUI.Label(new Rect(10,yOffset,200,50), "Mesh Cache Hits: " + EboCacheHits + " Misses: " + EboCacheMisses, _guiStyle);
+                GUI.Label(new Rect(10,yOffset+=30, 200,50), "Material Cache Hits: " + MaterialCacheHits + " Misses: " + MaterialCacheMisses, _guiStyle);
+                if (UseFileCache)
+                {
+                    GUI.Label(new Rect(10, yOffset += 30, 200, 50),
+                        "File Cache Hits: " + FileCacheHits + " Misses: " + FileCacheMisses, _guiStyle);
+                }
             }
         }
 
@@ -311,38 +320,74 @@
                 EboCacheMisses++;
 
                 _eboCache[modelPath] = null;
-                yield return StartCoroutine(StartRequest(modelPath));
-                if (UseFileCache)
+                bool getReturned = false;
+                bool getFailed = false;
+                int retryCount = 0;
+                do
                 {
-                    CacheWebRequest.GetBytes(modelPath, (modelBytes) =>
+                    yield return StartCoroutine(StartRequest(modelPath));
+                    if (UseFileCache)
                     {
-                        _eboCache[modelPath] = new GeometryBuffer(600, true) {Buffer = modelBytes};
-                    });
-                }
-                else
+                        CacheWebRequest.GetBytes(modelPath, (modelResponse) =>
+                        {
+                            getFailed = modelResponse.IsError;
+                            if (modelResponse.IsError)
+                            {
+                                Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
+                            }
+                            else
+                            {
+                                if (modelResponse.IsCacheHit)
+                                {
+                                    FileCacheHits++;
+                                }
+                                else
+                                {
+                                    FileCacheMisses++;
+                                }
+                                _eboCache[modelPath] = new GeometryBuffer(600, true) {Buffer = modelResponse.Content};
+                            }
+
+                            // Signal to waiting routine that request has returned
+                            getReturned = true;
+                        });
+                    }
+                    else
+                    {
+                        var client = new RestClient(modelPath);
+                        var request = new RestRequest(Method.GET);
+                        client.ExecuteAsync(request, (r, h) =>
+                        {
+                            LogResponseError(r, modelPath);
+                            if (r.RawBytes != null)
+                            {
+                                _eboCache[modelPath] = new GeometryBuffer(600, true) {Buffer = r.RawBytes};
+                            }
+                            else
+                            {
+                                getFailed = true;
+                                _eboCache.Remove(modelPath);
+                                Debug.LogError("Error getting model data");
+                            }
+                            getReturned = true;
+                        });
+                    }
+
+                    while (!getReturned)
+                    {
+                        yield return null;
+                    }
+
+                    EndRequest(modelPath);
+                } while (!getFailed && retryCount++ < RETRY_LIMIT);
+
+                if (RETRY_LIMIT > retryCount)
                 {
-                    var client = new RestClient(modelPath);
-                    var request = new RestRequest(Method.GET);
-                    client.ExecuteAsync(request, (r, h) =>
-                    {
-                        LogResponseError(r, modelPath);
-                        if (r.RawBytes != null)
-                        {
-                            _eboCache[modelPath] = new GeometryBuffer(600, true) {Buffer = r.RawBytes};
-                        }
-                        else
-                        {
-                            _eboCache.Remove(modelPath);
-                            Debug.LogError("Error getting model data");
-                        }
-                    });
+                    Debug.LogError("Retry limit hit for: " + modelPath);
+                    Debug.LogError("Cube load failed for " + loadRequest);
+                    yield break;
                 }
 
-                while (_eboCache[modelPath] == null)
-                {
-                    yield return null;
-                }
-                EndRequest(modelPath);
             }
             else
             {
@@ -380,43 +425,77 @@
                     // Set to null to signal to other tasks that the key is in the process
                     // of being filled
                     _textureCache[texturePath] = null;
-                    yield return StartCoroutine(StartRequest(texturePath));
                     byte[] textureData = null;
-                    if (UseFileCache)
+                    bool getReturned = false;
+                    bool getFailed = false;
+                    int retryCount = 0;
+                    do
                     {
-                        CacheWebRequest.GetBytes(texturePath, (textureBytes) =>
+
+                        yield return StartCoroutine(StartRequest(texturePath));
+                        if (UseFileCache)
                         {
-                            textureData = textureBytes;
-                        });
-                    }
-                    else
-                    {
-                        var client = new RestClient(texturePath);
-                        var request = new RestRequest(Method.GET);
-                        client.ExecuteAsync(request, (r, h) =>
+                            CacheWebRequest.GetBytes(texturePath, (textureResponse) =>
+                            {
+                                getFailed = textureResponse.IsError;
+                                if (textureResponse.IsError)
+                                {
+                                    Debug.LogError("Error getting texture [" + texturePath + "] " +
+                                                   textureResponse.ErrorMessage);
+                                }
+                                else
+                                {
+                                    if (textureResponse.IsCacheHit)
+                                    {
+                                        FileCacheHits++;
+                                    }
+                                    else
+                                    {
+                                        FileCacheMisses++;
+                                    }
+                                    textureData = textureResponse.Content;
+                                }
+                                getReturned = true;
+                            });
+                        }
+                        else
                         {
-                            LogResponseError(r, texturePath);
-                            if (r.RawBytes != null)
+                            var client = new RestClient(texturePath);
+                            var request = new RestRequest(Method.GET);
+                            client.ExecuteAsync(request, (r, h) =>
                             {
-                                textureData = r.RawBytes;
-                            }
-                            else
-                            {
-                                Debug.LogError("Error getting texture data");
-                            }
-                        });
-                    }
+                                LogResponseError(r, texturePath);
+                                if (r.RawBytes != null)
+                                {
+                                    textureData = r.RawBytes;
+                                }
+                                else
+                                {
+                                    getFailed = true;
+                                    Debug.LogError("Error getting texture data");
+                                }
+                                getReturned = true;
+                            });
+                        }
 
 
-                    while (textureData == null)
+                        while (!getReturned)
+                        {
+                            yield return null;
+                        }
+
+                        var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
+                        texture.LoadImage(textureData);
+                        _textureCache[texturePath] = texture;
+                        EndRequest(texturePath);
+                    } while (!getFailed && retryCount++ < RETRY_LIMIT);
+
+                    if (RETRY_LIMIT > retryCount)
                     {
-                        yield return null;
+                        Debug.LogError("Retry limit hit for: " + modelPath);
+                        Debug.LogError("Cube load failed for " + loadRequest);
+                        yield break;
                     }
-
-                    var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
-                    texture.LoadImage(textureData);
-                    _textureCache[texturePath] = texture;
-                    EndRequest(texturePath);
                 }
 
                 // Loop while other tasks finish creating texture

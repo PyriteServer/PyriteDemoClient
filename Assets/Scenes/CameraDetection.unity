@@ -326,9 +326,8 @@ MonoBehaviour:
   PyriteServer: 
   SetName: 
   UseCameraDetection: 1
-  UseEbo: 1
   UseUnlitShader: 1
-  UseWww: 1
+  UseFileCache: 1
   MaxConcurrentRequests: 0
 --- !u!4 &2132541550
 Transform:

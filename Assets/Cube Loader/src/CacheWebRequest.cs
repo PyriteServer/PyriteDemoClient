@@ -1,25 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Assets.Cube_Loader.src
+﻿namespace Assets.Cube_Loader.src
 {
+    using System;
+    using System.Collections.Generic;
     using System.IO;
-    using System.Net;
     using System.Threading;
     using RestSharp;
     using UnityEngine;
 
-    class CacheWebRequest
+    internal class CacheWebRequest
     {
+        public struct CacheWebResponse<T>
+        {
+            public bool IsCacheHit { get; set; }
+            public T Content { get; set; }
+            public bool IsError { get; set; }
+            public string ErrorMessage { get; set; }
+        }
+
         // How many files we want to keep on disk
-        private static int _maxCacheSize = 300;
+        private static readonly int _maxCacheSize = 3000;
         // The path to the cache location on disk
         private static string _temporaryCachePath;
-        
+
         // MRU index for cache items. The key points to the node in the list that can be used to delete it or refresh it (move it to the end)
-        private static readonly Dictionary<string, LinkedListNode<string>> _cacheFileIndex = new Dictionary<string, LinkedListNode<string>>();
+        private static readonly Dictionary<string, LinkedListNode<string>> _cacheFileIndex =
+            new Dictionary<string, LinkedListNode<string>>();
+
         // List of cache items. When eviction is needed the First item is deleted
         // New items should be added to the back
         private static readonly LinkedList<string> _cacheFileList = new LinkedList<string>();
@@ -67,7 +73,6 @@ namespace Assets.Cube_Loader.src
 
         private static void EvictCacheEntry()
         {
-            Debug.LogWarning("Evicting");
             lock (_cacheFileList)
             {
                 var nodeToRemove = _cacheFileList.First;
@@ -105,20 +110,28 @@ namespace Assets.Cube_Loader.src
             InsertOrUpdateCacheEntry(cacheFilePath);
         }
 
-        public static void GetBytes(string url, Action<byte[]> onBytesDownloaded)
+        public static void GetBytes(string url, Action<CacheWebResponse<byte[]>> onBytesDownloaded)
         {
             ThreadPool.QueueUserWorkItem(state =>
             {
-                string cachePath = GetCacheFilePath(url);
-                byte[] bytes;
+                var cachePath = GetCacheFilePath(url);
                 if (_cacheFileIndex.ContainsKey(cachePath))
                 {
-                    bytes = File.ReadAllBytes(cachePath);
-                    onBytesDownloaded(bytes);
-                    ThreadPool.QueueUserWorkItem(notUsed =>
+                    var response = new CacheWebResponse<byte[]>();
+                    try
                     {
-                        InsertOrUpdateCacheEntry(cachePath);
-                    });
+                        response.Content = File.ReadAllBytes(cachePath);
+                        response.IsCacheHit = true;
+                        response.IsError = false;
+                        ThreadPool.QueueUserWorkItem(notUsed => { InsertOrUpdateCacheEntry(cachePath); });
+                    }
+                    catch (IOException ioException)
+                    {
+                        response.IsError = true;
+                        response.ErrorMessage = ioException.Message;
+                    }
+
+                    onBytesDownloaded(response);
                 }
                 else
                 {
@@ -126,14 +139,27 @@ namespace Assets.Cube_Loader.src
                     var request = new RestRequest(Method.GET);
                     client.ExecuteAsync(request, (r, h) =>
                     {
+                        var response = new CacheWebResponse<byte[]>();
+                        response.IsCacheHit = false;
                         if (r.RawBytes != null)
                         {
-                            bytes = r.RawBytes;
-                            ThreadPool.QueueUserWorkItem(s =>
+                            response.Content = r.RawBytes;
+                            response.IsError = false;
+                            ThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cachePath, r.RawBytes); });
+                            onBytesDownloaded(response);
+                        }
+                        else
+                        {
+                            response.IsError = true;
+                            if (!string.IsNullOrEmpty(r.ErrorMessage))
                             {
-                                SaveResponseToFileCache(cachePath, bytes);
-                            });
-                            onBytesDownloaded(bytes);
+                                response.ErrorMessage = r.ErrorMessage;
+                            }
+                            else
+                            {
+                                response.ErrorMessage = "Content was null. StatusCode: " + r.StatusCode;
+                            }
+                            onBytesDownloaded(response);
                         }
                     });
                 }
