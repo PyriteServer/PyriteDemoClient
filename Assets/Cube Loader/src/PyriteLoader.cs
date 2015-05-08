@@ -30,7 +30,7 @@
 
         private readonly Dictionary<string, Texture2D> _textureCache = new Dictionary<string, Texture2D>();
 
-        // Debug Text Counters and misc bits
+        // Debug Text Counters
         private GUIStyle _guiStyle = new GUIStyle();
         private int EboCacheHits = 0;
         private int EboCacheMisses = 0;
@@ -39,20 +39,28 @@
 
         private int FileCacheHits = 0;
         private int FileCacheMisses = 0;
-        private const int RETRY_LIMIT = 2;
-
         // End counter bits
 
+		private const int RETRY_LIMIT = 2;
+		private int _colorSelector;
+
         public GameObject CameraRig;
-        private int _colorSelector;
-        public int DetailLevel = 6;
+        
         public bool EnableDebugLogs = false;
         public GameObject PlaceHolderCube;
+
+		[Header("Server Options")]
         public string PyriteServer;
+
+		[Header("Set Options (required)")]
+		public int DetailLevel = 6;
         public string SetName;
-        public bool UseCameraDetection = false;
+
+		[Header("Debug Options")]
+        public bool UseCameraDetection = true;
         public bool UseUnlitShader = true;
         public bool UseFileCache = true;
+		public bool ShowDebugText = true;
         
 
         [Range(0, 100)] public int MaxConcurrentRequests = 8;
@@ -162,7 +170,7 @@
 
         void OnGUI()
         {
-            if (Application.isEditor)  // or check the app debug flag
+            if (ShowDebugText)  // or check the app debug flag
             {
                 if (EboCacheHits + EboCacheMisses > 1000)
                 {
@@ -175,13 +183,28 @@
                 }
 
                 int yOffset = 10;
-                GUI.Label(new Rect(10,yOffset,200,50), "Mesh Cache Hits: " + EboCacheHits + " Misses: " + EboCacheMisses, _guiStyle);
-                GUI.Label(new Rect(10,yOffset+=30, 200,50), "Material Cache Hits: " + MaterialCacheHits + " Misses: " + MaterialCacheMisses, _guiStyle);
-                if (UseFileCache)
-                {
-                    GUI.Label(new Rect(10, yOffset += 30, 200, 50),
-                        "File Cache Hits: " + FileCacheHits + " Misses: " + FileCacheMisses, _guiStyle);
-                }
+				string caches;
+
+				if (UseFileCache)
+				{
+				caches = string.Format("Mesh {0}/{1} Mat {2}/{3} File {4}/{5}", 
+				                              EboCacheHits, 
+				                              EboCacheMisses, 
+				                              MaterialCacheHits,
+				                              MaterialCacheMisses,
+				                              FileCacheHits,
+				                              FileCacheMisses);
+				}
+				else
+				{
+					caches = string.Format("Mesh {0}/{1} Mat {2}/{3}", 
+					                       EboCacheHits, 
+					                       EboCacheMisses, 
+					                       MaterialCacheHits,
+					                       MaterialCacheMisses);
+				}
+
+                GUI.Label(new Rect(10,yOffset,200,50), caches, _guiStyle);
             }
         }
 
