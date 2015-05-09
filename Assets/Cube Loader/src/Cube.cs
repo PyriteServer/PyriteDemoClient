@@ -1,6 +1,7 @@
 ﻿namespace Assets.Cube_Loader.src
 {
     using System.Collections.Generic;
+    using System.Text;
     using UnityEngine;
 
     public class Cube
@@ -29,9 +30,24 @@
         public int Y;
         public int Lod;
 
+        private string _name;
+
         public string Name
         {
-            get { return string.Format(NameFormat, Lod, X, Y); }
+            get
+            {
+                if (string.IsNullOrEmpty(_name))
+                {
+                    StringBuilder sb = new StringBuilder("materialData_L");
+                    sb.Append(Lod);
+                    sb.Append("_");
+                    sb.Append(X);
+                    sb.Append("_");
+                    sb.Append(Y);
+                    _name = sb.ToString();
+                }
+                return _name;
+            }
         }
     }
 }

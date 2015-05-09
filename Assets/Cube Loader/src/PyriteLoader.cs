@@ -4,13 +4,11 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using Extensions;
     using Microsoft.Xna.Framework;
     using Model;
     using RestSharp;
     using UnityEngine;
     using Debug = UnityEngine.Debug;
-    using System.Net;
 
     public class PyriteLoader : MonoBehaviour
     {
@@ -21,54 +19,69 @@
             Color.gray, Color.yellow, Color.cyan
         };
 
-        private readonly DictionaryCache<string, GeometryBuffer> _eboCache = new DictionaryCache<string, GeometryBuffer>(200);
+        private readonly DictionaryCache<string, GeometryBuffer> _eboCache =
+            new DictionaryCache<string, GeometryBuffer>(200);
+
         private readonly DictionaryCache<string, Material> _materialCache = new DictionaryCache<string, Material>(100);
 
         private readonly DictionaryCache<string, MaterialData> _materialDataCache =
             new DictionaryCache<string, MaterialData>(100);
 
-        private readonly Dictionary<string, Texture2D> _textureCache = new Dictionary<string, Texture2D>();
+        private readonly Dictionary<string, MaterialData> _partiallyConstructedMaterialDatas =
+            new Dictionary<string, MaterialData>();
 
         // Debug Text Counters
-        private GUIStyle _guiStyle = new GUIStyle();
-        private int EboCacheHits = 0;
-        private int EboCacheMisses = 0;
-        private int MaterialCacheHits = 0;
-        private int MaterialCacheMisses = 0;
+        private readonly GUIStyle _guiStyle = new GUIStyle();
+        private int EboCacheHits;
+        private int EboCacheMisses;
+        private int MaterialCacheHits;
+        private int MaterialCacheMisses;
 
-        private int FileCacheHits = 0;
-        private int FileCacheMisses = 0;
+        private int FileCacheHits;
+        private int FileCacheMisses;
         // End counter bits
 
-		private const int RETRY_LIMIT = 2;
-		private int _colorSelector;
+        private const int RETRY_LIMIT = 2;
+        private int _colorSelector;
 
-		private float _geometryBufferAltitudeTransform;
+        private float _geometryBufferAltitudeTransform;
 
         public GameObject CameraRig;
-        
+
         public bool EnableDebugLogs = false;
         public GameObject PlaceHolderCube;
 
-		[Header("Server Options")]
-        public string PyriteServer;
-		[Range(0, 100)] 
-		public int MaxConcurrentRequests = 8;
+        [Header("Server Options")] public string PyriteServer;
+        [Range(0, 100)] public int MaxConcurrentRequests = 8;
 
-		[Header("Set Options (required)")]
-		public int DetailLevel = 6;
-		public string ModelVersion = "V2";
+        [Header("Set Options (required)")] public int DetailLevel = 6;
+        public string ModelVersion = "V2";
         public string SetName;
 
-		[Header("Debug Options")]
-        public bool UseCameraDetection = true;
+        [Header("Debug Options")] public bool UseCameraDetection = true;
         public bool UseUnlitShader = true;
         public bool UseFileCache = true;
-		public bool ShowDebugText = true;
+        public bool ShowDebugText = true;
 
         private readonly HashSet<string> _activeRequests = new HashSet<string>();
 
-        private readonly Queue<LoadCubeRequest> _loadCubeRequests = new Queue<LoadCubeRequest>();
+        // Queue for requests that are waiting for their material data
+        private readonly Queue<LoadCubeRequest> _loadMaterialQueue = new Queue<LoadCubeRequest>();
+
+        // Queue textures that have been downloaded and now need to be constructed into material data
+        private readonly Queue<KeyValuePair<string, byte[]>> _texturesReadyForMaterialDataConstruction =
+            new Queue<KeyValuePair<string, byte[]>>();
+
+        // Dictionary list to keep track of requests that are dependent on some other in progress item (e.g. material data or model data loading)
+        private readonly Dictionary<string, LinkedList<LoadCubeRequest>> _dependentCubes =
+            new Dictionary<string, LinkedList<LoadCubeRequest>>();
+
+        // Queue for requests that have material data but need model data
+        private readonly Queue<LoadCubeRequest> _loadGeometryBufferQueue = new Queue<LoadCubeRequest>();
+
+        // Queue for requests that have model and material data and so are ready for construction
+        private readonly Queue<LoadCubeRequest> _buildCubeRequests = new Queue<LoadCubeRequest>();
+
 
         private IEnumerator StartRequest(string path)
         {
@@ -122,20 +135,6 @@
             }
         }
 
-        private void LogWwwError(WWW www, string path)
-        {
-            if (www == null)
-            {
-                Debug.LogErrorFormat("WWW is null [{0}]", path);
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(www.error))
-            {
-                Debug.LogErrorFormat("WWW.error: {0} [{1}]", www.error, path);
-            }
-        }
-
         private void Start()
         {
             if (string.IsNullOrEmpty(SetName))
@@ -159,19 +158,60 @@
 
         private void Update()
         {
-            while (_loadCubeRequests.Count > 0)
+            // Check for work in Update
+            ProcessQueues();
+        }
+
+        // Look through all work queues starting any work that is needed
+        private void ProcessQueues()
+        {
+            // Look for requests that are ready to be constructed
+            ProcessQueue(_buildCubeRequests, BuildCubeRequest);
+
+            // Look for textures that have been downloaded and need to be converted to MaterialData
+            lock (_texturesReadyForMaterialDataConstruction)
             {
-                var request = _loadCubeRequests.Dequeue();
-                if (!request.Cancelled)
+                while (_texturesReadyForMaterialDataConstruction.Count > 0)
                 {
-                    StartCoroutine(ProcessLoadCubeRequest(request));
+                    var materialDataKeyTextureBytesPair = _texturesReadyForMaterialDataConstruction.Dequeue();
+                    FinishCreatingMaterialDataWithTexture(materialDataKeyTextureBytesPair);
+                }
+            }
+            // Look for requests that need material data set
+            ProcessQueue(_loadMaterialQueue, GetMaterialForRequest);
+
+            // Look for requests that need geometry buffer (model data)
+            ProcessQueue(_loadGeometryBufferQueue, GetModelForRequest);
+        }
+
+        // Helper for locking a queue, pulling off requests and invoking a handler function for them
+        private void ProcessQueue(Queue<LoadCubeRequest> queue, Func<LoadCubeRequest, IEnumerator> requestProcessFunc)
+        {
+            lock (queue)
+            {
+                while (queue.Count > 0)
+                {
+                    var request = queue.Dequeue();
+                    if (!request.Cancelled)
+                    {
+                        StartCoroutine(requestProcessFunc(request));
+                    }
                 }
             }
         }
 
-        void OnGUI()
+        // Helper to lock queue to add new item
+        private static void EnqueRequest(Queue<LoadCubeRequest> queue, LoadCubeRequest loadRequest)
         {
-            if (ShowDebugText)  // or check the app debug flag
+            lock (queue)
+            {
+                queue.Enqueue(loadRequest);
+            }
+        }
+
+        private void OnGUI()
+        {
+            if (ShowDebugText) // or check the app debug flag
             {
                 if (EboCacheHits + EboCacheMisses > 1000)
                 {
@@ -183,29 +223,29 @@
                     MaterialCacheMisses = MaterialCacheHits = 0;
                 }
 
-                int yOffset = 10;
-				string caches;
+                var yOffset = 10;
+                string caches;
 
-				if (UseFileCache)
-				{
-				caches = string.Format("Mesh {0}/{1} Mat {2}/{3} File {4}/{5}", 
-				                              EboCacheHits, 
-				                              EboCacheMisses, 
-				                              MaterialCacheHits,
-				                              MaterialCacheMisses,
-				                              FileCacheHits,
-				                              FileCacheMisses);
-				}
-				else
-				{
-					caches = string.Format("Mesh {0}/{1} Mat {2}/{3}", 
-					                       EboCacheHits, 
-					                       EboCacheMisses, 
-					                       MaterialCacheHits,
-					                       MaterialCacheMisses);
-				}
+                if (UseFileCache)
+                {
+                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} File {4}/{5}",
+                        EboCacheHits,
+                        EboCacheMisses,
+                        MaterialCacheHits,
+                        MaterialCacheMisses,
+                        FileCacheHits,
+                        FileCacheMisses);
+                }
+                else
+                {
+                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3}",
+                        EboCacheHits,
+                        EboCacheMisses,
+                        MaterialCacheHits,
+                        MaterialCacheMisses);
+                }
 
-                GUI.Label(new Rect(10,yOffset,200,50), caches, _guiStyle);
+                GUI.Label(new Rect(10, yOffset, 200, 50), caches, _guiStyle);
             }
         }
 
@@ -239,13 +279,14 @@
                 var y = pCube.Y;
                 var z = pCube.Z;
                 var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pCube);
-				_geometryBufferAltitudeTransform = 0 - pyriteLevel.ModelBoundsMin.z;
+                _geometryBufferAltitudeTransform = 0 - pyriteLevel.ModelBoundsMin.z;
 
                 if (UseCameraDetection)
                 {
                     var g =
                         (GameObject)
-							Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y),
+                            Instantiate(PlaceHolderCube,
+                                new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y),
                                 Quaternion.identity);
 
                     g.transform.parent = gameObject.transform;
@@ -271,12 +312,12 @@
                 // Hardcodes the coordinate inversions which are parameterized on the geometry buffer
 
                 var min = new Vector3(
-					-pyriteLevel.ModelBoundsMin.x, 
-					pyriteLevel.ModelBoundsMin.z + _geometryBufferAltitudeTransform,
+                    -pyriteLevel.ModelBoundsMin.x,
+                    pyriteLevel.ModelBoundsMin.z + _geometryBufferAltitudeTransform,
                     -pyriteLevel.ModelBoundsMin.y);
                 var max = new Vector3(
-					-pyriteLevel.ModelBoundsMax.x, 
-					pyriteLevel.ModelBoundsMax.z + _geometryBufferAltitudeTransform,
+                    -pyriteLevel.ModelBoundsMax.x,
+                    pyriteLevel.ModelBoundsMax.z + _geometryBufferAltitudeTransform,
                     -pyriteLevel.ModelBoundsMax.y);
 
                 var newCameraPosition = min + (max - min)/2.0f;
@@ -327,239 +368,401 @@
             yield break;
         }
 
+        // Used to initiate request to load and display a cube in the scene
         public void EnqueueLoadCubeRequest(LoadCubeRequest loadRequest)
         {
-            _loadCubeRequests.Enqueue(loadRequest);
+            EnqueRequest(_loadMaterialQueue, loadRequest);
         }
 
-        private IEnumerator ProcessLoadCubeRequest(LoadCubeRequest loadRequest)
+        // Invoked when a load requeset has failed to download the model data it needs
+        // Requests are retried RETRY_LIMIT times if they fail more than that the request is abandoned (error is logged)
+        // When this happens if any dependent cubes want the resource that failed one request is re-queued to try again (under that requests Retry quota)
+        private void FailGetGeometryBufferRequest(LoadCubeRequest loadRequest, string modelPath)
+        {
+            loadRequest.Failures++;
+            lock (_eboCache)
+            {
+                // Remove the 'in progress' marker from the cache
+                _eboCache.Remove(modelPath);
+            }
+
+            if (RETRY_LIMIT > loadRequest.Failures)
+            {
+                Debug.LogError("Retry limit hit for: " + modelPath);
+                Debug.LogError("Cube load failed for " + loadRequest);
+
+                // Let another depenent cube try
+                LinkedList<LoadCubeRequest> dependentRequests;
+                lock (_dependentCubes)
+                {
+                    if (_dependentCubes.TryGetValue(modelPath, out dependentRequests))
+                    {
+                        var request = dependentRequests.Last.Value;
+                        dependentRequests.RemoveLast();
+                        EnqueRequest(_loadGeometryBufferQueue, request);
+                    }
+                }
+            }
+            else
+            {
+                // Queue for retry
+                EnqueRequest(_loadGeometryBufferQueue, loadRequest);
+            }
+        }
+
+        // Invoked when a load requeset has failed to download the material data it needs
+        // Requests are retried RETRY_LIMIT times if they fail more than that the request is abandoned (error is logged)
+        // When this happens if any dependent cubes want the resource that failed one request is re-queued to try again (under that request's Retry quota)
+        private void FailGetMaterialDataRequest(LoadCubeRequest loadRequest, string materialPath)
+        {
+            loadRequest.Failures++;
+            lock (_materialDataCache)
+            {
+                // Remove the 'in progress' marker from the cache
+                _materialDataCache.Remove(materialPath);
+            }
+
+
+            if (RETRY_LIMIT > loadRequest.Failures)
+            {
+                Debug.LogError("Retry limit hit for: " + materialPath);
+                Debug.LogError("Cube load failed for " + loadRequest);
+
+
+                LinkedList<LoadCubeRequest> dependentRequests;
+                lock (_dependentCubes)
+                {
+                    if (_dependentCubes.TryGetValue(materialPath, out dependentRequests))
+                    {
+                        var request = dependentRequests.Last.Value;
+                        dependentRequests.RemoveLast();
+                        EnqueRequest(_loadMaterialQueue, request);
+                    }
+                }
+            }
+            else
+            {
+                // Queue for retry
+                EnqueRequest(_loadMaterialQueue, loadRequest);
+            }
+        }
+
+
+        // Called when a request has successfully downloaded its model data 
+        // this assumes the model data is now in the cache
+        private void SucceedGetGeometryBufferRequest(LoadCubeRequest loadRequest, string modelPath)
+        {
+            loadRequest.GeometryBuffer = _eboCache[modelPath];
+            MoveRequestForward(loadRequest);
+
+            // Check to see if any other requests were waiting on this model
+            LinkedList<LoadCubeRequest> dependentRequests;
+            lock (_dependentCubes)
+            {
+                if (_dependentCubes.TryGetValue(modelPath, out dependentRequests))
+                {
+                    _dependentCubes.Remove(modelPath);
+                }
+            }
+
+            // If any were send them to their next stage
+            if (dependentRequests != null)
+            {
+                foreach (var request in dependentRequests)
+                {
+                    request.GeometryBuffer = _eboCache[modelPath];
+                    MoveRequestForward(request);
+                }
+            }
+        }
+
+        // Called when the material data has been constructed into the cache
+        // The material data is constructed using a materialkey for reference
+        // The method sets the material data for any dependent requests and moves them along
+        private void SucceedGetMaterialDataRequests(string materialDataKey)
+        {
+            // Check to see if any other requests were waiting on this model
+            LinkedList<LoadCubeRequest> dependentRequests;
+            lock (_dependentCubes)
+            {
+                if (_dependentCubes.TryGetValue(materialDataKey, out dependentRequests))
+                {
+                    _dependentCubes.Remove(materialDataKey);
+                }
+            }
+
+            // If any were send them to their next stage
+            if (dependentRequests != null)
+            {
+                foreach (var request in dependentRequests)
+                {
+                    request.MaterialData = _materialDataCache[materialDataKey];
+                    MoveRequestForward(request);
+                }
+            }
+        }
+
+        // Determine the next appropriate queue for the request
+        private void MoveRequestForward(LoadCubeRequest loadRequest)
+        {
+            if (loadRequest.GeometryBuffer == null)
+            {
+                EnqueRequest(_loadGeometryBufferQueue, loadRequest);
+            }
+            else if (loadRequest.MaterialData == null)
+            {
+                EnqueRequest(_loadMaterialQueue, loadRequest);
+            }
+            else
+            {
+                EnqueRequest(_buildCubeRequests, loadRequest);
+            }
+        }
+
+        // Responsible for getting the geometry data for a given request
+        // The method works roughly as follows
+        // 1. Check if model data is in cache
+        //    a. If not, start a web request for the data and add this request to the dependency list for the path
+        // 2. If the model data cache indicates that it is being filled (a set value of null) (including if the request
+        //      just started during this invocation) add the request to the dependency list for this path 
+        // 3. If the model is in the cache and set then get the data for the request and move it forward
+        private IEnumerator GetModelForRequest(LoadCubeRequest loadRequest)
         {
             DebugLog("+LoadCube(L{3}:{0}_{1}_{2})", loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod);
             var modelPath = loadRequest.Query.GetModelPath(loadRequest.Lod, loadRequest.X, loadRequest.Y, loadRequest.Z);
-            var pyriteLevel =
-                loadRequest.Query.DetailLevels[loadRequest.Lod];
 
-            GeometryBuffer buffer;
-
-            WWW loader;
             if (!_eboCache.ContainsKey(modelPath))
             {
+                // Model data was not present in cache nor has any request started constructing it
                 EboCacheMisses++;
 
                 _eboCache[modelPath] = null;
-                bool getReturned = false;
-                bool getFailed = false;
-                int retryCount = 0;
-                do
+                yield return StartCoroutine(StartRequest(modelPath));
+                if (UseFileCache)
                 {
-                    yield return StartCoroutine(StartRequest(modelPath));
-                    if (UseFileCache)
+                    CacheWebRequest.GetBytes(modelPath, modelResponse =>
                     {
-                        CacheWebRequest.GetBytes(modelPath, (modelResponse) =>
+                        if (modelResponse.IsError)
                         {
-                            getFailed = modelResponse.IsError;
-                            if (modelResponse.IsError)
-                            {
-                                Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
-                            }
-                            else
-                            {
-                                if (modelResponse.IsCacheHit)
-                                {
-                                    FileCacheHits++;
-                                }
-                                else
-                                {
-                                    FileCacheMisses++;			
-                                }
-								_eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true) {Buffer = modelResponse.Content};
-                            }
-
-                            // Signal to waiting routine that request has returned
-                            getReturned = true;
-                        });
-                    }
-                    else
-                    {
-                        var client = new RestClient(modelPath);
-                        var request = new RestRequest(Method.GET);
-                        client.ExecuteAsync(request, (r, h) =>
-                        {
-                            LogResponseError(r, modelPath);
-                            if (r.RawBytes != null)
-                            {
-								_eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true) {Buffer = r.RawBytes};
-                            }
-                            else
-                            {
-                                getFailed = true;
-                                _eboCache.Remove(modelPath);
-                                Debug.LogError("Error getting model data");
-                            }
-                            getReturned = true;
-                        });
-                    }
-
-                    while (!getReturned)
-                    {
-                        yield return null;
-                    }
-
-                    EndRequest(modelPath);
-                } while (!getFailed && retryCount++ < RETRY_LIMIT);
-
-                if (RETRY_LIMIT > retryCount)
-                {
-                    Debug.LogError("Retry limit hit for: " + modelPath);
-                    Debug.LogError("Cube load failed for " + loadRequest);
-                    yield break;
-                }
-
-            }
-            else
-            {
-                EboCacheHits++;
-            }
-            // Loop while other tasks finish getting ebo data
-            while (_eboCache[modelPath] == null)
-            {
-                // Another task is in the process of filling out this cache entry.
-                // Loop until it is set
-                yield return null;
-            }
-
-            // Set the geometrybuffer
-            buffer = _eboCache[modelPath];
-
-
-            var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(loadRequest.X, loadRequest.Y);
-            var materialDataKey = string.Format("model.mtl_{0}_{1}_{2}", textureCoordinates.x, textureCoordinates.y,
-                loadRequest.Lod);
-            if (!_materialDataCache.ContainsKey(materialDataKey))
-            {
-                // Cache counter
-                MaterialCacheMisses++;
-
-                var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int)textureCoordinates.x, (int)textureCoordinates.y, loadRequest.Lod);
-                _materialDataCache[materialDataKey] = null;
-                
-                
-                var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Query.GetLodKey(loadRequest.Lod),
-                    (int) textureCoordinates.x,
-                    (int) textureCoordinates.y);
-                if (!_textureCache.ContainsKey(texturePath))
-                {
-                    // Set to null to signal to other tasks that the key is in the process
-                    // of being filled
-                    _textureCache[texturePath] = null;
-                    byte[] textureData = null;
-                    bool getReturned = false;
-                    bool getFailed = false;
-                    int retryCount = 0;
-                    do
-                    {
-
-                        yield return StartCoroutine(StartRequest(texturePath));
-                        if (UseFileCache)
-                        {
-                            CacheWebRequest.GetBytes(texturePath, (textureResponse) =>
-                            {
-                                getFailed = textureResponse.IsError;
-                                if (textureResponse.IsError)
-                                {
-                                    Debug.LogError("Error getting texture [" + texturePath + "] " +
-                                                   textureResponse.ErrorMessage);
-                                }
-                                else
-                                {
-                                    if (textureResponse.IsCacheHit)
-                                    {
-                                        FileCacheHits++;
-                                    }
-                                    else
-                                    {
-                                        FileCacheMisses++;
-                                    }
-                                    textureData = textureResponse.Content;
-                                }
-                                getReturned = true;
-                            });
+                            Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
+                            FailGetGeometryBufferRequest(loadRequest, modelPath);
                         }
                         else
                         {
-                            var client = new RestClient(texturePath);
-                            var request = new RestRequest(Method.GET);
-                            client.ExecuteAsync(request, (r, h) =>
+                            if (modelResponse.IsCacheHit)
                             {
-                                LogResponseError(r, texturePath);
-                                if (r.RawBytes != null)
-                                {
-                                    textureData = r.RawBytes;
-                                }
-                                else
-                                {
-                                    getFailed = true;
-                                    Debug.LogError("Error getting texture data");
-                                }
-                                getReturned = true;
-                            });
+                                FileCacheHits++;
+                            }
+                            else
+                            {
+                                FileCacheMisses++;
+                            }
+                            _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                            {
+                                Buffer = modelResponse.Content
+                            };
+                            SucceedGetGeometryBufferRequest(loadRequest, modelPath);
                         }
-
-
-                        while (!getReturned)
-                        {
-                            yield return null;
-                        }
-
-                        var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
-                        texture.LoadImage(textureData);
-                        _textureCache[texturePath] = texture;
-                        EndRequest(texturePath);
-                    } while (!getFailed && retryCount++ < RETRY_LIMIT);
-
-                    if (RETRY_LIMIT > retryCount)
-                    {
-                        Debug.LogError("Retry limit hit for: " + modelPath);
-                        Debug.LogError("Cube load failed for " + loadRequest);
-                        yield break;
-                    }
+                        EndRequest(modelPath);
+                    });
                 }
-
-                // Loop while other tasks finish creating texture
-                while (_textureCache[texturePath] == null)
+                else
                 {
-                    // Another task is in the process of filling out this cache entry.
-                    // Loop until it is set
-                    yield return null;
+                    var client = new RestClient(modelPath);
+                    var request = new RestRequest(Method.GET);
+                    client.ExecuteAsync(request, (r, h) =>
+                    {
+                        LogResponseError(r, modelPath);
+                        if (r.RawBytes != null)
+                        {
+                            _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                            {
+                                Buffer = r.RawBytes
+                            };
+                            SucceedGetGeometryBufferRequest(loadRequest, modelPath);
+                        }
+                        else
+                        {
+                            Debug.LogError("Error getting model data");
+                            FailGetGeometryBufferRequest(loadRequest, modelPath);
+                        }
+                        EndRequest(modelPath);
+                    });
                 }
-                materialData.DiffuseTex = _textureCache[texturePath];
-                
-                _materialDataCache[materialDataKey] = materialData;
+            }
+            else if (_eboCache[modelPath] == null)
+            {
+                // Model is in the process of being constructed. Add request to dependency list
+                lock (_dependentCubes)
+                {
+                    LinkedList<LoadCubeRequest> dependentRequests;
+                    if (!_dependentCubes.TryGetValue(modelPath, out dependentRequests))
+                    {
+                        dependentRequests = new LinkedList<LoadCubeRequest>();
+                        _dependentCubes.Add(modelPath, dependentRequests);
+                    }
+                    dependentRequests.AddLast(loadRequest);
+                }
             }
             else
             {
-                MaterialCacheHits++;
+                // Model was constructed move request to next step
+                EboCacheHits++;
+                SucceedGetGeometryBufferRequest(loadRequest, modelPath);
             }
-            while (_materialDataCache[materialDataKey] == null)
+        }
+
+        // Responsible for getting the material data for a load request
+        // The method works roughly as follows
+        // 1. Check if material data is in cache
+        //    a. If not, start a web request for the data and add this request to the dependency list for the path
+        // 2. If the material data cache indicates that it is being filled (a set value of null) (including if the 
+        //      request just started during this invocation) add the request to the dependency list for this path 
+        // 3. If the material is in the cache and set then get the data for the request and move it forward
+        private IEnumerator GetMaterialForRequest(LoadCubeRequest loadRequest)
+        {
+            var pyriteLevel =
+                loadRequest.Query.DetailLevels[loadRequest.Lod];
+            var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(loadRequest.X, loadRequest.Y);
+            var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Query.GetLodKey(loadRequest.Lod),
+                (int) textureCoordinates.x,
+                (int) textureCoordinates.y);
+            if (!_materialDataCache.ContainsKey(texturePath))
             {
-                // Another task is in the process of filling out this cache entry.
-                // Loop until it is set
-                yield return null;
+                // Material data was not in cache nor being constructed 
+                // Cache counter
+                MaterialCacheMisses++;
+                _materialDataCache[texturePath] = null;
+                var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
+                    (int) textureCoordinates.y, loadRequest.Lod);
+                _partiallyConstructedMaterialDatas[texturePath] = materialData;
+
+                // Set to null to signal to other tasks that the key is in the process
+                // of being filled
+                byte[] textureData = null;
+                yield return StartCoroutine(StartRequest(texturePath));
+                if (UseFileCache)
+                {
+                    CacheWebRequest.GetBytes(texturePath, textureResponse =>
+                    {
+                        if (textureResponse.IsError)
+                        {
+                            Debug.LogError("Error getting texture [" + texturePath + "] " +
+                                           textureResponse.ErrorMessage);
+                            FailGetMaterialDataRequest(loadRequest, texturePath);
+                        }
+                        else
+                        {
+                            if (textureResponse.IsCacheHit)
+                            {
+                                FileCacheHits++;
+                            }
+                            else
+                            {
+                                FileCacheMisses++;
+                            }
+                            textureData = textureResponse.Content;
+                            lock (_texturesReadyForMaterialDataConstruction)
+                            {
+                                _texturesReadyForMaterialDataConstruction.Enqueue(
+                                    new KeyValuePair<string, byte[]>(texturePath, textureData));
+                            }
+                        }
+                        EndRequest(texturePath);
+                    });
+                }
+                else
+                {
+                    var client = new RestClient(texturePath);
+                    var request = new RestRequest(Method.GET);
+                    client.ExecuteAsync(request, (r, h) =>
+                    {
+                        LogResponseError(r, texturePath);
+                        if (r.RawBytes != null)
+                        {
+                            textureData = r.RawBytes;
+                            lock (_texturesReadyForMaterialDataConstruction)
+                            {
+                                _texturesReadyForMaterialDataConstruction.Enqueue(
+                                    new KeyValuePair<string, byte[]>(texturePath, textureData));
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogError("Error getting texture data");
+                            FailGetMaterialDataRequest(loadRequest, texturePath);
+                        }
+                        EndRequest(texturePath);
+                    });
+                }
             }
-            Build(buffer, _materialDataCache[materialDataKey], loadRequest.X, loadRequest.Y, loadRequest.Z,
+            lock (_materialDataCache)
+            {
+                if (_materialDataCache[texturePath] == null)
+                {
+                    // Material data is being constructed
+                    lock (_dependentCubes)
+                    {
+                        LinkedList<LoadCubeRequest> dependentCubes;
+                        if (!_dependentCubes.TryGetValue(texturePath, out dependentCubes))
+                        {
+                            dependentCubes = new LinkedList<LoadCubeRequest>();
+                            _dependentCubes.Add(texturePath, dependentCubes);
+                        }
+                        dependentCubes.AddLast(loadRequest);
+                    }
+                }
+                else
+                {
+                    // Material data ready get it and move on
+                    MaterialCacheHits++;
+                    loadRequest.MaterialData = _materialDataCache[texturePath];
+                    MoveRequestForward(loadRequest);
+                }
+            }
+        }
+
+        // Used to create material data when a texture has finished downloading
+        private void FinishCreatingMaterialDataWithTexture(
+            KeyValuePair<string, byte[]> materialDataKeyAndTexturePair)
+        {
+            var materialDataKey = materialDataKeyAndTexturePair.Key;
+            MaterialData inProgressMaterialData;
+            lock (_partiallyConstructedMaterialDatas)
+            {
+                inProgressMaterialData = _partiallyConstructedMaterialDatas[materialDataKey];
+                _partiallyConstructedMaterialDatas.Remove(materialDataKey);
+            }
+
+            var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
+            texture.LoadImage(materialDataKeyAndTexturePair.Value);
+
+
+            inProgressMaterialData.DiffuseTex = texture;
+
+            _materialDataCache[materialDataKey] = inProgressMaterialData;
+
+            // Move forward dependent requests that wanted this material data
+            SucceedGetMaterialDataRequests(materialDataKey);
+        }
+
+        // Used to create a and populate a game object for this request 
+        private IEnumerator BuildCubeRequest(LoadCubeRequest loadRequest)
+        {
+            Build(loadRequest.GeometryBuffer, loadRequest.MaterialData, loadRequest.X, loadRequest.Y, loadRequest.Z,
                 loadRequest.Lod, loadRequest.RegisterCreatedObjects);
             DebugLog("-LoadCube(L{3}:{0}_{1}_{2})", loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod);
+            yield break;
         }
 
         private void Build(GeometryBuffer buffer, MaterialData materialData, int x, int y, int z, int lod,
             Action<GameObject> registerCreatedObjects)
         {
-           
             if (!_materialCache.ContainsKey(materialData.Name))
             {
                 _materialCache[materialData.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, materialData);
-            }           
-           
+            }
+
 
             var gameObject = new GameObject();
             gameObject.name = String.Format("cube_L{3}:{0}_{1}_{2}", x, y, z, lod);

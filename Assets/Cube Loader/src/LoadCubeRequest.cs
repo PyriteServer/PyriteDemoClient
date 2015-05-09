@@ -21,6 +21,10 @@
             RegisterCreatedObjects = registerCreatedObjects;
         }
 
+        public GeometryBuffer GeometryBuffer { get; set; }
+        public MaterialData MaterialData { get; set; }
+        public int Failures { get; set; }
+
         public bool Equals(LoadCubeRequest other)
         {
             return

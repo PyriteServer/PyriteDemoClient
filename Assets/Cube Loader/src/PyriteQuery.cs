@@ -280,7 +280,7 @@
         }
     }
 
-    public class PyriteCube : IEquatable<PyriteCube>
+    public struct PyriteCube : IEquatable<PyriteCube>
     {
         public int X { get; set; }
         public int Y { get; set; }
@@ -288,12 +288,7 @@
 
         public bool Equals(PyriteCube other)
         {
-            return null != other && other.X == X && other.Y == Y && other.Z == Z;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as PyriteCube);
+            return other.X == X && other.Y == Y && other.Z == Z;
         }
 
         public override int GetHashCode()
