@@ -3,6 +3,7 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Text;
     using Extensions;
     using UnityEngine;
 
@@ -35,7 +36,15 @@
             _lod = lod;
             _pyriteQuery = query;
             _manager = manager;
-            name = string.Format("PH_L{3}:{0}_{1}_{2}", x, y, z, lod);
+            StringBuilder nameBuilder = new StringBuilder("PH_L");
+            nameBuilder.Append(lod);
+            nameBuilder.Append(':');
+            nameBuilder.Append(x);
+            nameBuilder.Append('_');
+            nameBuilder.Append(y);
+            nameBuilder.Append('_');
+            nameBuilder.Append(z);
+            name = nameBuilder.ToString();
         }
 
         // Use this for initialization
@@ -113,11 +122,6 @@
                 Destroy(detector);
             }
             _childDetectors.Clear();
-        }
-
-        public override string ToString()
-        {
-            return string.Format("ph L{0}:{1},{2},{3}", _lod, _x, _y, _z);
         }
 
         private IEnumerator StopRenderCheck(Camera cameraToCheckAgainst)

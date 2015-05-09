@@ -4,6 +4,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Text;
     using System.Threading;
     using Microsoft.Xna.Framework;
     using Model;
@@ -741,9 +742,15 @@
                 _materialCache[materialData.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, materialData);
             }
 
-
-            var newGameObject = new GameObject();
-            newGameObject.name = String.Format("cube_L{3}:{0}_{1}_{2}", x, y, z, lod);
+            var cubeName = new StringBuilder("cube_L");
+            cubeName.Append(lod);
+            cubeName.Append(':');
+            cubeName.Append(x);
+            cubeName.Append('_');
+            cubeName.Append(y);
+            cubeName.Append('_');
+            cubeName.Append(z);
+            var newGameObject = new GameObject(cubeName.ToString());
             newGameObject.transform.parent = newGameObject.transform;
             newGameObject.AddComponent(typeof (MeshFilter));
             newGameObject.AddComponent(typeof (MeshRenderer));
