@@ -7,7 +7,6 @@
     using System.Threading;
     using Microsoft.Xna.Framework;
     using Model;
-    using RestSharp;
     using UnityEngine;
     using Debug = UnityEngine.Debug;
 
@@ -119,25 +118,6 @@
             {
                 var content = string.Format(fmt, args);
                 Debug.LogFormat("{0}: {1}", _sw.ElapsedMilliseconds, content);
-            }
-        }
-
-        private void LogResponseError(IRestResponse response, string path = "")
-        {
-            if (response == null)
-            {
-                Debug.LogErrorFormat("Response is null [{0}]", path);
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(response.ErrorMessage))
-            {
-                Debug.LogErrorFormat("Response.ErrorMessage: {0} [{1}]", response.ErrorMessage, path);
-            }
-
-            if (response.ErrorException != null)
-            {
-                Debug.LogErrorFormat("Response.ErrorException: {0} [{1}]", response.ErrorException, path);
             }
         }
 
@@ -603,58 +583,32 @@
 
                 _eboCache[modelPath] = null;
                 yield return StartCoroutine(StartRequest(modelPath));
-                if (UseFileCache)
+                CacheWebRequest.GetBytes(modelPath, modelResponse =>
                 {
-                    CacheWebRequest.GetBytes(modelPath, modelResponse =>
+                    if (modelResponse.IsError)
                     {
-                        if (modelResponse.IsError)
+                        Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
+                        FailGetGeometryBufferRequest(loadRequest, modelPath);
+                    }
+                    else
+                    {
+                        if (modelResponse.IsCacheHit)
                         {
-                            Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
-                            FailGetGeometryBufferRequest(loadRequest, modelPath);
+                            FileCacheHits++;
                         }
                         else
                         {
-                            if (modelResponse.IsCacheHit)
-                            {
-                                FileCacheHits++;
-                            }
-                            else
-                            {
-                                FileCacheMisses++;
-                            }
-                            _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
-                            {
-                                Buffer = modelResponse.Content
-                            };
-                            SucceedGetGeometryBufferRequest(modelPath).Wait();
+                            FileCacheMisses++;
                         }
-                        EndRequest(modelPath);
-                    });
-                }
-                else
-                {
-                    var client = new RestClient(modelPath);
-                    var request = new RestRequest(Method.GET);
-                    client.ExecuteAsync(request, (r, h) =>
-                    {
-                        LogResponseError(r, modelPath);
-                        if (r.RawBytes != null)
+                        _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
                         {
-                            _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
-                            {
-                                Buffer = r.RawBytes
-                            };
-
-                            SucceedGetGeometryBufferRequest(modelPath).Wait();
-                        }
-                        else
-                        {
-                            Debug.LogError("Error getting model data");
-                            FailGetGeometryBufferRequest(loadRequest, modelPath);
-                        }
-                        EndRequest(modelPath);
-                    });
-                }
+                            Buffer = modelResponse.Content
+                        };
+                        SucceedGetGeometryBufferRequest(modelPath).Wait();
+                    }
+                    EndRequest(modelPath);
+                });
+               
             }
 
             if (_eboCache[modelPath] == null)
@@ -699,54 +653,32 @@
                 _partiallyConstructedMaterialDatas[texturePath] = materialData;
 
                 yield return StartCoroutine(StartRequest(texturePath));
-                if (UseFileCache)
+
+                CacheWebRequest.GetBytes(texturePath, textureResponse =>
                 {
-                    CacheWebRequest.GetBytes(texturePath, textureResponse =>
+                    CheckIfBackgroundThread();
+                    if (textureResponse.IsError)
                     {
-                        CheckIfBackgroundThread();
-                        if (textureResponse.IsError)
+                        Debug.LogError("Error getting texture [" + texturePath + "] " +
+                                       textureResponse.ErrorMessage);
+                        FailGetMaterialDataRequest(loadRequest, texturePath);
+                    }
+                    else
+                    {
+                        if (textureResponse.IsCacheHit)
                         {
-                            Debug.LogError("Error getting texture [" + texturePath + "] " +
-                                           textureResponse.ErrorMessage);
-                            FailGetMaterialDataRequest(loadRequest, texturePath);
+                            FileCacheHits++;
                         }
                         else
                         {
-                            if (textureResponse.IsCacheHit)
-                            {
-                                FileCacheHits++;
-                            }
-                            else
-                            {
-                                FileCacheMisses++;
-                            }
-                            _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
-                                new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
+                            FileCacheMisses++;
                         }
-                        EndRequest(texturePath);
-                    });
-                }
-                else
-                {
-                    var client = new RestClient(texturePath);
-                    var request = new RestRequest(Method.GET);
-                    client.ExecuteAsync(request, (r, h) =>
-                    {
-                        CheckIfBackgroundThread();
-                        LogResponseError(r, texturePath);
-                        if (r.RawBytes != null)
-                        {
-                            _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
-                                new KeyValuePair<string, byte[]>(texturePath, r.RawBytes)).Wait();
-                        }
-                        else
-                        {
-                            Debug.LogError("Error getting texture data");
-                            FailGetMaterialDataRequest(loadRequest, texturePath);
-                        }
-                        EndRequest(texturePath);
-                    });
-                }
+                        _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
+                            new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
+                    }
+                    EndRequest(texturePath);
+                });
+               
             }
             while (!Monitor.TryEnter(_materialDataCache))
             {

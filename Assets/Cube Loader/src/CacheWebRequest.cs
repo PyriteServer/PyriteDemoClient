@@ -5,7 +5,7 @@
     using System.IO;
     using System.Text;
     using System.Threading;
-    using RestSharp;
+	using System.Net;
     using UnityEngine;
 
     internal class CacheWebRequest
@@ -140,33 +140,22 @@
                 }
                 else
                 {
-                    var client = new RestClient(url);
-                    var request = new RestRequest(Method.GET);
-                    client.ExecuteAsync(request, (r, h) =>
-                    {
-                        var response = new CacheWebResponse<byte[]>();
-                        response.IsCacheHit = false;
-                        if (r.RawBytes != null)
-                        {
-                            response.Content = r.RawBytes;
-                            response.IsError = false;
-                            ThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cachePath, r.RawBytes); });
-                            onBytesDownloaded(response);
-                        }
-                        else
-                        {
-                            response.IsError = true;
-                            if (!string.IsNullOrEmpty(r.ErrorMessage))
-                            {
-                                response.ErrorMessage = r.ErrorMessage;
-                            }
-                            else
-                            {
-                                response.ErrorMessage = "Content was null. StatusCode: " + r.StatusCode;
-                            }
-                            onBytesDownloaded(response);
-                        }
-                    });
+					var response = new CacheWebResponse<byte[]>();
+					var client = new WebClient();
+
+					try
+					{
+						response.Content = client.DownloadData(url);
+						response.IsError = false;
+						ThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cachePath, response.Content); });
+					}
+					catch (WebException wex)
+					{
+						response.IsError = true;
+						response.ErrorMessage = wex.ToString();
+					}
+
+					onBytesDownloaded(response);
                 }
             });
         }
