@@ -4,6 +4,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Threading;
     using Microsoft.Xna.Framework;
     using Model;
     using RestSharp;
@@ -39,6 +40,8 @@
 
         private int FileCacheHits;
         private int FileCacheMisses;
+
+        private int CancelledRequests;
         // End counter bits
 
         private const int RETRY_LIMIT = 2;
@@ -66,22 +69,23 @@
         private readonly HashSet<string> _activeRequests = new HashSet<string>();
 
         // Queue for requests that are waiting for their material data
-        private readonly Queue<LoadCubeRequest> _loadMaterialQueue = new Queue<LoadCubeRequest>();
+        private readonly Queue<LoadCubeRequest> _loadMaterialQueue = new Queue<LoadCubeRequest>(10);
 
         // Queue textures that have been downloaded and now need to be constructed into material data
         private readonly Queue<KeyValuePair<string, byte[]>> _texturesReadyForMaterialDataConstruction =
-            new Queue<KeyValuePair<string, byte[]>>();
+            new Queue<KeyValuePair<string, byte[]>>(5);
 
         // Dictionary list to keep track of requests that are dependent on some other in progress item (e.g. material data or model data loading)
         private readonly Dictionary<string, LinkedList<LoadCubeRequest>> _dependentCubes =
             new Dictionary<string, LinkedList<LoadCubeRequest>>();
 
         // Queue for requests that have material data but need model data
-        private readonly Queue<LoadCubeRequest> _loadGeometryBufferQueue = new Queue<LoadCubeRequest>();
+        private readonly Queue<LoadCubeRequest> _loadGeometryBufferQueue = new Queue<LoadCubeRequest>(10);
 
         // Queue for requests that have model and material data and so are ready for construction
-        private readonly Queue<LoadCubeRequest> _buildCubeRequests = new Queue<LoadCubeRequest>();
+        private readonly Queue<LoadCubeRequest> _buildCubeRequests = new Queue<LoadCubeRequest>(10);
 
+        private static Thread _mainThread;
 
         private IEnumerator StartRequest(string path)
         {
@@ -90,11 +94,12 @@
                 // Not limiting requests
                 yield break;
             }
+            CheckIfMainThread();
             while (_activeRequests.Count >= MaxConcurrentRequests)
             {
                 yield return null;
             }
-            _activeRequests.Add(path);
+            yield return StartCoroutine(_activeRequests.ConcurrentAdd(path));
         }
 
         private void EndRequest(string path)
@@ -104,7 +109,8 @@
                 // Not limiting requests
                 return;
             }
-            _activeRequests.Remove(path);
+            CheckIfBackgroundThread();
+            _activeRequests.ConcurrentRemove(path).Wait();
         }
 
         protected void DebugLog(string fmt, params object[] args)
@@ -149,11 +155,33 @@
                 return;
             }
 
+            _mainThread = Thread.CurrentThread;
+
             _guiStyle.normal.textColor = Color.red;
 
             DebugLog("+Start()");
             StartCoroutine(Load());
             DebugLog("-Start()");
+        }
+
+        private static bool CheckThread(bool expectMainThread)
+        {
+            bool asExpected = expectMainThread != _mainThread.Equals(Thread.CurrentThread);
+            if (asExpected)
+            {
+                Debug.LogWarning("Warning unexpected thread. Expected: " + expectMainThread);
+            }
+            return asExpected;
+        }
+
+        private static bool CheckIfMainThread()
+        {
+            return CheckThread(true);
+        }
+
+        private static bool CheckIfBackgroundThread()
+        {
+            return CheckThread(false);
         }
 
         private void Update()
@@ -169,13 +197,14 @@
             ProcessQueue(_buildCubeRequests, BuildCubeRequest);
 
             // Look for textures that have been downloaded and need to be converted to MaterialData
-            lock (_texturesReadyForMaterialDataConstruction)
+            if (Monitor.TryEnter(_texturesReadyForMaterialDataConstruction))
             {
                 while (_texturesReadyForMaterialDataConstruction.Count > 0)
                 {
                     var materialDataKeyTextureBytesPair = _texturesReadyForMaterialDataConstruction.Dequeue();
-                    FinishCreatingMaterialDataWithTexture(materialDataKeyTextureBytesPair);
+                    StartCoroutine(FinishCreatingMaterialDataWithTexture(materialDataKeyTextureBytesPair));
                 }
+                Monitor.Exit(_texturesReadyForMaterialDataConstruction);
             }
             // Look for requests that need material data set
             ProcessQueue(_loadMaterialQueue, GetMaterialForRequest);
@@ -187,7 +216,7 @@
         // Helper for locking a queue, pulling off requests and invoking a handler function for them
         private void ProcessQueue(Queue<LoadCubeRequest> queue, Func<LoadCubeRequest, IEnumerator> requestProcessFunc)
         {
-            lock (queue)
+            if (Monitor.TryEnter(queue))
             {
                 while (queue.Count > 0)
                 {
@@ -196,17 +225,30 @@
                     {
                         StartCoroutine(requestProcessFunc(request));
                     }
+                    else
+                    {
+                        CancelledRequests++;
+                    }
                 }
+                Monitor.Exit(queue);
             }
         }
 
-        // Helper to lock queue to add new item
-        private static void EnqueRequest(Queue<LoadCubeRequest> queue, LoadCubeRequest loadRequest)
+        private IEnumerator AddDependentRequest(LoadCubeRequest dependentRequest, string dependencyKey)
         {
-            lock (queue)
+            // Model is in the process of being constructed. Add request to dependency list
+            while (!Monitor.TryEnter(_dependentCubes))
             {
-                queue.Enqueue(loadRequest);
+                yield return null;
             }
+            LinkedList<LoadCubeRequest> dependentRequests;
+            if (!_dependentCubes.TryGetValue(dependencyKey, out dependentRequests))
+            {
+                dependentRequests = new LinkedList<LoadCubeRequest>();
+                _dependentCubes.Add(dependencyKey, dependentRequests);
+            }
+            dependentRequests.AddLast(dependentRequest);
+            Monitor.Exit(_dependentCubes);
         }
 
         private void OnGUI()
@@ -228,21 +270,23 @@
 
                 if (UseFileCache)
                 {
-                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} File {4}/{5}",
+                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} File {4}/{5} Cr {6}",
                         EboCacheHits,
                         EboCacheMisses,
                         MaterialCacheHits,
                         MaterialCacheMisses,
                         FileCacheHits,
-                        FileCacheMisses);
+                        FileCacheMisses,
+                        CancelledRequests);
                 }
                 else
                 {
-                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3}",
+                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} Cr {4}",
                         EboCacheHits,
                         EboCacheMisses,
                         MaterialCacheHits,
-                        MaterialCacheMisses);
+                        MaterialCacheMisses,
+                        CancelledRequests);
                 }
 
                 GUI.Label(new Rect(10, yOffset, 200, 50), caches, _guiStyle);
@@ -271,7 +315,6 @@
                 pyriteQuery.DetailLevels[DetailLevel];
 
             var allOctCubes = pyriteQuery.DetailLevels[DetailLevel].Octree.AllItems();
-
             foreach (var octCube in allOctCubes)
             {
                 var pCube = CreateCubeFromCubeBounds(octCube);
@@ -302,7 +345,7 @@
                 else
                 {
                     var loadRequest = new LoadCubeRequest(x, y, z, DetailLevel, pyriteQuery, null);
-                    EnqueueLoadCubeRequest(loadRequest);
+                    yield return StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
                 }
             }
 
@@ -369,9 +412,9 @@
         }
 
         // Used to initiate request to load and display a cube in the scene
-        public void EnqueueLoadCubeRequest(LoadCubeRequest loadRequest)
+        public IEnumerator EnqueueLoadCubeRequest(LoadCubeRequest loadRequest)
         {
-            EnqueRequest(_loadMaterialQueue, loadRequest);
+            yield return StartCoroutine(_loadMaterialQueue.ConcurrentEnqueue(loadRequest));
         }
 
         // Invoked when a load requeset has failed to download the model data it needs
@@ -379,6 +422,7 @@
         // When this happens if any dependent cubes want the resource that failed one request is re-queued to try again (under that requests Retry quota)
         private void FailGetGeometryBufferRequest(LoadCubeRequest loadRequest, string modelPath)
         {
+            CheckIfBackgroundThread();
             loadRequest.Failures++;
             lock (_eboCache)
             {
@@ -392,21 +436,21 @@
                 Debug.LogError("Cube load failed for " + loadRequest);
 
                 // Let another depenent cube try
-                LinkedList<LoadCubeRequest> dependentRequests;
                 lock (_dependentCubes)
                 {
+                    LinkedList<LoadCubeRequest> dependentRequests;
                     if (_dependentCubes.TryGetValue(modelPath, out dependentRequests))
                     {
                         var request = dependentRequests.Last.Value;
                         dependentRequests.RemoveLast();
-                        EnqueRequest(_loadGeometryBufferQueue, request);
+                        _loadGeometryBufferQueue.ConcurrentEnqueue(request).Wait();
                     }
                 }
             }
             else
             {
                 // Queue for retry
-                EnqueRequest(_loadGeometryBufferQueue, loadRequest);
+                _loadGeometryBufferQueue.ConcurrentEnqueue(loadRequest).Wait();
             }
         }
 
@@ -415,6 +459,7 @@
         // When this happens if any dependent cubes want the resource that failed one request is re-queued to try again (under that request's Retry quota)
         private void FailGetMaterialDataRequest(LoadCubeRequest loadRequest, string materialPath)
         {
+            CheckIfBackgroundThread();
             loadRequest.Failures++;
             lock (_materialDataCache)
             {
@@ -428,42 +473,37 @@
                 Debug.LogError("Retry limit hit for: " + materialPath);
                 Debug.LogError("Cube load failed for " + loadRequest);
 
-
-                LinkedList<LoadCubeRequest> dependentRequests;
                 lock (_dependentCubes)
                 {
+                    LinkedList<LoadCubeRequest> dependentRequests;
                     if (_dependentCubes.TryGetValue(materialPath, out dependentRequests))
                     {
                         var request = dependentRequests.Last.Value;
                         dependentRequests.RemoveLast();
-                        EnqueRequest(_loadMaterialQueue, request);
+                        _loadMaterialQueue.ConcurrentEnqueue(request).Wait();
                     }
                 }
             }
             else
             {
                 // Queue for retry
-                EnqueRequest(_loadMaterialQueue, loadRequest);
+                _loadMaterialQueue.ConcurrentEnqueue(loadRequest).Wait();
             }
         }
 
-
-        // Called when a request has successfully downloaded its model data 
-        // this assumes the model data is now in the cache
-        private void SucceedGetGeometryBufferRequest(LoadCubeRequest loadRequest, string modelPath)
+        private IEnumerator SucceedGetGeometryBufferRequest(string modelPath)
         {
-            loadRequest.GeometryBuffer = _eboCache[modelPath];
-            MoveRequestForward(loadRequest);
-
             // Check to see if any other requests were waiting on this model
             LinkedList<LoadCubeRequest> dependentRequests;
-            lock (_dependentCubes)
+            while (!Monitor.TryEnter(_dependentCubes))
             {
-                if (_dependentCubes.TryGetValue(modelPath, out dependentRequests))
-                {
-                    _dependentCubes.Remove(modelPath);
-                }
+                yield return null;
             }
+            if (_dependentCubes.TryGetValue(modelPath, out dependentRequests))
+            {
+                _dependentCubes.Remove(modelPath);
+            }
+            Monitor.Exit(_dependentCubes);
 
             // If any were send them to their next stage
             if (dependentRequests != null)
@@ -479,17 +519,20 @@
         // Called when the material data has been constructed into the cache
         // The material data is constructed using a materialkey for reference
         // The method sets the material data for any dependent requests and moves them along
-        private void SucceedGetMaterialDataRequests(string materialDataKey)
+        private IEnumerator SucceedGetMaterialDataRequests(string materialDataKey)
         {
+            CheckIfMainThread();
             // Check to see if any other requests were waiting on this model
             LinkedList<LoadCubeRequest> dependentRequests;
-            lock (_dependentCubes)
+            while (!Monitor.TryEnter(_dependentCubes))
             {
-                if (_dependentCubes.TryGetValue(materialDataKey, out dependentRequests))
-                {
-                    _dependentCubes.Remove(materialDataKey);
-                }
+                yield return null;
             }
+            if (_dependentCubes.TryGetValue(materialDataKey, out dependentRequests))
+            {
+                _dependentCubes.Remove(materialDataKey);
+            }
+            Monitor.Exit(_dependentCubes);
 
             // If any were send them to their next stage
             if (dependentRequests != null)
@@ -505,17 +548,39 @@
         // Determine the next appropriate queue for the request
         private void MoveRequestForward(LoadCubeRequest loadRequest)
         {
+            var onMainThread = _mainThread.Equals(Thread.CurrentThread);
             if (loadRequest.GeometryBuffer == null)
             {
-                EnqueRequest(_loadGeometryBufferQueue, loadRequest);
+                if (onMainThread)
+                {
+                    StartCoroutine(_loadGeometryBufferQueue.ConcurrentEnqueue(loadRequest));
+                }
+                else
+                {
+                    _loadGeometryBufferQueue.ConcurrentEnqueue(loadRequest).Wait();
+                }
             }
             else if (loadRequest.MaterialData == null)
             {
-                EnqueRequest(_loadMaterialQueue, loadRequest);
+                if (onMainThread)
+                {
+                    StartCoroutine(_loadMaterialQueue.ConcurrentEnqueue(loadRequest));
+                }
+                else
+                {
+                    _loadMaterialQueue.ConcurrentEnqueue(loadRequest).Wait();
+                }
             }
             else
             {
-                EnqueRequest(_buildCubeRequests, loadRequest);
+                if (onMainThread)
+                {
+                    StartCoroutine(_buildCubeRequests.ConcurrentEnqueue(loadRequest));
+                }
+                else
+                {
+                    _buildCubeRequests.ConcurrentEnqueue(loadRequest).Wait();
+                }
             }
         }
 
@@ -561,7 +626,7 @@
                             {
                                 Buffer = modelResponse.Content
                             };
-                            SucceedGetGeometryBufferRequest(loadRequest, modelPath);
+                            SucceedGetGeometryBufferRequest(modelPath).Wait();
                         }
                         EndRequest(modelPath);
                     });
@@ -579,7 +644,8 @@
                             {
                                 Buffer = r.RawBytes
                             };
-                            SucceedGetGeometryBufferRequest(loadRequest, modelPath);
+
+                            SucceedGetGeometryBufferRequest(modelPath).Wait();
                         }
                         else
                         {
@@ -590,25 +656,18 @@
                     });
                 }
             }
-            else if (_eboCache[modelPath] == null)
+
+            if (_eboCache[modelPath] == null)
             {
                 // Model is in the process of being constructed. Add request to dependency list
-                lock (_dependentCubes)
-                {
-                    LinkedList<LoadCubeRequest> dependentRequests;
-                    if (!_dependentCubes.TryGetValue(modelPath, out dependentRequests))
-                    {
-                        dependentRequests = new LinkedList<LoadCubeRequest>();
-                        _dependentCubes.Add(modelPath, dependentRequests);
-                    }
-                    dependentRequests.AddLast(loadRequest);
-                }
+                yield return StartCoroutine(AddDependentRequest(loadRequest, modelPath));
             }
             else
             {
                 // Model was constructed move request to next step
                 EboCacheHits++;
-                SucceedGetGeometryBufferRequest(loadRequest, modelPath);
+                loadRequest.GeometryBuffer = _eboCache[modelPath];
+                MoveRequestForward(loadRequest);
             }
         }
 
@@ -632,19 +691,19 @@
                 // Material data was not in cache nor being constructed 
                 // Cache counter
                 MaterialCacheMisses++;
+                // Set to null to signal to other tasks that the key is in the process
+                // of being filled
                 _materialDataCache[texturePath] = null;
                 var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
                     (int) textureCoordinates.y, loadRequest.Lod);
                 _partiallyConstructedMaterialDatas[texturePath] = materialData;
 
-                // Set to null to signal to other tasks that the key is in the process
-                // of being filled
-                byte[] textureData = null;
                 yield return StartCoroutine(StartRequest(texturePath));
                 if (UseFileCache)
                 {
                     CacheWebRequest.GetBytes(texturePath, textureResponse =>
                     {
+                        CheckIfBackgroundThread();
                         if (textureResponse.IsError)
                         {
                             Debug.LogError("Error getting texture [" + texturePath + "] " +
@@ -661,12 +720,8 @@
                             {
                                 FileCacheMisses++;
                             }
-                            textureData = textureResponse.Content;
-                            lock (_texturesReadyForMaterialDataConstruction)
-                            {
-                                _texturesReadyForMaterialDataConstruction.Enqueue(
-                                    new KeyValuePair<string, byte[]>(texturePath, textureData));
-                            }
+                            _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
+                                new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
                         }
                         EndRequest(texturePath);
                     });
@@ -677,15 +732,12 @@
                     var request = new RestRequest(Method.GET);
                     client.ExecuteAsync(request, (r, h) =>
                     {
+                        CheckIfBackgroundThread();
                         LogResponseError(r, texturePath);
                         if (r.RawBytes != null)
                         {
-                            textureData = r.RawBytes;
-                            lock (_texturesReadyForMaterialDataConstruction)
-                            {
-                                _texturesReadyForMaterialDataConstruction.Enqueue(
-                                    new KeyValuePair<string, byte[]>(texturePath, textureData));
-                            }
+                            _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
+                                new KeyValuePair<string, byte[]>(texturePath, r.RawBytes)).Wait();
                         }
                         else
                         {
@@ -696,43 +748,37 @@
                     });
                 }
             }
-            lock (_materialDataCache)
+            while (!Monitor.TryEnter(_materialDataCache))
             {
-                if (_materialDataCache[texturePath] == null)
-                {
-                    // Material data is being constructed
-                    lock (_dependentCubes)
-                    {
-                        LinkedList<LoadCubeRequest> dependentCubes;
-                        if (!_dependentCubes.TryGetValue(texturePath, out dependentCubes))
-                        {
-                            dependentCubes = new LinkedList<LoadCubeRequest>();
-                            _dependentCubes.Add(texturePath, dependentCubes);
-                        }
-                        dependentCubes.AddLast(loadRequest);
-                    }
-                }
-                else
-                {
-                    // Material data ready get it and move on
-                    MaterialCacheHits++;
-                    loadRequest.MaterialData = _materialDataCache[texturePath];
-                    MoveRequestForward(loadRequest);
-                }
+                yield return null;
             }
+            if (_materialDataCache[texturePath] == null)
+            {
+                // Material data is being constructed
+                yield return StartCoroutine(AddDependentRequest(loadRequest, texturePath));
+            }
+            else
+            {
+                // Material data ready get it and move on
+                MaterialCacheHits++;
+                loadRequest.MaterialData = _materialDataCache[texturePath];
+                MoveRequestForward(loadRequest);
+            }
+            Monitor.Exit(_materialDataCache);
         }
 
         // Used to create material data when a texture has finished downloading
-        private void FinishCreatingMaterialDataWithTexture(
+        private IEnumerator FinishCreatingMaterialDataWithTexture(
             KeyValuePair<string, byte[]> materialDataKeyAndTexturePair)
         {
             var materialDataKey = materialDataKeyAndTexturePair.Key;
-            MaterialData inProgressMaterialData;
-            lock (_partiallyConstructedMaterialDatas)
+            while (!Monitor.TryEnter(_partiallyConstructedMaterialDatas))
             {
-                inProgressMaterialData = _partiallyConstructedMaterialDatas[materialDataKey];
-                _partiallyConstructedMaterialDatas.Remove(materialDataKey);
+                yield return null;
             }
+            var inProgressMaterialData = _partiallyConstructedMaterialDatas[materialDataKey];
+            _partiallyConstructedMaterialDatas.Remove(materialDataKey);
+            Monitor.Exit(_partiallyConstructedMaterialDatas);
 
             var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
             texture.LoadImage(materialDataKeyAndTexturePair.Value);
@@ -743,7 +789,7 @@
             _materialDataCache[materialDataKey] = inProgressMaterialData;
 
             // Move forward dependent requests that wanted this material data
-            SucceedGetMaterialDataRequests(materialDataKey);
+            yield return StartCoroutine(SucceedGetMaterialDataRequests(materialDataKey));
         }
 
         // Used to create a and populate a game object for this request 
@@ -764,18 +810,18 @@
             }
 
 
-            var gameObject = new GameObject();
-            gameObject.name = String.Format("cube_L{3}:{0}_{1}_{2}", x, y, z, lod);
-            gameObject.transform.parent = gameObject.transform;
-            gameObject.AddComponent(typeof (MeshFilter));
-            gameObject.AddComponent(typeof (MeshRenderer));
+            var newGameObject = new GameObject();
+            newGameObject.name = String.Format("cube_L{3}:{0}_{1}_{2}", x, y, z, lod);
+            newGameObject.transform.parent = newGameObject.transform;
+            newGameObject.AddComponent(typeof (MeshFilter));
+            newGameObject.AddComponent(typeof (MeshRenderer));
 
             if (registerCreatedObjects != null)
             {
-                registerCreatedObjects(gameObject);
+                registerCreatedObjects(newGameObject);
             }
 
-            buffer.PopulateMeshes(gameObject, _materialCache[materialData.Name]);
+            buffer.PopulateMeshes(newGameObject, _materialCache[materialData.Name]);
         }
     }
 }

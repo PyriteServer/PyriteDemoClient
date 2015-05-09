@@ -74,19 +74,19 @@
             if (_manager != null)
             {
                 _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObject =>
-                        {
-                            if (!_loadCubeRequest.Cancelled)
-                            {
-                                _cubes.Add(createdObject);
-                                StartCoroutine(StopRenderCheck(Camera.main));
-                            }
-                            else
-                            {
-                                Destroy(createdObject);
-                            }
-                        });
+                {
+                    if (!_loadCubeRequest.Cancelled)
+                    {
+                        _cubes.Add(createdObject);
+                        StartCoroutine(StopRenderCheck(Camera.main));
+                    }
+                    else
+                    {
+                        Destroy(createdObject);
+                    }
+                });
 
-                _manager.EnqueueLoadCubeRequest(_loadCubeRequest);
+                StartCoroutine(_manager.EnqueueLoadCubeRequest(_loadCubeRequest));
             }
             else if (_cubeLoader != null)
             {
@@ -101,10 +101,10 @@
             }
         }
 
-        private bool ShouldUpgrade(Component camera)
+        private bool ShouldUpgrade(Component component)
         {
-            return Vector3.Distance(transform.position, camera.transform.position) < 500 &&
-                   Math.Abs(transform.position.y - camera.transform.position.y) < 120;
+            return Vector3.Distance(transform.position, component.transform.position) < 500 &&
+                   Math.Abs(transform.position.y - component.transform.position.y) < 120;
         }
 
         public void DestroyChildren()
@@ -135,7 +135,6 @@
                 Destroy(detector);
             }
             _childDetectors.Clear();
-           
         }
 
         public override string ToString()
@@ -143,18 +142,18 @@
             return string.Format("ph L{0}:{1},{2},{3}", _lod, _x, _y, _z);
         }
 
-        private IEnumerator StopRenderCheck(Camera camera)
+        private IEnumerator StopRenderCheck(Camera cameraToCheckAgainst)
         {
             while (true)
             {
-                if (!_render.IsVisibleFrom(camera))
+                if (!_render.IsVisibleFrom(cameraToCheckAgainst))
                 {
                     _meshRenderer.enabled = true;
                     DestroyChildren();
                     Resources.UnloadUnusedAssets();
                     break;
                 }
-                if (Upgradable && ShouldUpgrade(camera))
+                if (Upgradable && ShouldUpgrade(cameraToCheckAgainst))
                 {
                     yield return
                         StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lod,

@@ -1,6 +1,7 @@
 ﻿namespace Assets.Cube_Loader.src
 {
     using System;
+    using System.Text;
     using UnityEngine;
 
     public class LoadCubeRequest : IEquatable<LoadCubeRequest>
@@ -47,7 +48,15 @@
         {
             if (string.IsNullOrEmpty(_name))
             {
-                _name = string.Format("lcr_{0}_{1}_{2}_{3}", X, Y, Z, Lod);
+                var sb = new StringBuilder("lcr_L");
+                sb.Append(Lod);
+                sb.Append(":");
+                sb.Append(X);
+                sb.Append("_");
+                sb.Append(Y);
+                sb.Append("_");
+                sb.Append(Z);
+                _name = sb.ToString();
             }
             return _name;
         }
