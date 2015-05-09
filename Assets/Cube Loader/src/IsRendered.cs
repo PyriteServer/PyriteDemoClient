@@ -11,7 +11,6 @@
         private readonly List<GameObject> _childDetectors = new List<GameObject>();
         private readonly List<GameObject> _cubes = new List<GameObject>();
         private Cube _cube;
-        private CubeLoader _cubeLoader;
         private int _lod;
         private PyriteLoader _manager;
         private MeshRenderer _meshRenderer;
@@ -36,17 +35,6 @@
             _lod = lod;
             _pyriteQuery = query;
             _manager = manager;
-            name = string.Format("PH_L{3}:{0}_{1}_{2}", x, y, z, lod);
-        }
-
-        public void SetCubePosition(int x, int y, int z, int lod, PyriteQuery query, CubeLoader manager)
-        {
-            _x = x;
-            _y = y;
-            _z = z;
-            _lod = lod;
-            _pyriteQuery = query;
-            _cubeLoader = manager;
             name = string.Format("PH_L{3}:{0}_{1}_{2}", x, y, z, lod);
         }
 
@@ -88,17 +76,7 @@
 
                 StartCoroutine(_manager.EnqueueLoadCubeRequest(_loadCubeRequest));
             }
-            else if (_cubeLoader != null)
-            {
-                _cube = new Cube {MapPosition = new Vector3(_x, _y, _z), Query = _pyriteQuery, Lod = _lod};
-                _cubeLoader.AddToQueue(_cube);
-                while (_cube.GameObject == null)
-                {
-                    yield return null;
-                }
-                _cubes.AddRange(new[] {_cube.GameObject});
-                yield return StartCoroutine(StopRenderCheck(Camera.main));
-            }
+            yield break;
         }
 
         private bool ShouldUpgrade(Component component)

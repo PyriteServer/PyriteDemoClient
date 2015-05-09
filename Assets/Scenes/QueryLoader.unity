@@ -409,19 +409,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c88d1a8d371d314fbed67aff3abd2fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ModelVersion: V2
   CameraRig: {fileID: 0}
-  DetailLevel: 6
   EnableDebugLogs: 1
   PlaceHolderCube: {fileID: 0}
   PyriteServer: 
+  MaxConcurrentRequests: 8
+  DetailLevel: 6
+  ModelVersion: V2
   SetName: 
   UseCameraDetection: 0
-  UseEbo: 1
   UseUnlitShader: 1
-  UseWww: 1
-  MaxConcurrentRequests: 0
-  MaxLoaderRoutines: 8
+  UseFileCache: 1
+  ShowDebugText: 1
   QueryPosition: {x: 0, y: 0, z: 0}
   TargetGameObject: {fileID: 1608615648}
   SkipLowerDetailedCubes: 1

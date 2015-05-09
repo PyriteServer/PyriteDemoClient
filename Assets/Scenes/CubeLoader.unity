@@ -318,7 +318,6 @@ GameObject:
   m_Component:
   - 4: {fileID: 2132541550}
   - 114: {fileID: 2132541549}
-  - 114: {fileID: 2132541551}
   m_Layer: 0
   m_Name: CubeContainer
   m_TagString: Untagged
@@ -337,18 +336,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f0328f508dd8e4488ef12556cb0807b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ModelVersion: V2
   CameraRig: {fileID: 0}
-  DetailLevel: 4
   EnableDebugLogs: 1
   PlaceHolderCube: {fileID: 0}
   PyriteServer: 
+  MaxConcurrentRequests: 8
+  DetailLevel: 4
+  ModelVersion: V2
   SetName: 
   UseCameraDetection: 0
-  UseEbo: 1
   UseUnlitShader: 1
-  UseWww: 0
-  MaxConcurrentRequests: 0
+  UseFileCache: 1
+  ShowDebugText: 1
 --- !u!4 &2132541550
 Transform:
   m_ObjectHideFlags: 0
@@ -361,25 +360,3 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
---- !u!114 &2132541551
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 2132541548}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: de2718340b261f04ab21985daf56c474, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  PyriteServer: 
-  SetName: 
-  DetailLevel: 4
-  UseUnlitShader: 1
-  UseEbo: 1
-  Camera: {fileID: 549180670}
-  UseCameraDetection: 0
-  CameraRig: {fileID: 0}
-  EnableDebugLogs: 1
-  PlaceHolderCube: {fileID: 0}
-  ModelVersion: V2
