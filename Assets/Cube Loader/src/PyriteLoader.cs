@@ -147,7 +147,7 @@
 
         private static bool CheckThread(bool expectMainThread)
         {
-            bool asExpected = expectMainThread != _mainThread.Equals(Thread.CurrentThread);
+            var asExpected = expectMainThread != _mainThread.Equals(Thread.CurrentThread);
             if (asExpected)
             {
                 Debug.LogWarning("Warning unexpected thread. Expected: " + expectMainThread);
@@ -577,47 +577,47 @@
             DebugLog("+LoadCube(L{3}:{0}_{1}_{2})", loadRequest.X, loadRequest.Y, loadRequest.Z, loadRequest.Lod);
             var modelPath = loadRequest.Query.GetModelPath(loadRequest.Lod, loadRequest.X, loadRequest.Y, loadRequest.Z);
 
-            if (!_eboCache.ContainsKey(modelPath))
+            // If the geometry data is being loaded or this is the first request to load it add the request the dependency list
+            if (!_eboCache.ContainsKey(modelPath) || _eboCache[modelPath] == null)
             {
-                // Model data was not present in cache nor has any request started constructing it
-                EboCacheMisses++;
+                yield return StartCoroutine(AddDependentRequest(loadRequest, modelPath));
 
-                _eboCache[modelPath] = null;
-                yield return StartCoroutine(StartRequest(modelPath));
-                CacheWebRequest.GetBytes(modelPath, modelResponse =>
+                if (!_eboCache.ContainsKey(modelPath))
                 {
-                    if (modelResponse.IsError)
+                    // Model data was not present in cache nor has any request started constructing it
+                    EboCacheMisses++;
+
+                    _eboCache[modelPath] = null;
+
+                    yield return StartCoroutine(StartRequest(modelPath));
+                    CacheWebRequest.GetBytes(modelPath, modelResponse =>
                     {
-                        Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
-                        FailGetGeometryBufferRequest(loadRequest, modelPath);
-                    }
-                    else
-                    {
-                        if (modelResponse.IsCacheHit)
+                        if (modelResponse.IsError)
                         {
-                            FileCacheHits++;
+                            Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
+                            FailGetGeometryBufferRequest(loadRequest, modelPath);
                         }
                         else
                         {
-                            FileCacheMisses++;
+                            if (modelResponse.IsCacheHit)
+                            {
+                                FileCacheHits++;
+                            }
+                            else
+                            {
+                                FileCacheMisses++;
+                            }
+                            _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                            {
+                                Buffer = modelResponse.Content
+                            };
+                            SucceedGetGeometryBufferRequest(modelPath).Wait();
                         }
-                        _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
-                        {
-                            Buffer = modelResponse.Content
-                        };
-                        SucceedGetGeometryBufferRequest(modelPath).Wait();
-                    }
-                    EndRequest(modelPath);
-                });
-               
+                        EndRequest(modelPath);
+                    });
+                }
             }
-
-            if (_eboCache[modelPath] == null)
-            {
-                // Model is in the process of being constructed. Add request to dependency list
-                yield return StartCoroutine(AddDependentRequest(loadRequest, modelPath));
-            }
-            else
+            else // The model data was in the cache
             {
                 // Model was constructed move request to next step
                 EboCacheHits++;
@@ -641,63 +641,66 @@
             var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Query.GetLodKey(loadRequest.Lod),
                 (int) textureCoordinates.x,
                 (int) textureCoordinates.y);
-            if (!_materialDataCache.ContainsKey(texturePath))
+
+            // If the material data is not in the cache or in the middle of being constructed add this request as a dependency
+            if (!_materialDataCache.ContainsKey(texturePath) || _materialDataCache[texturePath] == null)
             {
-                // Material data was not in cache nor being constructed 
-                // Cache counter
-                MaterialCacheMisses++;
-                // Set to null to signal to other tasks that the key is in the process
-                // of being filled
-                _materialDataCache[texturePath] = null;
-                var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
-                    (int) textureCoordinates.y, loadRequest.Lod);
-                _partiallyConstructedMaterialDatas[texturePath] = materialData;
+                // Add this requst to list of requests that is waiting for the data
+                yield return StartCoroutine(AddDependentRequest(loadRequest, texturePath));
 
-                yield return StartCoroutine(StartRequest(texturePath));
-
-                CacheWebRequest.GetBytes(texturePath, textureResponse =>
+                // Check if this is the first request for material (or it isn't in the cache)
+                if (!_materialDataCache.ContainsKey(texturePath))
                 {
-                    CheckIfBackgroundThread();
-                    if (textureResponse.IsError)
+                    // Material data was not in cache nor being constructed 
+                    // Cache counter
+                    MaterialCacheMisses++;
+                    // Set to null to signal to other tasks that the key is in the process
+                    // of being filled
+                    _materialDataCache[texturePath] = null;
+                    var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
+                        (int) textureCoordinates.y, loadRequest.Lod);
+                    _partiallyConstructedMaterialDatas[texturePath] = materialData;
+
+                    yield return StartCoroutine(StartRequest(texturePath));
+
+                    CacheWebRequest.GetBytes(texturePath, textureResponse =>
                     {
-                        Debug.LogError("Error getting texture [" + texturePath + "] " +
-                                       textureResponse.ErrorMessage);
-                        FailGetMaterialDataRequest(loadRequest, texturePath);
-                    }
-                    else
-                    {
-                        if (textureResponse.IsCacheHit)
+                        CheckIfBackgroundThread();
+                        if (textureResponse.IsError)
                         {
-                            FileCacheHits++;
+                            Debug.LogError("Error getting texture [" + texturePath + "] " +
+                                           textureResponse.ErrorMessage);
+                            FailGetMaterialDataRequest(loadRequest, texturePath);
                         }
                         else
                         {
-                            FileCacheMisses++;
+                            if (textureResponse.IsCacheHit)
+                            {
+                                FileCacheHits++;
+                            }
+                            else
+                            {
+                                FileCacheMisses++;
+                            }
+                            _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
+                                new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
                         }
-                        _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
-                            new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
-                    }
-                    EndRequest(texturePath);
-                });
-               
+                        EndRequest(texturePath);
+                    });
+                }
             }
-            while (!Monitor.TryEnter(_materialDataCache))
+            else // The material was in the cache
             {
-                yield return null;
-            }
-            if (_materialDataCache[texturePath] == null)
-            {
-                // Material data is being constructed
-                yield return StartCoroutine(AddDependentRequest(loadRequest, texturePath));
-            }
-            else
-            {
+                while (!Monitor.TryEnter(_materialDataCache))
+                {
+                    yield return null;
+                }
                 // Material data ready get it and move on
                 MaterialCacheHits++;
                 loadRequest.MaterialData = _materialDataCache[texturePath];
                 MoveRequestForward(loadRequest);
+                Monitor.Exit(_materialDataCache);
             }
-            Monitor.Exit(_materialDataCache);
         }
 
         // Used to create material data when a texture has finished downloading
