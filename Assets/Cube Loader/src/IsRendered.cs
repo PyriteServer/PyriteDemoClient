@@ -11,7 +11,6 @@
     {
         private readonly List<GameObject> _childDetectors = new List<GameObject>();
         private readonly List<GameObject> _cubes = new List<GameObject>();
-        private Cube _cube;
         private int _lod;
         private PyriteLoader _manager;
         private MeshRenderer _meshRenderer;
@@ -36,7 +35,7 @@
             _lod = lod;
             _pyriteQuery = query;
             _manager = manager;
-            StringBuilder nameBuilder = new StringBuilder("PH_L");
+            var nameBuilder = new StringBuilder("PH_L");
             nameBuilder.Append(lod);
             nameBuilder.Append(':');
             nameBuilder.Append(x);
@@ -72,15 +71,8 @@
             {
                 _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObject =>
                 {
-                    if (!_loadCubeRequest.Cancelled)
-                    {
-                        _cubes.Add(createdObject);
-                        StartCoroutine(StopRenderCheck(Camera.main));
-                    }
-                    else
-                    {
-                        Destroy(createdObject);
-                    }
+                    _cubes.Add(createdObject);
+                    StartCoroutine(StopRenderCheck(Camera.main));
                 });
 
                 StartCoroutine(_manager.EnqueueLoadCubeRequest(_loadCubeRequest));
@@ -94,7 +86,23 @@
                    Math.Abs(transform.position.y - component.transform.position.y) < 120;
         }
 
-        public void DestroyChildren()
+        // Cleans up cube game object and deactivates it to return to object pool
+        private void ReleaseCubeGameObject(GameObject cubeToRelease)
+        {
+            cubeToRelease.name = "Released: " + cubeToRelease.name;
+            cubeToRelease.GetComponent<MeshFilter>().mesh.Clear();
+            cubeToRelease.GetComponent<Renderer>().sharedMaterial = null;
+            cubeToRelease.SetActive(false);
+        }
+
+        // Cleans up detection cube game object and deactivates it to return to object pool
+        private void ReleaseDetectorCube(GameObject detectorCubeToRelease)
+        {
+            detectorCubeToRelease.name = "Released: " + detectorCubeToRelease.name;
+            detectorCubeToRelease.SetActive(false);
+        }
+
+        private void DestroyChildren()
         {
             if (_loadCubeRequest != null)
             {
@@ -105,21 +113,15 @@
             {
                 foreach (var cube in _cubes)
                 {
-                    Destroy(cube);
+                    ReleaseCubeGameObject(cube);
                 }
                 _cubes.Clear();
-            }
-
-            if (_cube != null)
-            {
-                Destroy(_cube.GameObject);
-                _cube = null;
             }
 
             foreach (var detector in _childDetectors)
             {
                 detector.GetComponent<IsRendered>().DestroyChildren();
-                Destroy(detector);
+                ReleaseDetectorCube(detector);
             }
             _childDetectors.Clear();
         }
@@ -130,6 +132,11 @@
             {
                 if (!_render.IsVisibleFrom(cameraToCheckAgainst))
                 {
+                    if (_loadCubeRequest != null)
+                    {
+                        _loadCubeRequest.Cancelled = true;
+                    }
+
                     _meshRenderer.enabled = true;
                     DestroyChildren();
                     Resources.UnloadUnusedAssets();

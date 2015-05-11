@@ -116,7 +116,6 @@ public class GeometryBuffer {
         }
 
         Mesh m = (gameObject.GetComponent(typeof(MeshFilter)) as MeshFilter).mesh;
-
         m.vertices = Vertices;
         m.uv = UVs;
         m.triangles = Triangles;
@@ -126,7 +125,7 @@ public class GeometryBuffer {
         if (material != null)
         {
             Renderer renderer = gameObject.GetComponent<Renderer>();
-            renderer.materials = new Material[] { material };
+            renderer.sharedMaterial = material;
         }
     }
 }

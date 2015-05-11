@@ -3,6 +3,7 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Text;
     using Extensions;
     using Microsoft.Xna.Framework;
     using Model;
@@ -64,7 +65,20 @@
 
         public string GetModelPath(string lod, int x, int y, int z)
         {
-            return string.Format("{0}/sets/{1}/{2}/models/{3}/{4},{5},{6}", _apiUrl, SetName, Version, lod, x, y, z);
+            StringBuilder modelPathBuilder = new StringBuilder(_apiUrl);
+            modelPathBuilder.Append("/sets/");
+            modelPathBuilder.Append(SetName);
+            modelPathBuilder.Append("/");
+            modelPathBuilder.Append(Version);
+            modelPathBuilder.Append("/models/");
+            modelPathBuilder.Append(lod);
+            modelPathBuilder.Append("/");
+            modelPathBuilder.Append(x);
+            modelPathBuilder.Append(',');
+            modelPathBuilder.Append(y);
+            modelPathBuilder.Append(',');
+            modelPathBuilder.Append(z);
+            return modelPathBuilder.ToString();
         }
 
         public string GetTexturePath(int lod, int x, int y)
@@ -74,7 +88,18 @@
 
         public string GetTexturePath(string lod, int x, int y)
         {
-            return string.Format("{0}/sets/{1}/{2}/textures/{3}/{4},{5}", _apiUrl, SetName, Version, lod, x, y);
+            StringBuilder texturePathBuilder = new StringBuilder(_apiUrl);
+            texturePathBuilder.Append("/sets/");
+            texturePathBuilder.Append(SetName);
+            texturePathBuilder.Append("/");
+            texturePathBuilder.Append(Version);
+            texturePathBuilder.Append("/textures/");
+            texturePathBuilder.Append(lod);
+            texturePathBuilder.Append("/");
+            texturePathBuilder.Append(x);
+            texturePathBuilder.Append(',');
+            texturePathBuilder.Append(y);
+            return texturePathBuilder.ToString();
         }
 
         public string GetLodKey(int lod)

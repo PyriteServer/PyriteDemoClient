@@ -4,16 +4,6 @@
     using System.Text;
     using UnityEngine;
 
-    public class Cube
-    {
-        public Vector3 MapPosition { get; set; }
-        public PyriteQuery Query { get; set; }
-        public GeometryBuffer Buffer { get; set; }
-        public List<MaterialData> MaterialData { get; set; }
-        public GameObject GameObject { get; set; }
-        public int Lod { get; set; }
-    }
-
     public class MaterialData
     {
         private const string NameFormat = "materialData_L{0}_{1}_{2}";

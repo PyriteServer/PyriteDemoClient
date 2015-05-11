@@ -52,7 +52,12 @@
         public GameObject CameraRig;
 
         public bool EnableDebugLogs = false;
+
+        // Prefab for detection cubes
         public GameObject PlaceHolderCube;
+
+        // Prefab for base cube object that we will populate data
+        public GameObject BaseModelCube;
 
         [Header("Server Options")] public string PyriteServer;
         [Range(0, 100)] public int MaxConcurrentRequests = 8;
@@ -139,6 +144,14 @@
             _mainThread = Thread.CurrentThread;
 
             _guiStyle.normal.textColor = Color.red;
+
+            ObjectPooler.Current.CreatePoolForObject(BaseModelCube);
+
+            // Optional pool only used in camera detection scenario
+            if (PlaceHolderCube != null)
+            {
+                ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
+            }
 
             DebugLog("+Start()");
             StartCoroutine(Load());
@@ -307,20 +320,23 @@
 
                 if (UseCameraDetection)
                 {
-                    var g =
-                        (GameObject)
-                            Instantiate(PlaceHolderCube,
-                                new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y),
-                                Quaternion.identity);
+                    var detectionCube = ObjectPooler.Current.GetPooledObject(PlaceHolderCube);
+                    detectionCube.transform.position = new Vector3(-cubePos.x,
+                        cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
+                    detectionCube.transform.rotation = Quaternion.identity;
+                    var meshRenderer = detectionCube.GetComponent<MeshRenderer>();
+                    meshRenderer.material.color =
+                        _colorList[_colorSelector%_colorList.Length];
+                    meshRenderer.enabled = true;
+                    detectionCube.GetComponent<IsRendered>().SetCubePosition(x, y, z, DetailLevel, pyriteQuery, this);
 
-                    g.transform.parent = gameObject.transform;
-                    g.GetComponent<MeshRenderer>().material.color = _colorList[_colorSelector%_colorList.Length];
-                    g.GetComponent<IsRendered>().SetCubePosition(x, y, z, DetailLevel, pyriteQuery, this);
-
-                    g.transform.localScale = new Vector3(
+                    detectionCube.transform.localScale = new Vector3(
                         pyriteLevel.WorldCubeScale.x,
                         pyriteLevel.WorldCubeScale.z,
                         pyriteLevel.WorldCubeScale.y);
+
+                    detectionCube.SetActive(true);
+
                     _colorSelector++;
                 }
                 else
@@ -372,21 +388,23 @@
             {
                 var newCube = CreateCubeFromCubeBounds(i.Object);
                 var cubePos = pyriteLevel.GetWorldCoordinatesForCube(newCube);
-                var g =
-                    (GameObject)
-                        Instantiate(PlaceHolderCube, new Vector3(-cubePos.x, cubePos.z + 600, -cubePos.y),
-                            Quaternion.identity);
 
-                g.transform.parent = gameObject.transform;
-                g.GetComponent<MeshRenderer>().material.color = _colorList[_colorSelector%_colorList.Length];
-                g.GetComponent<IsRendered>().SetCubePosition(newCube.X, newCube.Y, newCube.Z, newLod, pyriteQuery, this);
+                var newDetectionCube = ObjectPooler.Current.GetPooledObject(PlaceHolderCube);
+                newDetectionCube.transform.position = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
+                newDetectionCube.transform.rotation = Quaternion.identity;
+                var meshRenderer = newDetectionCube.GetComponent<MeshRenderer>();
+                meshRenderer.material.color =
+                    _colorList[_colorSelector % _colorList.Length];
+                meshRenderer.enabled = true;
+                newDetectionCube.GetComponent<IsRendered>().SetCubePosition(newCube.X, newCube.Y, newCube.Z, newLod, pyriteQuery, this);
 
-                g.transform.localScale = new Vector3(
+                newDetectionCube.transform.localScale = new Vector3(
                     pyriteLevel.WorldCubeScale.x,
                     pyriteLevel.WorldCubeScale.z,
                     pyriteLevel.WorldCubeScale.y);
                 _colorSelector++;
-                createdDetectors.Add(g);
+                newDetectionCube.SetActive(true);
+                createdDetectors.Add(newDetectionCube);
             }
             registerCreatedDetectorCubes(createdDetectors);
             yield break;
@@ -753,17 +771,19 @@
             cubeName.Append(y);
             cubeName.Append('_');
             cubeName.Append(z);
-            var newGameObject = new GameObject(cubeName.ToString());
-            newGameObject.transform.parent = newGameObject.transform;
-            newGameObject.AddComponent(typeof (MeshFilter));
-            newGameObject.AddComponent(typeof (MeshRenderer));
+
+            var newCube = ObjectPooler.Current.GetPooledObject(BaseModelCube);
+            newCube.name = cubeName.ToString();
+
+            buffer.PopulateMeshes(newCube, _materialCache[materialData.Name]);
+
+            // Put object in scene, claim from pool
+            newCube.SetActive(true);
 
             if (registerCreatedObjects != null)
             {
-                registerCreatedObjects(newGameObject);
+                registerCreatedObjects(newCube);
             }
-
-            buffer.PopulateMeshes(newGameObject, _materialCache[materialData.Name]);
         }
     }
 }
