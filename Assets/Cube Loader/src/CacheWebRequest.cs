@@ -3,18 +3,25 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using System.Text;
     using System.Threading;
-	using System.Net;
     using UnityEngine;
 
     internal class CacheWebRequest
     {
+        public enum CacheWebResponseStatus
+        {
+            Success = 0,
+            Error = 1,
+            Cancelled = 2
+        }
+
         public struct CacheWebResponse<T>
         {
             public bool IsCacheHit { get; set; }
             public T Content { get; set; }
-            public bool IsError { get; set; }
+            public CacheWebResponseStatus Status { get; set; }
             public string ErrorMessage { get; set; }
         }
 
@@ -115,48 +122,51 @@
             InsertOrUpdateCacheEntry(cacheFilePath);
         }
 
-        public static void GetBytes(string url, Action<CacheWebResponse<byte[]>> onBytesDownloaded)
+        public static void GetBytes(string url, Action<CacheWebResponse<byte[]>> onBytesDownloaded, Func<string, bool> isRequestCancelled)
         {
             ThreadPool.QueueUserWorkItem(state =>
             {
-                var cachePath = GetCacheFilePath(url);
-                if (_cacheFileIndex.ContainsKey(cachePath))
+                var response = new CacheWebResponse<byte[]>();
+                if (!isRequestCancelled(url))
                 {
-                    var response = new CacheWebResponse<byte[]>();
-                    try
-                    {
-                        response.Content = File.ReadAllBytes(cachePath);
-                        response.IsCacheHit = true;
-                        response.IsError = false;
-                        ThreadPool.QueueUserWorkItem(notUsed => { InsertOrUpdateCacheEntry(cachePath); });
-                    }
-                    catch (IOException ioException)
-                    {
-                        response.IsError = true;
-                        response.ErrorMessage = ioException.Message;
-                    }
-
-                    onBytesDownloaded(response);
+                    response.Status = CacheWebResponseStatus.Cancelled;
                 }
                 else
                 {
-					var response = new CacheWebResponse<byte[]>();
-					var client = new WebClient();
+                    var cachePath = GetCacheFilePath(url);
+                    if (_cacheFileIndex.ContainsKey(cachePath))
+                    {
+                        try
+                        {
+                            response.Content = File.ReadAllBytes(cachePath);
+                            response.IsCacheHit = true;
+                            response.Status = CacheWebResponseStatus.Success;
+                            ThreadPool.QueueUserWorkItem(notUsed => { InsertOrUpdateCacheEntry(cachePath); });
+                        }
+                        catch (IOException ioException)
+                        {
+                            response.Status = CacheWebResponseStatus.Error;
+                            response.ErrorMessage = ioException.Message;
+                        }
+                    }
+                    else
+                    {
+                        var client = new WebClient();
 
-					try
-					{
-						response.Content = client.DownloadData(url);
-						response.IsError = false;
-						ThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cachePath, response.Content); });
-					}
-					catch (WebException wex)
-					{
-						response.IsError = true;
-						response.ErrorMessage = wex.ToString();
-					}
-
-					onBytesDownloaded(response);
+                        try
+                        {
+                            response.Content = client.DownloadData(url);
+                            response.Status = CacheWebResponseStatus.Success;
+                            ThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cachePath, response.Content); });
+                        }
+                        catch (WebException wex)
+                        {
+                            response.Status = CacheWebResponseStatus.Error;
+                            response.ErrorMessage = wex.ToString();
+                        }
+                    }
                 }
+                onBytesDownloaded(response);
             });
         }
     }

@@ -4,6 +4,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
     using System.Text;
     using System.Threading;
     using Microsoft.Xna.Framework;
@@ -41,7 +42,10 @@
         private int FileCacheHits;
         private int FileCacheMisses;
 
+        // Requests that were cancelled between queues
         private int CancelledRequests;
+        // Requests that were cancelled by the time the cache tried to load it
+        private int LateCancelledRequests;
         // End counter bits
 
         private const int RETRY_LIMIT = 2;
@@ -228,6 +232,36 @@
             }
         }
 
+        /// <summary>
+        /// Returns whether or not any requests are still active (not cancelled) for the provided dependency
+        /// </summary>
+        /// <param name="dependencyKey">Dependency we want to check for</param>
+        /// <returns>true if any dependent requests are not cancelled, false if that is not the case</returns>
+        public bool DependentRequestsExistBlocking(string dependencyKey)
+        {
+            CheckIfBackgroundThread();
+            lock (_dependentCubes)
+            {
+                LinkedList<LoadCubeRequest> dependentRequests;
+                if (_dependentCubes.TryGetValue(dependencyKey, out dependentRequests))
+                {
+                    if (dependentRequests.Any((request) => !request.Cancelled))
+                    {
+                        return true;
+                    }
+                    // No dependent requests still active, delete the list
+                    LateCancelledRequests++;
+                    _dependentCubes.Remove(dependencyKey);
+                }
+                else
+                {
+                    Debug.LogError("Should not be possible...");
+                }
+            }
+            return false;
+
+        }
+
         private IEnumerator AddDependentRequest(LoadCubeRequest dependentRequest, string dependencyKey)
         {
             // Model is in the process of being constructed. Add request to dependency list
@@ -264,23 +298,26 @@
 
                 if (UseFileCache)
                 {
-                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} File {4}/{5} Cr {6}",
+                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} File {4}/{5} Cr {6} Lcr {7} Dr {8}",
                         EboCacheHits,
                         EboCacheMisses,
                         MaterialCacheHits,
                         MaterialCacheMisses,
                         FileCacheHits,
                         FileCacheMisses,
-                        CancelledRequests);
+                        CancelledRequests,
+                        LateCancelledRequests,
+                        _dependentCubes.Count);
                 }
                 else
                 {
-                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} Cr {4}",
+                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} Cr {4} Lcr {5}",
                         EboCacheHits,
                         EboCacheMisses,
                         MaterialCacheHits,
                         MaterialCacheMisses,
-                        CancelledRequests);
+                        CancelledRequests,
+                        LateCancelledRequests);
                 }
 
                 GUI.Label(new Rect(10, yOffset, 200, 50), caches, _guiStyle);
@@ -610,10 +647,15 @@
                     yield return StartCoroutine(StartRequest(modelPath));
                     CacheWebRequest.GetBytes(modelPath, modelResponse =>
                     {
-                        if (modelResponse.IsError)
+                        if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
                         {
                             Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
                             FailGetGeometryBufferRequest(loadRequest, modelPath);
+                        }
+                        else if(modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
+                        {
+                            _eboCache.Remove(modelPath);
+                            EndRequest(modelPath);
                         }
                         else
                         {
@@ -632,7 +674,7 @@
                             SucceedGetGeometryBufferRequest(modelPath).Wait();
                         }
                         EndRequest(modelPath);
-                    });
+                    }, DependentRequestsExistBlocking);
                 }
             }
             else // The model data was in the cache
@@ -684,11 +726,16 @@
                     CacheWebRequest.GetBytes(texturePath, textureResponse =>
                     {
                         CheckIfBackgroundThread();
-                        if (textureResponse.IsError)
+                        if (textureResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
                         {
                             Debug.LogError("Error getting texture [" + texturePath + "] " +
                                            textureResponse.ErrorMessage);
                             FailGetMaterialDataRequest(loadRequest, texturePath);
+                        }
+                        else if (textureResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
+                        {
+                            _materialDataCache.Remove(texturePath);
+                            EndRequest(texturePath);
                         }
                         else
                         {
@@ -704,7 +751,7 @@
                                 new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
                         }
                         EndRequest(texturePath);
-                    });
+                    }, DependentRequestsExistBlocking);
                 }
             }
             else // The material was in the cache
