@@ -31,7 +31,12 @@
         private const string OkValue = "OK";
         private readonly string _apiUrl = "http://api.pyrite3d.org/";
 
-        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl = null)
+        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl) : this(manager, setName, version, apiUrl, 1.05f, 0f)
+        {
+            
+        }
+
+        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl, float upgradeFactor, float upgradeConstant)
         {
             if (!string.IsNullOrEmpty(apiUrl))
             {
@@ -45,6 +50,8 @@
             _manager = manager;
             _setUrl = _apiUrl + "/sets/" + SetName + "/";
             _versionUrl = _setUrl + Version + "/";
+            _upgradeFactor = upgradeFactor;
+            _upgradeConstant = upgradeConstant;
         }
 
         public string SetName { get; private set; }
@@ -55,6 +62,9 @@
 
         private readonly string _versionUrl;
         private readonly string _setUrl;
+
+        private readonly float _upgradeFactor;
+        private readonly float _upgradeConstant;
 
         public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
 
@@ -297,6 +307,8 @@
                     parsedDetailLevels[k][WorldCubeScaleKey][YKey].AsFloat,
                     parsedDetailLevels[k][WorldCubeScaleKey][ZKey].AsFloat);
 
+                detailLevel.UpgradeDistance = detailLevel.WorldCubeScale.magnitude*_upgradeFactor + _upgradeConstant;
+
                 detailLevel.WorldBoundsSize =
                     detailLevel.WorldBoundsMax -
                     detailLevel.WorldBoundsMin;
@@ -339,6 +351,8 @@
         public Vector3 WorldBoundsMin { get; set; }
         public Vector3 WorldBoundsSize { get; set; }
         public Vector3 WorldCubeScale { get; set; }
+
+        public float UpgradeDistance { get; set; }
         public PyriteCube[] Cubes { get; set; }
         public OcTree<CubeBounds> Octree { get; set; }
 

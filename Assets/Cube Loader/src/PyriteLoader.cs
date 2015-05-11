@@ -75,6 +75,9 @@
         public bool UseFileCache = true;
         public bool ShowDebugText = true;
 
+        [Header("Other Options")] public float UpgradeFactor = 1.05f;
+        public float UpgradeConstant = 0.0f;
+
         [HideInInspector()]
         public Plane[] CameraFrustrum = null;
 
@@ -344,7 +347,7 @@
         {
             DebugLog("+Load()");
 
-            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer);
+            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant);
             yield return StartCoroutine(pyriteQuery.LoadAll());
             DebugLog("CubeQuery complete.");
 

@@ -1,10 +1,8 @@
 ﻿namespace Assets.Cube_Loader.src
 {
-    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Text;
-    using Extensions;
     using UnityEngine;
 
     public class IsRendered : MonoBehaviour
@@ -80,10 +78,10 @@
             yield break;
         }
 
-        private bool ShouldUpgrade(Component component)
+        private bool ShouldUpgrade(Component cameraThatDetects)
         {
-            return Vector3.Distance(transform.position, component.transform.position) < 500 &&
-                   Math.Abs(transform.position.y - component.transform.position.y) < 120;
+            var distance = Vector3.Distance(transform.position, cameraThatDetects.transform.position);
+            return distance < _pyriteQuery.DetailLevels[_lod].UpgradeDistance;
         }
 
         // Cleans up cube game object and deactivates it to return to object pool
@@ -127,7 +125,7 @@
         }
 
         private IEnumerator StopRenderCheck(Camera cameraToCheckAgainst)
-        {            
+        {
             while (true)
             {
                 if (!GeometryUtility.TestPlanesAABB(_manager.CameraFrustrum, _render.bounds))

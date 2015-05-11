@@ -205,7 +205,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: .300000012
-  far clip plane: 1000
+  far clip plane: 7000
   field of view: 60.7000008
   orthographic: 0
   orthographic size: 5
@@ -332,6 +332,8 @@ MonoBehaviour:
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 1
+  UpgradeFactor: 1.04999995
+  UpgradeConstant: 0
 --- !u!4 &2132541550
 Transform:
   m_ObjectHideFlags: 0
