@@ -644,7 +644,7 @@
 
                     _eboCache[modelPath] = null;
 
-                    yield return StartCoroutine(StartRequest(modelPath));
+                    // yield return StartCoroutine(StartRequest(modelPath));
                     CacheWebRequest.GetBytes(modelPath, modelResponse =>
                     {
                         if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
@@ -673,7 +673,7 @@
                             };
                             SucceedGetGeometryBufferRequest(modelPath).Wait();
                         }
-                        EndRequest(modelPath);
+                       // EndRequest(modelPath);
                     }, DependentRequestsExistBlocking);
                 }
             }

@@ -44,11 +44,7 @@
         static CacheWebRequest()
         {
             RehydrateCache();
-            int workerThreads, completionPortThreads;
-            ThreadPool.GetMaxThreads(out workerThreads, out completionPortThreads);
-            Debug.Log("Max Worker: " + workerThreads + ", Cmpl: " + completionPortThreads);
-            ThreadPool.GetMinThreads(out workerThreads, out completionPortThreads);
-            Debug.Log("Min Worker: " + workerThreads + ", Cmpl: " + completionPortThreads);
+            BetterThreadPool.InitInstance();
         }
 
         private static void RehydrateCache()
@@ -124,7 +120,7 @@
 
         public static void GetBytes(string url, Action<CacheWebResponse<byte[]>> onBytesDownloaded, Func<string, bool> isRequestCancelled)
         {
-            ThreadPool.QueueUserWorkItem(state =>
+            BetterThreadPool.QueueUserWorkItem(state =>
             {
                 var response = new CacheWebResponse<byte[]>();
                 if (!isRequestCancelled(url))
@@ -152,7 +148,8 @@
                     else
                     {
                         var client = new WebClient();
-
+                        // fiddler
+                        //client.Proxy = new WebProxy("http://localhost:8888");
                         try
                         {
                             response.Content = client.DownloadData(url);
