@@ -137,7 +137,7 @@
                             response.Content = File.ReadAllBytes(cachePath);
                             response.IsCacheHit = true;
                             response.Status = CacheWebResponseStatus.Success;
-                            ThreadPool.QueueUserWorkItem(notUsed => { InsertOrUpdateCacheEntry(cachePath); });
+                            BetterThreadPool.QueueUserWorkItem(notUsed => { InsertOrUpdateCacheEntry(cachePath); });
                         }
                         catch (IOException ioException)
                         {
@@ -154,7 +154,7 @@
                         {
                             response.Content = client.DownloadData(url);
                             response.Status = CacheWebResponseStatus.Success;
-                            ThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cachePath, response.Content); });
+                            BetterThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cachePath, response.Content); });
                         }
                         catch (WebException wex)
                         {

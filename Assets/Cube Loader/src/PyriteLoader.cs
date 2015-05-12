@@ -49,7 +49,7 @@
         // End counter bits
 
         private const int RETRY_LIMIT = 2;
-        private int _colorSelector;
+        private int _colorSelector;       
 
         private float _geometryBufferAltitudeTransform;
 
@@ -74,6 +74,9 @@
         public bool UseUnlitShader = true;
         public bool UseFileCache = true;
         public bool ShowDebugText = true;
+
+        [HideInInspector()]
+        public Plane[] CameraFrustrum = null;
 
         private readonly HashSet<string> _activeRequests = new HashSet<string>();
 
@@ -184,6 +187,9 @@
 
         private void Update()
         {
+            // Update camera frustrum
+            CameraFrustrum = GeometryUtility.CalculateFrustumPlanes(Camera.main);
+
             // Check for work in Update
             ProcessQueues();
         }

@@ -127,10 +127,10 @@
         }
 
         private IEnumerator StopRenderCheck(Camera cameraToCheckAgainst)
-        {
+        {            
             while (true)
             {
-                if (!_render.IsVisibleFrom(cameraToCheckAgainst))
+                if (!GeometryUtility.TestPlanesAABB(_manager.CameraFrustrum, _render.bounds))
                 {
                     if (_loadCubeRequest != null)
                     {
@@ -154,7 +154,8 @@
                             }));
                 }
 
-                yield return null;
+                // Run this at most 10 times per second
+                yield return new WaitForSeconds(0.1F);
             }
         }
     }
