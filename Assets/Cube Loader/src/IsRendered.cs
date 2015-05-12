@@ -16,13 +16,19 @@
         private Renderer _render;
         private int _x, _y, _z;
         private LoadCubeRequest _loadCubeRequest;
+        private bool _upgraded = false;
 
         private bool Upgradable
         {
             get
             {
-                return _manager != null && _childDetectors.Count == 0 && _pyriteQuery.DetailLevels.ContainsKey(_lod - 1);
+                return !_upgraded && _manager != null && _childDetectors.Count == 0 && _pyriteQuery.DetailLevels.ContainsKey(_lod - 1);
             }
+        }
+
+        private bool Downgradable
+        {
+            get { return _upgraded; }
         }
 
         public void SetCubePosition(int x, int y, int z, int lod, PyriteQuery query, PyriteLoader manager)
@@ -67,15 +73,19 @@
         {
             if (_manager != null)
             {
-                _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObject =>
-                {
-                    _cubes.Add(createdObject);
-                    StartCoroutine(StopRenderCheck(Camera.main));
-                });
-
-                StartCoroutine(_manager.EnqueueLoadCubeRequest(_loadCubeRequest));
+                yield return StartCoroutine(RequestCubeLoad());
             }
-            yield break;
+        }
+
+        private IEnumerator RequestCubeLoad()
+        {
+            _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObject =>
+            {
+                _cubes.Add(createdObject);
+                StartCoroutine(StopRenderCheck(Camera.main));
+            });
+
+            return _manager.EnqueueLoadCubeRequest(_loadCubeRequest);
         }
 
         private bool ShouldUpgrade(Component cameraThatDetects)
@@ -142,6 +152,7 @@
                 }
                 if (Upgradable && ShouldUpgrade(cameraToCheckAgainst))
                 {
+                    _upgraded = true;
                     yield return
                         StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lod,
                             addedDetectors =>
@@ -150,6 +161,13 @@
                                 Resources.UnloadUnusedAssets();
                                 _childDetectors.AddRange(addedDetectors);
                             }));
+                }
+
+                if (Downgradable && !ShouldUpgrade(cameraToCheckAgainst))
+                {
+                    DestroyChildren();
+                    yield return StartCoroutine(RequestCubeLoad());
+                    _upgraded = false;
                 }
 
                 // Run this at most 10 times per second
