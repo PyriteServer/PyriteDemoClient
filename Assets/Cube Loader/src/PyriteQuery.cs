@@ -50,6 +50,9 @@
             _manager = manager;
             _setUrl = _apiUrl + "/sets/" + SetName + "/";
             _versionUrl = _setUrl + Version + "/";
+            _modelUrlPart = _versionUrl + "models/L";
+            _textureUrlPart = _versionUrl + "textures/L";
+
             _upgradeFactor = upgradeFactor;
             _upgradeConstant = upgradeConstant;
         }
@@ -62,6 +65,8 @@
 
         private readonly string _versionUrl;
         private readonly string _setUrl;
+        private readonly string _modelUrlPart;
+        private readonly string _textureUrlPart;
 
         private readonly float _upgradeFactor;
         private readonly float _upgradeConstant;
@@ -70,17 +75,7 @@
 
         public string GetModelPath(int lod, int x, int y, int z)
         {
-            return GetModelPath(GetLodKey(lod), x, y, z);
-        }
-
-        public string GetModelPath(string lod, int x, int y, int z)
-        {
-            StringBuilder modelPathBuilder = new StringBuilder(_apiUrl);
-            modelPathBuilder.Append("/sets/");
-            modelPathBuilder.Append(SetName);
-            modelPathBuilder.Append("/");
-            modelPathBuilder.Append(Version);
-            modelPathBuilder.Append("/models/");
+            StringBuilder modelPathBuilder = new StringBuilder(_modelUrlPart);
             modelPathBuilder.Append(lod);
             modelPathBuilder.Append("/");
             modelPathBuilder.Append(x);
@@ -93,28 +88,13 @@
 
         public string GetTexturePath(int lod, int x, int y)
         {
-            return GetTexturePath(GetLodKey(lod), x, y);
-        }
-
-        public string GetTexturePath(string lod, int x, int y)
-        {
-            StringBuilder texturePathBuilder = new StringBuilder(_apiUrl);
-            texturePathBuilder.Append("/sets/");
-            texturePathBuilder.Append(SetName);
-            texturePathBuilder.Append("/");
-            texturePathBuilder.Append(Version);
-            texturePathBuilder.Append("/textures/");
+            StringBuilder texturePathBuilder = new StringBuilder(_textureUrlPart);
             texturePathBuilder.Append(lod);
             texturePathBuilder.Append("/");
             texturePathBuilder.Append(x);
             texturePathBuilder.Append(',');
             texturePathBuilder.Append(y);
             return texturePathBuilder.ToString();
-        }
-
-        public string GetLodKey(int lod)
-        {
-            return "L" + lod;
         }
 
         public Vector3 GetNextCubeFactor(int lod)

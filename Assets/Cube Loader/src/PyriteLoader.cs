@@ -681,7 +681,7 @@
             var pyriteLevel =
                 loadRequest.Query.DetailLevels[loadRequest.Lod];
             var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(loadRequest.X, loadRequest.Y);
-            var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Query.GetLodKey(loadRequest.Lod),
+            var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Lod,
                 (int) textureCoordinates.x,
                 (int) textureCoordinates.y);
 
