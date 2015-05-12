@@ -30,6 +30,8 @@
         // The path to the cache location on disk
         private static string _temporaryCachePath;
 
+        private static bool _hydrated = false;
+
         private static readonly char[] InvalidFileCharacters = Path.GetInvalidFileNameChars();
 
         // MRU index for cache items. The key points to the node in the list that can be used to delete it or refresh it (move it to the end)
@@ -43,15 +45,22 @@
 
         static CacheWebRequest()
         {
-            RehydrateCache();
             BetterThreadPool.InitInstance();
+            RehydrateCache();
         }
 
-        private static void RehydrateCache()
+        public static void RehydrateCache()
         {
-            foreach (var file in Directory.GetFiles(TemporaryCachePath))
+            lock (_cacheFileList)
             {
-                InsertOrUpdateCacheEntry(file);
+                if (!_hydrated)
+                {
+                    _hydrated = true;
+                    foreach (var file in Directory.GetFiles(TemporaryCachePath))
+                    {
+                        InsertOrUpdateCacheEntry(file);
+                    }
+                }
             }
         }
 

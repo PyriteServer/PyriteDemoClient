@@ -130,12 +130,14 @@
             _guiStyle.normal.textColor = Color.red;
 
             ObjectPooler.Current.CreatePoolForObject(BaseModelCube);
-
+            
             // Optional pool only used in camera detection scenario
             if (PlaceHolderCube != null)
             {
                 ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
             }         
+
+            CacheWebRequest.RehydrateCache();
 
             DebugLog("+Start()");
             StartCoroutine(Load());
