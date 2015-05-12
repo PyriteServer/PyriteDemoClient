@@ -144,7 +144,6 @@
                 {
                     _meshRenderer.enabled = true;
                     DestroyChildren();
-                    Resources.UnloadUnusedAssets();
                     break;
                 }
                 if (Upgradable && ShouldUpgrade(cameraToCheckAgainst))
@@ -154,7 +153,6 @@
                             addedDetectors =>
                             {
                                 DestroyChildren();
-                                Resources.UnloadUnusedAssets();
                                 _childDetectors.AddRange(addedDetectors);
                                 _upgraded = true;
                             }));

@@ -11,7 +11,7 @@ namespace Assets.Cube_Loader.src
         protected override WebRequest GetWebRequest(Uri uri)
         {
             WebRequest w = base.GetWebRequest(uri);
-            w.Timeout = 2000;
+            w.Timeout = 10000;
             return w;
         }
     }

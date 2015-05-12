@@ -68,7 +68,7 @@
         }
 
         private static string GetCacheFilePath(string originalPath)
-        {
+        {                            
             var sb = new StringBuilder(originalPath);
             foreach (var invalidChar in InvalidFileCharacters)
             {
@@ -147,7 +147,7 @@
                     }
                     else
                     {
-                        var client = new WebClient();
+                        var client = new TimeoutWebClient();
                         // fiddler
                         //client.Proxy = new WebProxy("http://localhost:8888");
                         try

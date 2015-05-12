@@ -14,7 +14,7 @@ namespace Assets.Cube_Loader.src
         {
             if (s_instance == null)
             {
-                InitInstance(2048, 8);
+                InitInstance(2048, 4);
             }
         }
         public static bool InitInstance(int queueSize, int threadNum)

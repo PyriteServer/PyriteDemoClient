@@ -22,7 +22,7 @@
         };
 
         private readonly DictionaryCache<string, GeometryBuffer> _eboCache =
-            new DictionaryCache<string, GeometryBuffer>(200);
+            new DictionaryCache<string, GeometryBuffer>(250);
 
         private readonly DictionaryCache<string, Material> _materialCache = new DictionaryCache<string, Material>(100);
 
@@ -112,7 +112,7 @@
         }
 
         private void Start()
-        {
+        {                                       
             if (string.IsNullOrEmpty(SetName))
             {
                 Debug.LogError("Must specify SetName");
@@ -135,11 +135,11 @@
             if (PlaceHolderCube != null)
             {
                 ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
-            }
+            }         
 
             DebugLog("+Start()");
             StartCoroutine(Load());
-            DebugLog("-Start()");
+            DebugLog("-Start()");            
         }
 
         private static bool CheckThread(bool expectMainThread)
@@ -168,7 +168,7 @@
             CameraFrustrum = GeometryUtility.CalculateFrustumPlanes(Camera.main);
 
             // Check for work in Update
-            ProcessQueues();
+            ProcessQueues();            
         }
 
         // Look through all work queues starting any work that is needed
