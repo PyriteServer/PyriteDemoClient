@@ -107,6 +107,7 @@
         private void ReleaseDetectorCube(GameObject detectorCubeToRelease)
         {
             detectorCubeToRelease.name = "Released: " + detectorCubeToRelease.name;
+            detectorCubeToRelease.GetComponent<IsRendered>()._upgraded = false;
             detectorCubeToRelease.SetActive(false);
         }
 
@@ -132,6 +133,7 @@
                 ReleaseDetectorCube(detector);
             }
             _childDetectors.Clear();
+            _upgraded = false;
         }
 
         private IEnumerator StopRenderCheck(Camera cameraToCheckAgainst)
@@ -140,11 +142,6 @@
             {
                 if (!GeometryUtility.TestPlanesAABB(_manager.CameraFrustrum, _render.bounds))
                 {
-                    if (_loadCubeRequest != null)
-                    {
-                        _loadCubeRequest.Cancelled = true;
-                    }
-
                     _meshRenderer.enabled = true;
                     DestroyChildren();
                     Resources.UnloadUnusedAssets();
@@ -152,7 +149,6 @@
                 }
                 if (Upgradable && ShouldUpgrade(cameraToCheckAgainst))
                 {
-                    _upgraded = true;
                     yield return
                         StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lod,
                             addedDetectors =>
@@ -160,6 +156,7 @@
                                 DestroyChildren();
                                 Resources.UnloadUnusedAssets();
                                 _childDetectors.AddRange(addedDetectors);
+                                _upgraded = true;
                             }));
                 }
 
@@ -167,7 +164,6 @@
                 {
                     DestroyChildren();
                     yield return StartCoroutine(RequestCubeLoad());
-                    _upgraded = false;
                 }
 
                 // Run this at most 10 times per second
