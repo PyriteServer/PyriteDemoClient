@@ -34,7 +34,7 @@ public class GeometryBuffer {
             float x, y, z;
 
             SortedList<int, Vector3> vertices = new SortedList<int, Vector3>();
-            SortedList<int, Vector2> uvs = new SortedList<int, Vector2>();
+            List<Vector2> uvs = new List<Vector2>();
 
             Triangles = new int[vertexCount];
 
@@ -45,18 +45,21 @@ public class GeometryBuffer {
                 {
                     switch ((int)br.ReadByte())
                     {
+                        // Reuse vert and uv
                         case (0):
                             int bufferIndex = (int)br.ReadUInt32();
                             Triangles[i] = vertices.IndexOfKey(bufferIndex);
                             break;
+                        // reuse vert, new uv
                         case (64):
                             bufferIndex = (int)br.ReadUInt32();
                             vertices.Add(i, vertices[bufferIndex]);
-                            uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
+                            uvs.Add(new Vector2(br.ReadSingle(), br.ReadSingle()));
                             Triangles[i] = vertices.IndexOfKey(i);
                             break;
                         case (128):
                             throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
+                        // new vert, new uv
                         case (255):
                             if (InvertedData)
                             {
@@ -73,7 +76,7 @@ public class GeometryBuffer {
 
                             vertices.Add(i, new Vector3(x, y + YOffset, z));
 
-                            uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
+                            uvs.Add(new Vector2(br.ReadSingle(), br.ReadSingle()));
                             Triangles[i] = vertices.IndexOfKey(i);
                             break;
                     }
@@ -86,7 +89,7 @@ public class GeometryBuffer {
             }
 
             Vertices = vertices.Values.ToArray();
-            UVs = uvs.Values.ToArray();
+            UVs = uvs.ToArray();
 
         }
 
