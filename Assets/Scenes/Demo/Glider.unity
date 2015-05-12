@@ -237,7 +237,7 @@ MonoBehaviour:
   MaxConcurrentRequests: 8
   DetailLevel: 4
   ModelVersion: V1
-  SetName: NashvilleNew
+  SetName: 
   UseCameraDetection: 1
   UseUnlitShader: 1
   UseFileCache: 1
