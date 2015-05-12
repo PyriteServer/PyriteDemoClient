@@ -88,32 +88,35 @@ namespace Assets.Cube_Loader.src
         }
         private void EnqueueTask(WaitCallback callback)
         {
-            while (m_numTasks == m_taskQueue.Length)
+            lock (this)
             {
-                m_getNotification.WaitOne();
-            }
-            m_taskQueue[m_nPutPointer].callback = callback;
-            ++m_nPutPointer;
-            if (m_nPutPointer == m_taskQueue.Length)
-            {
-                m_nPutPointer = 0;
-            }
-#if !UNITY_WEBPLAYER
-            if (m_threadPool.Length == 1)
-            {
-#endif
-                if (Interlocked.Increment(ref m_numTasks) == 1)
+                while (m_numTasks == m_taskQueue.Length)
                 {
-                    m_putNotification.Set();
+                    m_getNotification.WaitOne();
+                }
+                m_taskQueue[m_nPutPointer].callback = callback;
+                ++m_nPutPointer;
+                if (m_nPutPointer == m_taskQueue.Length)
+                {
+                    m_nPutPointer = 0;
                 }
 #if !UNITY_WEBPLAYER
-            }
-            else
-            {
-                Interlocked.Increment(ref m_numTasks);
-                m_semaphore.Release();
-            }
+                if (m_threadPool.Length == 1)
+                {
 #endif
+                    if (Interlocked.Increment(ref m_numTasks) == 1)
+                    {
+                        m_putNotification.Set();
+                    }
+#if !UNITY_WEBPLAYER
+                }
+                else
+                {
+                    Interlocked.Increment(ref m_numTasks);
+                    m_semaphore.Release();
+                }
+#endif
+            }
         }
 #if !UNITY_WEBPLAYER
         private void ThreadFunc()

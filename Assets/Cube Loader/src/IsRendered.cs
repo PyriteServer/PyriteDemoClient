@@ -1,10 +1,8 @@
 ﻿namespace Assets.Cube_Loader.src
 {
-    using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Text;
-    using Extensions;
     using UnityEngine;
 
     public class IsRendered : MonoBehaviour
@@ -18,13 +16,19 @@
         private Renderer _render;
         private int _x, _y, _z;
         private LoadCubeRequest _loadCubeRequest;
+        private bool _upgraded = false;
 
         private bool Upgradable
         {
             get
             {
-                return _manager != null && _childDetectors.Count == 0 && _pyriteQuery.DetailLevels.ContainsKey(_lod - 1);
+                return !_upgraded && _manager != null && _childDetectors.Count == 0 && _pyriteQuery.DetailLevels.ContainsKey(_lod - 1);
             }
+        }
+
+        private bool Downgradable
+        {
+            get { return _upgraded; }
         }
 
         public void SetCubePosition(int x, int y, int z, int lod, PyriteQuery query, PyriteLoader manager)
@@ -69,21 +73,25 @@
         {
             if (_manager != null)
             {
-                _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObject =>
-                {
-                    _cubes.Add(createdObject);
-                    StartCoroutine(StopRenderCheck(Camera.main));
-                });
-
-                StartCoroutine(_manager.EnqueueLoadCubeRequest(_loadCubeRequest));
+                yield return StartCoroutine(RequestCubeLoad());
             }
-            yield break;
         }
 
-        private bool ShouldUpgrade(Component component)
+        private IEnumerator RequestCubeLoad()
         {
-            return Vector3.Distance(transform.position, component.transform.position) < 500 &&
-                   Math.Abs(transform.position.y - component.transform.position.y) < 120;
+            _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObject =>
+            {
+                _cubes.Add(createdObject);
+                StartCoroutine(StopRenderCheck(Camera.main));
+            });
+
+            return _manager.EnqueueLoadCubeRequest(_loadCubeRequest);
+        }
+
+        private bool ShouldUpgrade(Component cameraThatDetects)
+        {
+            var distance = Vector3.Distance(transform.position, cameraThatDetects.transform.position);
+            return distance < _pyriteQuery.DetailLevels[_lod].UpgradeDistance;
         }
 
         // Cleans up cube game object and deactivates it to return to object pool
@@ -99,6 +107,7 @@
         private void ReleaseDetectorCube(GameObject detectorCubeToRelease)
         {
             detectorCubeToRelease.name = "Released: " + detectorCubeToRelease.name;
+            detectorCubeToRelease.GetComponent<IsRendered>()._upgraded = false;
             detectorCubeToRelease.SetActive(false);
         }
 
@@ -124,19 +133,15 @@
                 ReleaseDetectorCube(detector);
             }
             _childDetectors.Clear();
+            _upgraded = false;
         }
 
         private IEnumerator StopRenderCheck(Camera cameraToCheckAgainst)
-        {            
+        {
             while (true)
             {
                 if (!GeometryUtility.TestPlanesAABB(_manager.CameraFrustrum, _render.bounds))
                 {
-                    if (_loadCubeRequest != null)
-                    {
-                        _loadCubeRequest.Cancelled = true;
-                    }
-
                     _meshRenderer.enabled = true;
                     DestroyChildren();
                     Resources.UnloadUnusedAssets();
@@ -151,7 +156,14 @@
                                 DestroyChildren();
                                 Resources.UnloadUnusedAssets();
                                 _childDetectors.AddRange(addedDetectors);
+                                _upgraded = true;
                             }));
+                }
+
+                if (Downgradable && !ShouldUpgrade(cameraToCheckAgainst))
+                {
+                    DestroyChildren();
+                    yield return StartCoroutine(RequestCubeLoad());
                 }
 
                 // Run this at most 10 times per second

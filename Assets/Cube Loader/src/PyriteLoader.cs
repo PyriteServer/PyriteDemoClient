@@ -75,6 +75,9 @@
         public bool UseFileCache = true;
         public bool ShowDebugText = true;
 
+        [Header("Other Options")] public float UpgradeFactor = 1.05f;
+        public float UpgradeConstant = 0.0f;
+
         [HideInInspector()]
         public Plane[] CameraFrustrum = null;
 
@@ -98,32 +101,6 @@
         private readonly Queue<LoadCubeRequest> _buildCubeRequests = new Queue<LoadCubeRequest>(10);
 
         private static Thread _mainThread;
-
-        private IEnumerator StartRequest(string path)
-        {
-            if (MaxConcurrentRequests == 0)
-            {
-                // Not limiting requests
-                yield break;
-            }
-            CheckIfMainThread();
-            while (_activeRequests.Count >= MaxConcurrentRequests)
-            {
-                yield return null;
-            }
-            yield return StartCoroutine(_activeRequests.ConcurrentAdd(path));
-        }
-
-        private void EndRequest(string path)
-        {
-            if (MaxConcurrentRequests == 0)
-            {
-                // Not limiting requests
-                return;
-            }
-            CheckIfBackgroundThread();
-            _activeRequests.ConcurrentRemove(path).Wait();
-        }
 
         protected void DebugLog(string fmt, params object[] args)
         {
@@ -285,6 +262,7 @@
             Monitor.Exit(_dependentCubes);
         }
 
+#if UNITY_EDITOR
         private void OnGUI()
         {
             if (ShowDebugText) // or check the app debug flag
@@ -329,6 +307,7 @@
                 GUI.Label(new Rect(10, yOffset, 200, 50), caches, _guiStyle);
             }
         }
+#endif
 
         private PyriteCube CreateCubeFromCubeBounds(CubeBounds cubeBounds)
         {
@@ -344,7 +323,7 @@
         {
             DebugLog("+Load()");
 
-            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer);
+            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant);
             yield return StartCoroutine(pyriteQuery.LoadAll());
             DebugLog("CubeQuery complete.");
 
@@ -650,7 +629,6 @@
 
                     _eboCache[modelPath] = null;
 
-                    // yield return StartCoroutine(StartRequest(modelPath));
                     CacheWebRequest.GetBytes(modelPath, modelResponse =>
                     {
                         if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
@@ -661,7 +639,7 @@
                         else if(modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
                         {
                             _eboCache.Remove(modelPath);
-                            EndRequest(modelPath);
+              
                         }
                         else
                         {
@@ -679,7 +657,6 @@
                             };
                             SucceedGetGeometryBufferRequest(modelPath).Wait();
                         }
-                       // EndRequest(modelPath);
                     }, DependentRequestsExistBlocking);
                 }
             }
@@ -704,7 +681,7 @@
             var pyriteLevel =
                 loadRequest.Query.DetailLevels[loadRequest.Lod];
             var textureCoordinates = pyriteLevel.TextureCoordinatesForCube(loadRequest.X, loadRequest.Y);
-            var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Query.GetLodKey(loadRequest.Lod),
+            var texturePath = loadRequest.Query.GetTexturePath(loadRequest.Lod,
                 (int) textureCoordinates.x,
                 (int) textureCoordinates.y);
 
@@ -727,8 +704,6 @@
                         (int) textureCoordinates.y, loadRequest.Lod);
                     _partiallyConstructedMaterialDatas[texturePath] = materialData;
 
-                    yield return StartCoroutine(StartRequest(texturePath));
-
                     CacheWebRequest.GetBytes(texturePath, textureResponse =>
                     {
                         CheckIfBackgroundThread();
@@ -741,7 +716,6 @@
                         else if (textureResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
                         {
                             _materialDataCache.Remove(texturePath);
-                            EndRequest(texturePath);
                         }
                         else
                         {
@@ -756,7 +730,6 @@
                             _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
                                 new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
                         }
-                        EndRequest(texturePath);
                     }, DependentRequestsExistBlocking);
                 }
             }

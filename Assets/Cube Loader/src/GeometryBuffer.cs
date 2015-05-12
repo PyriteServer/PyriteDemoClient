@@ -30,11 +30,14 @@ public class GeometryBuffer {
         {
             // File is prefixed with face count, times 3 for vertices
             int vertexCount = br.ReadUInt16() * 3;
+            int p;
+            int bufferIndex;
 
             float x, y, z;
 
-            SortedList<int, Vector3> vertices = new SortedList<int, Vector3>();
-            SortedList<int, Vector2> uvs = new SortedList<int, Vector2>();
+            int[] verticesIndex = new int[vertexCount];
+            List<Vector3> vertices = new List<Vector3>();
+            List<Vector2> uvs = new List<Vector2>();
 
             Triangles = new int[vertexCount];
 
@@ -45,18 +48,26 @@ public class GeometryBuffer {
                 {
                     switch ((int)br.ReadByte())
                     {
+                        // Reuse vert and uv
                         case (0):
-                            int bufferIndex = (int)br.ReadUInt32();
-                            Triangles[i] = vertices.IndexOfKey(bufferIndex);
+                            bufferIndex = (int)br.ReadUInt32();
+                            verticesIndex[i] = verticesIndex[bufferIndex];
+                            Triangles[i] = verticesIndex[bufferIndex];
                             break;
+                        // reuse vert, new uv
                         case (64):
                             bufferIndex = (int)br.ReadUInt32();
-                            vertices.Add(i, vertices[bufferIndex]);
-                            uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
-                            Triangles[i] = vertices.IndexOfKey(i);
+
+                            vertices.Add(vertices[verticesIndex[bufferIndex]]);
+                            p = vertices.Count - 1;
+                            verticesIndex[i] = p;
+
+                            uvs.Add(new Vector2(br.ReadSingle(), br.ReadSingle()));
+                            Triangles[i] = p;
                             break;
                         case (128):
                             throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
+                        // new vert, new uv
                         case (255):
                             if (InvertedData)
                             {
@@ -71,10 +82,13 @@ public class GeometryBuffer {
                                 z = br.ReadSingle();
                             }
 
-                            vertices.Add(i, new Vector3(x, y + YOffset, z));
+                            //vertices.Add(i, new Vector3(x, y + YOffset, z));
+                            vertices.Add(new Vector3(x, y + YOffset, z));
+                            p = vertices.Count - 1;
+                            verticesIndex[i] = p;
 
-                            uvs.Add(i, new Vector2(br.ReadSingle(), br.ReadSingle()));
-                            Triangles[i] = vertices.IndexOfKey(i);
+                            uvs.Add(new Vector2(br.ReadSingle(), br.ReadSingle()));
+                            Triangles[i] = p;
                             break;
                     }
                 }
@@ -85,8 +99,8 @@ public class GeometryBuffer {
                 }
             }
 
-            Vertices = vertices.Values.ToArray();
-            UVs = uvs.Values.ToArray();
+            Vertices = vertices.ToArray();
+            UVs = uvs.ToArray();
 
         }
 
