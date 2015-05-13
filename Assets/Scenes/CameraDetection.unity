@@ -334,6 +334,9 @@ MonoBehaviour:
   ShowDebugText: 1
   UpgradeFactor: 1.04999995
   UpgradeConstant: 0
+  DowngradeFactor: 1.10000002
+  DowngradeConstant: 0
+  UseWwwForTextures: 1
 --- !u!4 &2132541550
 Transform:
   m_ObjectHideFlags: 0

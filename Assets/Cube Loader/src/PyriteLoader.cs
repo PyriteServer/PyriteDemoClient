@@ -77,6 +77,8 @@
 
         [Header("Other Options")] public float UpgradeFactor = 1.05f;
         public float UpgradeConstant = 0.0f;
+        public float DowngradeFactor = 1.05f;
+        public float DowngradeConstant = 0.0f;
         public bool UseWwwForTextures = false;
 
         [HideInInspector()]
@@ -326,7 +328,7 @@
         {
             DebugLog("+Load()");
 
-            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant);
+            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant, DowngradeFactor, DowngradeConstant);
             yield return StartCoroutine(pyriteQuery.LoadAll());
             DebugLog("CubeQuery complete.");
 
