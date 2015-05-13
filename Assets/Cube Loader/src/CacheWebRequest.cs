@@ -26,7 +26,8 @@
         }
 
         // How many files we want to keep on disk
-        private static readonly int _maxCacheSize = 3000;
+        private const int DefaultMaxCacheSize = 3000;
+        private static int _maxCacheSize = 3000;
         // The path to the cache location on disk
         private static string _temporaryCachePath;
 
@@ -46,11 +47,12 @@
         static CacheWebRequest()
         {
             BetterThreadPool.InitInstance();
-            RehydrateCache();
+            RehydrateCache(DefaultMaxCacheSize);
         }
 
-        public static void RehydrateCache()
+        public static void RehydrateCache(int maxCacheSize)
         {
+            _maxCacheSize = maxCacheSize;
             lock (_cacheFileList)
             {
                 if (!_hydrated)
@@ -91,6 +93,11 @@
         public static bool IsItemInCache(string cacheKey)
         {
             return _cacheFileIndex.ContainsKey(cacheKey);
+        }
+
+        public static void AddToCache(string cacheKey, byte[] content)
+        {
+            BetterThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cacheKey, content); });
         }
 
         private static void EvictCacheEntry()

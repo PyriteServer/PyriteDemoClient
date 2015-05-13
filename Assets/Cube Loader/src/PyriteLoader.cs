@@ -80,6 +80,9 @@
         public float DowngradeFactor = 1.05f;
         public float DowngradeConstant = 0.0f;
         public bool UseWwwForTextures = false;
+        public bool UseWwwForEbo = false;
+        public bool CacheFill = false;
+        public int CacheSize = 3000;
 
         [HideInInspector()]
         public Plane[] CameraFrustrum = null;
@@ -140,7 +143,7 @@
                 ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
             }         
 
-            CacheWebRequest.RehydrateCache();
+            CacheWebRequest.RehydrateCache(CacheSize);
 
             DebugLog("+Start()");
             StartCoroutine(Load());
@@ -633,36 +636,62 @@
                     EboCacheMisses++;
 
                     _eboCache[modelPath] = null;
-
-                    CacheWebRequest.GetBytes(modelPath, modelResponse =>
+                    if (UseWwwForEbo)
                     {
-                        if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
+                        var cachePath = CacheWebRequest.GetCacheFilePath(modelPath);
+                        WWW modelWww;
+                        if (CacheWebRequest.IsItemInCache(cachePath))
                         {
-                            Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
-                            FailGetGeometryBufferRequest(loadRequest, modelPath);
-                        }
-                        else if(modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
-                        {
-                            _eboCache.Remove(modelPath);
-              
+                            FileCacheHits++;
+                            modelWww = new WWW("file:///" + cachePath);
+                            yield return modelWww;
                         }
                         else
                         {
-                            if (modelResponse.IsCacheHit)
+                            FileCacheMisses++;
+                            modelWww = new WWW(modelPath);
+                            yield return modelWww;
+                            CacheWebRequest.AddToCache(cachePath, modelWww.bytes);
+                        }
+                       
+                        _eboCache[modelPath] =
+                            new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                                {
+                                    Buffer = modelWww.bytes
+                                };
+                        yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath));
+                    }
+                    else
+                    {
+                        CacheWebRequest.GetBytes(modelPath, modelResponse =>
+                        {
+                            if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
                             {
-                                FileCacheHits++;
+                                Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
+                                FailGetGeometryBufferRequest(loadRequest, modelPath);
+                            }
+                            else if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
+                            {
+                                _eboCache.Remove(modelPath);
                             }
                             else
                             {
-                                FileCacheMisses++;
+                                if (modelResponse.IsCacheHit)
+                                {
+                                    FileCacheHits++;
+                                }
+                                else
+                                {
+                                    FileCacheMisses++;
+                                }
+                                _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                                {
+                                    Buffer = modelResponse.Content
+                                };
+                                SucceedGetGeometryBufferRequest(modelPath).Wait();
                             }
-                            _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
-                            {
-                                Buffer = modelResponse.Content
-                            };
-                            SucceedGetGeometryBufferRequest(modelPath).Wait();
-                        }
-                    }, DependentRequestsExistBlocking);
+                        }, DependentRequestsExistBlocking);
+                    }
                 }
             }
             else // The model data was in the cache
@@ -710,20 +739,27 @@
                         var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
                             (int) textureCoordinates.y, loadRequest.Lod);
                         var cachePath = CacheWebRequest.GetCacheFilePath(texturePath);
-
-                        WWW textureWww;// = new WWW(texturePath);
-                        if (CacheWebRequest.IsItemInCache(cachePath))
+                        if (!CacheFill)
                         {
-                             textureWww = new WWW("file:///" + cachePath);
+                            WWW textureWww; // = new WWW(texturePath);
+                            if (CacheWebRequest.IsItemInCache(cachePath))
+                            {
+                                FileCacheHits++;
+                                textureWww = new WWW("file:///" + cachePath);
+                                yield return textureWww;
+                            }
+                            else
+                            {
+                                FileCacheMisses++;
+                                textureWww = new WWW(texturePath);
+                                yield return textureWww;
+                                CacheWebRequest.AddToCache(cachePath, textureWww.bytes);
+                            }
+                            
+                            materialData.DiffuseTex = textureWww.texture;
                         }
-                        else
-                        {
-                            textureWww = new WWW(texturePath);
-                        }
-                        yield return textureWww;
-                        materialData.DiffuseTex = textureWww.texture;
                         _materialDataCache[texturePath] = materialData;
-
+                        
                         // Move forward dependent requests that wanted this material data
                         yield return StartCoroutine(SucceedGetMaterialDataRequests(texturePath));
                     }
@@ -795,12 +831,14 @@
             var inProgressMaterialData = _partiallyConstructedMaterialDatas[materialDataKey];
             _partiallyConstructedMaterialDatas.Remove(materialDataKey);
             Monitor.Exit(_partiallyConstructedMaterialDatas);
+            if (!CacheFill)
+            {
+                var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
+                texture.LoadImage(materialDataKeyAndTexturePair.Value);
 
-            var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
-            texture.LoadImage(materialDataKeyAndTexturePair.Value);
 
-
-            inProgressMaterialData.DiffuseTex = texture;
+                inProgressMaterialData.DiffuseTex = texture;
+            }
 
             _materialDataCache[materialDataKey] = inProgressMaterialData;
 
@@ -823,6 +861,11 @@
             if (!_materialCache.ContainsKey(materialData.Name))
             {
                 _materialCache[materialData.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, materialData);
+            }
+
+            if (CacheFill)
+            {
+                return;
             }
 
             var cubeName = new StringBuilder("cube_L");
