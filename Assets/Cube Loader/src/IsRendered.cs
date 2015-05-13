@@ -98,6 +98,12 @@
             return distance < _pyriteQuery.DetailLevels[_lod].UpgradeDistance;
         }
 
+        private bool ShouldDowngrade(Component cameraThatDetects)
+        {
+            var distance = Vector3.Distance(transform.position, cameraThatDetects.transform.position);
+            return distance > _pyriteQuery.DetailLevels[_lod].DowngradeDistance;
+        }
+
         // Cleans up cube game object and deactivates it to return to object pool
         private void ReleaseCubeGameObject(GameObject cubeToRelease)
         {
@@ -211,7 +217,7 @@
                             {
                                 StartCoroutine(DestroyChildrenAfterLoading(addedDetectors));
                             }));
-                }else if (Downgradable && !ShouldUpgrade(cameraToCheckAgainst))
+                }else if (Downgradable && ShouldDowngrade(cameraToCheckAgainst))
                 {
                     DestroyChildren();
                     yield return StartCoroutine(RequestCubeLoad());

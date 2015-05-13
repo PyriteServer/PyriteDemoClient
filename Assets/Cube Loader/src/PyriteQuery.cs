@@ -31,12 +31,12 @@
         private const string OkValue = "OK";
         private readonly string _apiUrl = "http://api.pyrite3d.org/";
 
-        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl) : this(manager, setName, version, apiUrl, 1.05f, 0f)
+        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl) : this(manager, setName, version, apiUrl, 1.05f, 0f, 1.05f, 0f)
         {
             
         }
 
-        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl, float upgradeFactor, float upgradeConstant)
+        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl, float upgradeFactor, float upgradeConstant, float downgradeFactor, float downgradeConstant)
         {
             if (!string.IsNullOrEmpty(apiUrl))
             {
@@ -55,6 +55,9 @@
 
             _upgradeFactor = upgradeFactor;
             _upgradeConstant = upgradeConstant;
+
+            _downgradeFactor = downgradeFactor;
+            _downgradeConstant = downgradeConstant;
         }
 
         public string SetName { get; private set; }
@@ -70,6 +73,8 @@
 
         private readonly float _upgradeFactor;
         private readonly float _upgradeConstant;
+        private readonly float _downgradeFactor;
+        private readonly float _downgradeConstant;
 
         public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
 
@@ -289,6 +294,8 @@
 
                 detailLevel.UpgradeDistance = detailLevel.WorldCubeScale.magnitude*_upgradeFactor + _upgradeConstant;
 
+                detailLevel.DowngradeDistance = detailLevel.WorldCubeScale.magnitude * _downgradeFactor + _downgradeConstant;
+
                 detailLevel.WorldBoundsSize =
                     detailLevel.WorldBoundsMax -
                     detailLevel.WorldBoundsMin;
@@ -333,6 +340,8 @@
         public Vector3 WorldCubeScale { get; set; }
 
         public float UpgradeDistance { get; set; }
+        public float DowngradeDistance { get; set; }
+
         public PyriteCube[] Cubes { get; set; }
         public OcTree<CubeBounds> Octree { get; set; }
 
