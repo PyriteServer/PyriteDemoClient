@@ -77,6 +77,7 @@
 
         [Header("Other Options")] public float UpgradeFactor = 1.05f;
         public float UpgradeConstant = 0.0f;
+        public bool UseWwwForTextures = false;
 
         [HideInInspector()]
         public Plane[] CameraFrustrum = null;
@@ -696,43 +697,65 @@
                 // Check if this is the first request for material (or it isn't in the cache)
                 if (!_materialDataCache.ContainsKey(texturePath))
                 {
-                    // Material data was not in cache nor being constructed 
-                    // Cache counter
-                    MaterialCacheMisses++;
-                    // Set to null to signal to other tasks that the key is in the process
-                    // of being filled
-                    _materialDataCache[texturePath] = null;
-                    var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
-                        (int) textureCoordinates.y, loadRequest.Lod);
-                    _partiallyConstructedMaterialDatas[texturePath] = materialData;
-
-                    CacheWebRequest.GetBytes(texturePath, textureResponse =>
+                    if (UseWwwForTextures)
                     {
-                        CheckIfBackgroundThread();
-                        if (textureResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
+                        // Material data was not in cache nor being constructed 
+                        // Cache counter
+                        MaterialCacheMisses++;
+                        // Set to null to signal to other tasks that the key is in the process
+                        // of being filled
+                        _materialDataCache[texturePath] = null;
+                        var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
+                            (int) textureCoordinates.y, loadRequest.Lod);
+
+                        WWW textureWww = new WWW(texturePath);
+                        yield return textureWww;
+                        materialData.DiffuseTex = textureWww.texture;
+                        _materialDataCache[texturePath] = materialData;
+
+                        // Move forward dependent requests that wanted this material data
+                        yield return StartCoroutine(SucceedGetMaterialDataRequests(texturePath));
+                    }
+                    else
+                    {
+                        // Material data was not in cache nor being constructed 
+                        // Cache counter
+                        MaterialCacheMisses++;
+                        // Set to null to signal to other tasks that the key is in the process
+                        // of being filled
+                        _materialDataCache[texturePath] = null;
+                        var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int)textureCoordinates.x,
+                            (int)textureCoordinates.y, loadRequest.Lod);
+                        _partiallyConstructedMaterialDatas[texturePath] = materialData;
+
+                        CacheWebRequest.GetBytes(texturePath, textureResponse =>
                         {
-                            Debug.LogError("Error getting texture [" + texturePath + "] " +
-                                           textureResponse.ErrorMessage);
-                            FailGetMaterialDataRequest(loadRequest, texturePath);
-                        }
-                        else if (textureResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
-                        {
-                            _materialDataCache.Remove(texturePath);
-                        }
-                        else
-                        {
-                            if (textureResponse.IsCacheHit)
+                            CheckIfBackgroundThread();
+                            if (textureResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
                             {
-                                FileCacheHits++;
+                                Debug.LogError("Error getting texture [" + texturePath + "] " +
+                                               textureResponse.ErrorMessage);
+                                FailGetMaterialDataRequest(loadRequest, texturePath);
+                            }
+                            else if (textureResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
+                            {
+                                _materialDataCache.Remove(texturePath);
                             }
                             else
                             {
-                                FileCacheMisses++;
+                                if (textureResponse.IsCacheHit)
+                                {
+                                    FileCacheHits++;
+                                }
+                                else
+                                {
+                                    FileCacheMisses++;
+                                }
+                                _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
+                                    new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
                             }
-                            _texturesReadyForMaterialDataConstruction.ConcurrentEnqueue(
-                                new KeyValuePair<string, byte[]>(texturePath, textureResponse.Content)).Wait();
-                        }
-                    }, DependentRequestsExistBlocking);
+                        }, DependentRequestsExistBlocking);
+                    }
                 }
             }
             else // The material was in the cache
