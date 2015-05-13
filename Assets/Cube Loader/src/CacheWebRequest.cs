@@ -76,7 +76,7 @@
             }
         }
 
-        private static string GetCacheFilePath(string originalPath)
+        public static string GetCacheFilePath(string originalPath)
         {                            
             var sb = new StringBuilder(originalPath);
             foreach (var invalidChar in InvalidFileCharacters)
@@ -86,6 +86,11 @@
             }
 
             return TemporaryCachePath + Path.DirectorySeparatorChar + sb;
+        }
+
+        public static bool IsItemInCache(string cacheKey)
+        {
+            return _cacheFileIndex.ContainsKey(cacheKey);
         }
 
         private static void EvictCacheEntry()

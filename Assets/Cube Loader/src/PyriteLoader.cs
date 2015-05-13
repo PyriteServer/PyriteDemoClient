@@ -707,8 +707,17 @@
                         _materialDataCache[texturePath] = null;
                         var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
                             (int) textureCoordinates.y, loadRequest.Lod);
+                        var cachePath = CacheWebRequest.GetCacheFilePath(texturePath);
 
-                        WWW textureWww = new WWW(texturePath);
+                        WWW textureWww;// = new WWW(texturePath);
+                        if (CacheWebRequest.IsItemInCache(cachePath))
+                        {
+                             textureWww = new WWW("file:///" + cachePath);
+                        }
+                        else
+                        {
+                            textureWww = new WWW(texturePath);
+                        }
                         yield return textureWww;
                         materialData.DiffuseTex = textureWww.texture;
                         _materialDataCache[texturePath] = materialData;
