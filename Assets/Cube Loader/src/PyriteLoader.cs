@@ -16,11 +16,6 @@
     {
         private readonly Stopwatch _sw = Stopwatch.StartNew();
 
-        private readonly Color[] _colorList =
-        {
-            Color.gray, Color.yellow, Color.cyan
-        };
-
         private readonly DictionaryCache<string, GeometryBuffer> _eboCache =
             new DictionaryCache<string, GeometryBuffer>(250);
 
@@ -49,7 +44,6 @@
         // End counter bits
 
         private const int RETRY_LIMIT = 2;
-        private int _colorSelector;
 
         private float _geometryBufferAltitudeTransform;
 
@@ -352,8 +346,6 @@
                         cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
                     detectionCube.transform.rotation = Quaternion.identity;
                     var meshRenderer = detectionCube.GetComponent<MeshRenderer>();
-                    meshRenderer.material.color =
-                        _colorList[_colorSelector%_colorList.Length];
                     meshRenderer.enabled = true;
                     detectionCube.GetComponent<IsRendered>().SetCubePosition(x, y, z, DetailLevel, pyriteQuery, this);
 
@@ -363,8 +355,6 @@
                         pyriteLevel.WorldCubeScale.y);
 
                     detectionCube.SetActive(true);
-
-                    _colorSelector++;
                 }
                 else
                 {
@@ -421,8 +411,6 @@
                     cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
                 newDetectionCube.transform.rotation = Quaternion.identity;
                 var meshRenderer = newDetectionCube.GetComponent<MeshRenderer>();
-                meshRenderer.material.color =
-                    _colorList[_colorSelector%_colorList.Length];
                 meshRenderer.enabled = true;
                 newDetectionCube.GetComponent<IsRendered>()
                     .SetCubePosition(newCube.X, newCube.Y, newCube.Z, newLod, pyriteQuery, this);
@@ -431,7 +419,6 @@
                     pyriteLevel.WorldCubeScale.x,
                     pyriteLevel.WorldCubeScale.z,
                     pyriteLevel.WorldCubeScale.y);
-                _colorSelector++;
                 newDetectionCube.SetActive(true);
                 createdDetectors.Add(newDetectionCube);
             }
