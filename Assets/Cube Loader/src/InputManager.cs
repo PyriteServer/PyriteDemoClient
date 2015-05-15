@@ -5,7 +5,7 @@ public class InputManager : MonoBehaviour
 {
     public float RotationDeltaRate = 90;
     public float TranslationDeltaRate = 50.0f;
-	public float TouchTranslationDeltaRate = 2.0f;
+	public float TouchTranslationDeltaRate = 0.2f;
 
     private float _camPitch = 30;
     private float _yaw = 0;
@@ -25,17 +25,44 @@ public class InputManager : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Moved)
+        if (Input.touchCount > 0)
         {
+			if (Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Moved)
+			{
 
-            // Get movement of the finger since last frame
-            Vector2 touchDeltaPosition = Input.GetTouch(0).deltaPosition;
+	            // Get movement of the finger since last frame
+	            Vector2 touchDeltaPosition = Input.GetTouch(0).deltaPosition;
 
-            // Move object across XY plane
-            _targetPosition.Translate(
-                -touchDeltaPosition.x * TouchTranslationDeltaRate,
-                -touchDeltaPosition.y * TouchTranslationDeltaRate,
-                0);
+
+	            // Move object across XY plane
+	            _targetPosition.Translate(
+	                -touchDeltaPosition.x * TouchTranslationDeltaRate, 
+					0,
+	                -touchDeltaPosition.y * TouchTranslationDeltaRate);
+			}
+			// Pinch Zoom -> Y Axis
+			if (Input.touchCount == 2)
+			{
+				// Store both touches.
+				Touch touchZero = Input.GetTouch(0);
+				Touch touchOne = Input.GetTouch(1);
+				
+				// Find the position in the previous frame of each touch.
+				Vector2 touchZeroPrevPos = touchZero.position - touchZero.deltaPosition;
+				Vector2 touchOnePrevPos = touchOne.position - touchOne.deltaPosition;
+				
+				// Find the magnitude of the vector (the distance) between the touches in each frame.
+				float prevTouchDeltaMag = (touchZeroPrevPos - touchOnePrevPos).magnitude;
+				float touchDeltaMag = (touchZero.position - touchOne.position).magnitude;
+				
+				// Find the difference in the distances between each frame.
+				float deltaMagnitudeDiff = prevTouchDeltaMag - touchDeltaMag;
+				
+				_targetPosition.Translate(
+					0, 
+					deltaMagnitudeDiff * TouchTranslationDeltaRate,
+					0);
+			}
         }
         else
         {
