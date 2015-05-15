@@ -49,7 +49,7 @@
         // End counter bits
 
         private const int RETRY_LIMIT = 2;
-        private int _colorSelector;       
+        private int _colorSelector;
 
         private float _geometryBufferAltitudeTransform;
 
@@ -84,10 +84,7 @@
         public bool CacheFill = false;
         public int CacheSize = 3000;
 
-        [HideInInspector()]
-        public Plane[] CameraFrustrum = null;
-
-        private readonly HashSet<string> _activeRequests = new HashSet<string>();
+        [HideInInspector] public Plane[] CameraFrustrum;
 
         // Queue for requests that are waiting for their material data
         private readonly Queue<LoadCubeRequest> _loadMaterialQueue = new Queue<LoadCubeRequest>(10);
@@ -118,7 +115,7 @@
         }
 
         private void Start()
-        {                                       
+        {
             if (string.IsNullOrEmpty(SetName))
             {
                 Debug.LogError("Must specify SetName");
@@ -136,18 +133,18 @@
             _guiStyle.normal.textColor = Color.red;
 
             ObjectPooler.Current.CreatePoolForObject(BaseModelCube);
-            
+
             // Optional pool only used in camera detection scenario
             if (PlaceHolderCube != null)
             {
                 ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
-            }         
+            }
 
             CacheWebRequest.RehydrateCache(CacheSize);
 
             DebugLog("+Start()");
             StartCoroutine(Load());
-            DebugLog("-Start()");            
+            DebugLog("-Start()");
         }
 
         private static bool CheckThread(bool expectMainThread)
@@ -176,7 +173,7 @@
             CameraFrustrum = GeometryUtility.CalculateFrustumPlanes(Camera.main);
 
             // Check for work in Update
-            ProcessQueues();            
+            ProcessQueues();
         }
 
         // Look through all work queues starting any work that is needed
@@ -236,7 +233,7 @@
                 LinkedList<LoadCubeRequest> dependentRequests;
                 if (_dependentCubes.TryGetValue(dependencyKey, out dependentRequests))
                 {
-                    if (dependentRequests.Any((request) => !request.Cancelled))
+                    if (dependentRequests.Any(request => !request.Cancelled))
                     {
                         return true;
                     }
@@ -250,7 +247,6 @@
                 }
             }
             return false;
-
         }
 
         private IEnumerator AddDependentRequest(LoadCubeRequest dependentRequest, string dependencyKey)
@@ -331,7 +327,8 @@
         {
             DebugLog("+Load()");
 
-            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant, DowngradeFactor, DowngradeConstant);
+            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant,
+                DowngradeFactor, DowngradeConstant);
             yield return StartCoroutine(pyriteQuery.LoadAll());
             DebugLog("CubeQuery complete.");
 
@@ -420,13 +417,15 @@
                 var cubePos = pyriteLevel.GetWorldCoordinatesForCube(newCube);
 
                 var newDetectionCube = ObjectPooler.Current.GetPooledObject(PlaceHolderCube);
-                newDetectionCube.transform.position = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
+                newDetectionCube.transform.position = new Vector3(-cubePos.x,
+                    cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
                 newDetectionCube.transform.rotation = Quaternion.identity;
                 var meshRenderer = newDetectionCube.GetComponent<MeshRenderer>();
                 meshRenderer.material.color =
-                    _colorList[_colorSelector % _colorList.Length];
+                    _colorList[_colorSelector%_colorList.Length];
                 meshRenderer.enabled = true;
-                newDetectionCube.GetComponent<IsRendered>().SetCubePosition(newCube.X, newCube.Y, newCube.Z, newLod, pyriteQuery, this);
+                newDetectionCube.GetComponent<IsRendered>()
+                    .SetCubePosition(newCube.X, newCube.Y, newCube.Z, newLod, pyriteQuery, this);
 
                 newDetectionCube.transform.localScale = new Vector3(
                     pyriteLevel.WorldCubeScale.x,
@@ -653,12 +652,12 @@
                             yield return modelWww;
                             CacheWebRequest.AddToCache(cachePath, modelWww.bytes);
                         }
-                       
+
                         _eboCache[modelPath] =
                             new GeometryBuffer(_geometryBufferAltitudeTransform, true)
-                                {
-                                    Buffer = modelWww.bytes
-                                };
+                            {
+                                Buffer = modelWww.bytes
+                            };
                         yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath));
                     }
                     else
@@ -755,11 +754,11 @@
                                 yield return textureWww;
                                 CacheWebRequest.AddToCache(cachePath, textureWww.bytes);
                             }
-                            
+
                             materialData.DiffuseTex = textureWww.texture;
                         }
                         _materialDataCache[texturePath] = materialData;
-                        
+
                         // Move forward dependent requests that wanted this material data
                         yield return StartCoroutine(SucceedGetMaterialDataRequests(texturePath));
                     }
@@ -771,8 +770,8 @@
                         // Set to null to signal to other tasks that the key is in the process
                         // of being filled
                         _materialDataCache[texturePath] = null;
-                        var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int)textureCoordinates.x,
-                            (int)textureCoordinates.y, loadRequest.Lod);
+                        var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
+                            (int) textureCoordinates.y, loadRequest.Lod);
                         _partiallyConstructedMaterialDatas[texturePath] = materialData;
 
                         CacheWebRequest.GetBytes(texturePath, textureResponse =>

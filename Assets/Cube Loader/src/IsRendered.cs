@@ -219,7 +219,6 @@
                             }));
                 }else if (Downgradable && ShouldDowngrade(cameraToCheckAgainst))
                 {
-                    DestroyChildren();
                     yield return StartCoroutine(RequestCubeLoad());
                 }
 
