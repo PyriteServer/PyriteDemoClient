@@ -326,7 +326,9 @@ MonoBehaviour:
   PyriteServer: 
   MaxConcurrentRequests: 8
   DetailLevel: 4
-  ModelVersion: V2
+  FilterDetailLevels: 0
+  DetailLevelsToFilter: 03000000
+  ModelVersion: V1
   SetName: 
   UseCameraDetection: 1
   UseUnlitShader: 1
@@ -337,7 +339,7 @@ MonoBehaviour:
   DowngradeFactor: 1.10000002
   DowngradeConstant: 0
   UseWwwForTextures: 1
-  UseWwwForEbo: 0
+  UseWwwForEbo: 1
   CacheFill: 0
   CacheSize: 3000
 --- !u!4 &2132541550

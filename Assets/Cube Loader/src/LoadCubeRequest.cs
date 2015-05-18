@@ -6,7 +6,7 @@
 
     public class LoadCubeRequest : IEquatable<LoadCubeRequest>
     {
-        public readonly int X, Y, Z, Lod;
+        public readonly int X, Y, Z, LodIndex;
         public readonly PyriteQuery Query;
         public readonly Action<GameObject> RegisterCreatedObjects;
         private string _name;
@@ -17,7 +17,7 @@
             X = x;
             Y = y;
             Z = z;
-            Lod = lod;
+            LodIndex = lod;
             Query = query;
             RegisterCreatedObjects = registerCreatedObjects;
         }
@@ -29,7 +29,7 @@
         public bool Equals(LoadCubeRequest other)
         {
             return
-                X == other.X && Y == other.Y && Z == other.Z && Lod == other.Lod;
+                X == other.X && Y == other.Y && Z == other.Z && LodIndex == other.LodIndex;
         }
 
         public override bool Equals(object obj)
@@ -48,8 +48,8 @@
         {
             if (string.IsNullOrEmpty(_name))
             {
-                var sb = new StringBuilder("lcr_L");
-                sb.Append(Lod);
+                var sb = new StringBuilder("lcr_Li");
+                sb.Append(LodIndex);
                 sb.Append(":");
                 sb.Append(X);
                 sb.Append("_");

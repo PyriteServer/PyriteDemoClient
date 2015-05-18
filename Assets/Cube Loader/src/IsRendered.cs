@@ -10,21 +10,21 @@
     {
         private readonly List<GameObject> _childDetectors = new List<GameObject>();
         private readonly List<GameObject> _cubes = new List<GameObject>();
-        private int _lod;
+        private int _lodIndex;
         private PyriteLoader _manager;
         private MeshRenderer _meshRenderer;
         private PyriteQuery _pyriteQuery;
         private Renderer _render;
         private int _x, _y, _z;
         private LoadCubeRequest _loadCubeRequest;
-        private bool _upgraded = false;
-        private bool _upgrading = false;
+        private bool _upgraded;
+        private bool _upgrading;
 
         private bool Upgradable
         {
             get
             {
-                return !_upgraded && !_upgrading && _manager != null && _childDetectors.Count == 0 && _pyriteQuery.DetailLevels.ContainsKey(_lod - 1);
+                return !_upgraded && !_upgrading && _manager != null && _childDetectors.Count == 0 && _lodIndex != 0;
             }
         }
 
@@ -38,11 +38,11 @@
             _x = x;
             _y = y;
             _z = z;
-            _lod = lod;
+            _lodIndex = lod;
             _pyriteQuery = query;
             _manager = manager;
             var nameBuilder = new StringBuilder("PH_L");
-            nameBuilder.Append(lod);
+            nameBuilder.Append(_pyriteQuery.DetailLevels[_lodIndex].Value);
             nameBuilder.Append(':');
             nameBuilder.Append(x);
             nameBuilder.Append('_');
@@ -82,7 +82,7 @@
         private IEnumerator RequestCubeLoad()
         {
             CancelRequest();
-            _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lod, _pyriteQuery, createdObject =>
+            _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lodIndex, _pyriteQuery, createdObject =>
             {
                 DestroyChildren();
                 _cubes.Add(createdObject);
@@ -95,13 +95,13 @@
         private bool ShouldUpgrade(Component cameraThatDetects)
         {
             var distance = Vector3.Distance(transform.position, cameraThatDetects.transform.position);
-            return distance < _pyriteQuery.DetailLevels[_lod].UpgradeDistance;
+            return distance < _pyriteQuery.DetailLevels[_lodIndex].UpgradeDistance;
         }
 
         private bool ShouldDowngrade(Component cameraThatDetects)
         {
             var distance = Vector3.Distance(transform.position, cameraThatDetects.transform.position);
-            return distance > _pyriteQuery.DetailLevels[_lod].DowngradeDistance;
+            return distance > _pyriteQuery.DetailLevels[_lodIndex].DowngradeDistance;
         }
 
         // Cleans up cube game object and deactivates it to return to object pool
@@ -165,7 +165,6 @@
 
         private IEnumerator WaitForChildrenToLoad(IEnumerable<GameObject> newDetectors)
         {
-
             while (newDetectors.Any(cd =>
             {
                 var cdAsIsRendered = cd.GetComponent<IsRendered>();
@@ -212,12 +211,10 @@
                 {
                     _upgrading = true;
                     yield return
-                        StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lod,
-                            addedDetectors =>
-                            {
-                                StartCoroutine(DestroyChildrenAfterLoading(addedDetectors));
-                            }));
-                }else if (Downgradable && ShouldDowngrade(cameraToCheckAgainst))
+                        StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lodIndex,
+                            addedDetectors => { StartCoroutine(DestroyChildrenAfterLoading(addedDetectors)); }));
+                }
+                else if (Downgradable && ShouldDowngrade(cameraToCheckAgainst))
                 {
                     yield return StartCoroutine(RequestCubeLoad());
                 }

@@ -3,6 +3,7 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using Extensions;
     using Microsoft.Xna.Framework;
@@ -31,12 +32,13 @@
         private const string OkValue = "OK";
         private readonly string _apiUrl = "http://api.pyrite3d.org/";
 
-        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl) : this(manager, setName, version, apiUrl, 1.05f, 0f, 1.05f, 0f)
+        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl)
+            : this(manager, setName, version, apiUrl, 1.05f, 0f, 1.05f, 0f)
         {
-            
         }
 
-        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl, float upgradeFactor, float upgradeConstant, float downgradeFactor, float downgradeConstant)
+        public PyriteQuery(MonoBehaviour manager, string setName, string version, string apiUrl, float upgradeFactor,
+            float upgradeConstant, float downgradeFactor, float downgradeConstant)
         {
             if (!string.IsNullOrEmpty(apiUrl))
             {
@@ -46,7 +48,6 @@
             SetName = setName;
             Version = version;
             Loaded = false;
-            DetailLevels = new Dictionary<int, PyriteSetVersionDetailLevel>();
             _manager = manager;
             _setUrl = _apiUrl + "/sets/" + SetName + "/";
             _versionUrl = _setUrl + Version + "/";
@@ -76,12 +77,12 @@
         private readonly float _downgradeFactor;
         private readonly float _downgradeConstant;
 
-        public Dictionary<int, PyriteSetVersionDetailLevel> DetailLevels { get; private set; }
+        public PyriteSetVersionDetailLevel[] DetailLevels { get; private set; }
 
-        public string GetModelPath(int lod, int x, int y, int z)
+        public string GetModelPath(int lodIndex, int x, int y, int z)
         {
-            StringBuilder modelPathBuilder = new StringBuilder(_modelUrlPart);
-            modelPathBuilder.Append(lod);
+            var modelPathBuilder = new StringBuilder(_modelUrlPart);
+            modelPathBuilder.Append(DetailLevels[lodIndex].Value);
             modelPathBuilder.Append("/");
             modelPathBuilder.Append(x);
             modelPathBuilder.Append(',');
@@ -91,10 +92,10 @@
             return modelPathBuilder.ToString();
         }
 
-        public string GetTexturePath(int lod, int x, int y)
+        public string GetTexturePath(int lodIndex, int x, int y)
         {
-            StringBuilder texturePathBuilder = new StringBuilder(_textureUrlPart);
-            texturePathBuilder.Append(lod);
+            var texturePathBuilder = new StringBuilder(_textureUrlPart);
+            texturePathBuilder.Append(DetailLevels[lodIndex].Value);
             texturePathBuilder.Append("/");
             texturePathBuilder.Append(x);
             texturePathBuilder.Append(',');
@@ -102,15 +103,16 @@
             return texturePathBuilder.ToString();
         }
 
-        public Vector3 GetNextCubeFactor(int lod)
+        public Vector3 GetNextCubeFactor(int lodIndex)
         {
-            var currentSetSize = DetailLevels[lod].SetSize;
-            if (!DetailLevels.ContainsKey(lod - 1))
+            if (lodIndex == 0)
             {
                 return Vector3.one;
             }
 
-            var nextSetSize = DetailLevels[lod - 1].SetSize;
+            var currentSetSize = DetailLevels[lodIndex].SetSize;
+            var nextSetSize = DetailLevels[lodIndex - 1].SetSize;
+
             return new Vector3(
                 nextSetSize.x/currentSetSize.x,
                 nextSetSize.y/currentSetSize.y,
@@ -118,15 +120,16 @@
                 );
         }
 
-        public Vector3 GetPreviousCubeFactor(int lod)
+        public Vector3 GetPreviousCubeFactor(int lodIndex)
         {
-            var currentSetSize = DetailLevels[lod].SetSize;
-            if (!DetailLevels.ContainsKey(lod + 1))
+            if (lodIndex == DetailLevels.Length - 1)
             {
                 return Vector3.one;
             }
 
-            var prevSetSize = DetailLevels[lod + 1].SetSize;
+            var currentSetSize = DetailLevels[lodIndex].SetSize;
+            var prevSetSize = DetailLevels[lodIndex + 1].SetSize;
+
             return new Vector3(
                 currentSetSize.x/prevSetSize.x,
                 currentSetSize.y/prevSetSize.y,
@@ -134,17 +137,13 @@
                 );
         }
 
-        private int GetDetailNumberFromName(string levelName)
-        {
-            return int.Parse(levelName.Substring(1));
-        }
-
         public IEnumerator Load3X3(string reference, Vector3 queryPosition)
         {
             yield return _manager.StartCoroutine(LoadMetadata());
 
             var cubesUrl = _versionUrl +
-                           string.Format("query/3x3/{0}/{1},{2},{3}", reference, queryPosition.x, queryPosition.y, queryPosition.z);
+                           string.Format("query/3x3/{0}/{1},{2},{3}", reference, queryPosition.x, queryPosition.y,
+                               queryPosition.z);
 
             var loader = WwwExtensions.CreateWWW(cubesUrl, true);
             yield return loader;
@@ -174,10 +173,10 @@
             }
         }
 
-        public IEnumerator LoadAll()
+        public IEnumerator LoadAll(List<int> detailLevelsToFilter)
         {
-            yield return _manager.StartCoroutine(LoadMetadata());
-            foreach (var detailLevel in DetailLevels.Values)
+            yield return _manager.StartCoroutine(LoadMetadata(detailLevelsToFilter));
+            foreach (var detailLevel in DetailLevels)
             {
                 var maxBoundingBoxQuery = string.Format("{0},{1},{2}/{3},{4},{5}",
                     detailLevel.WorldBoundsMin.x,
@@ -211,16 +210,17 @@
                         Y = parsedCubes[l][1].AsInt,
                         Z = parsedCubes[l][2].AsInt
                     };
-                    Vector3 min = new Vector3(detailLevel.Cubes[l].X, detailLevel.Cubes[l].Y, detailLevel.Cubes[l].Z);
-                    Vector3 max = min + Vector3.one;
-                    detailLevel.Octree.Add(new CubeBounds() {BoundingBox = new BoundingBox(min, max)});
+                    var min = new Vector3(detailLevel.Cubes[l].X, detailLevel.Cubes[l].Y, detailLevel.Cubes[l].Z);
+                    var max = min + Vector3.one;
+                    detailLevel.Octree.Add(new CubeBounds {BoundingBox = new BoundingBox(min, max)});
                 }
+
                 detailLevel.Octree.UpdateTree();
             }
             Loaded = true;
         }
 
-        private IEnumerator LoadMetadata()
+        private IEnumerator LoadMetadata(List<int> detailLevelsToFilter = null)
         {
             Debug.Log("Metadata query started against: " + _setUrl);
             WWW loader = null;
@@ -241,6 +241,8 @@
                 yield break;
             }
             var parsedDetailLevels = parsedContent[ResultKey][DetailLevelsKey].AsArray;
+            var sortedDetailLevels = new SortedDictionary<int, PyriteSetVersionDetailLevel>();
+
             for (var k = 0; k < parsedDetailLevels.Count; k++)
             {
                 var detailLevel = new PyriteSetVersionDetailLevel
@@ -251,7 +253,13 @@
 
                 detailLevel.Value = Int32.Parse(detailLevel.Name.Substring(1));
 
-                DetailLevels[GetDetailNumberFromName(detailLevel.Name)] = detailLevel;
+                if (detailLevelsToFilter != null && detailLevelsToFilter.Contains(detailLevel.Value))
+                {
+                    Debug.Log("Skipping lod " + detailLevel.Value);
+                    continue;
+                }
+
+                sortedDetailLevels[detailLevel.Value] = detailLevel;
                 detailLevel.SetSize = new Vector3(
                     parsedDetailLevels[k][SetSizeKey][XKey].AsFloat,
                     parsedDetailLevels[k][SetSizeKey][YKey].AsFloat,
@@ -294,11 +302,23 @@
 
                 detailLevel.UpgradeDistance = detailLevel.WorldCubeScale.magnitude*_upgradeFactor + _upgradeConstant;
 
-                detailLevel.DowngradeDistance = detailLevel.WorldCubeScale.magnitude * _downgradeFactor + _downgradeConstant;
+                detailLevel.DowngradeDistance = detailLevel.WorldCubeScale.magnitude*_downgradeFactor +
+                                                _downgradeConstant;
 
                 detailLevel.WorldBoundsSize =
                     detailLevel.WorldBoundsMax -
                     detailLevel.WorldBoundsMin;
+            }
+
+            DetailLevels = sortedDetailLevels.Values.ToArray();
+
+            for (int i = DetailLevels.Length - 1; i > 0; i--)
+            {
+                if (DetailLevels[i].Value != DetailLevels[i - 1].Value + 1)
+                {
+                    DetailLevels[i].UpgradeDistance *= 0.5f;
+                    DetailLevels[i].DowngradeDistance *= 0.5f;
+                }
             }
             Debug.Log("Metadata query completed.");
         }

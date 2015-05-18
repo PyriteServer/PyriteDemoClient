@@ -34,16 +34,11 @@
                 return;
             }
 
-
-            DebugLog("+Start()");
             StartCoroutine(Load());
-            DebugLog("-Start()");
         }
 
         public IEnumerator Load()
         {
-            DebugLog("+Load()");
-
             var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer);
             if (TargetGameObject != null)
             {
@@ -59,18 +54,16 @@
             {
                 yield return StartCoroutine(pyriteQuery.Load3X3(Reference, QueryPosition));
             }
-            DebugLog("CubeQuery complete.");
-
             
-            float xmin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.x;
-            float ymin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.y;
-            float zmin = pyriteQuery.DetailLevels.Values.First().WorldBoundsMax.z;
-            float xmax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.x;
-            float ymax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.y;
-            float zmax = pyriteQuery.DetailLevels.Values.First().WorldBoundsMin.z;
+            float xmin = pyriteQuery.DetailLevels[0].WorldBoundsMax.x;
+            float ymin = pyriteQuery.DetailLevels[0].WorldBoundsMax.y;
+            float zmin = pyriteQuery.DetailLevels[0].WorldBoundsMax.z;
+            float xmax = pyriteQuery.DetailLevels[0].WorldBoundsMin.x;
+            float ymax = pyriteQuery.DetailLevels[0].WorldBoundsMin.y;
+            float zmax = pyriteQuery.DetailLevels[0].WorldBoundsMin.z;
 
             Dictionary<int, HashSet<PyriteCube>> cubesToSkip = new Dictionary<int, HashSet<PyriteCube>>();
-            foreach (var pyriteLevel in pyriteQuery.DetailLevels.Values)
+            foreach (var pyriteLevel in pyriteQuery.DetailLevels)
             {
                 xmin = pyriteLevel.WorldBoundsMax.x;
                 ymin = pyriteLevel.WorldBoundsMax.y;
@@ -95,7 +88,6 @@
                     {
                         if (SkipLowerDetailedCubes)
                         {
-                            DebugLog("Skipping cube: L{0}: {1},{2},{3}", pyriteLevel.Value, x, y, z);
                             continue;
                         }
                     }
@@ -114,7 +106,6 @@
 
             if (CameraRig != null)
             {
-                DebugLog("Moving camera");
                 // Hardcoding some values for now
                 var min = new Vector3(xmin, ymin, zmin);
                 var max = new Vector3(xmax, ymax, zmax);
@@ -123,10 +114,7 @@
                 CameraRig.transform.position = newCameraPosition;
 
                 CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
-
-                DebugLog("Done moving camera");
             }
-            DebugLog("-Load()");
         }
     }
 }

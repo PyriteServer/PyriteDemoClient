@@ -100,7 +100,10 @@
             }
 
             if (md.DiffuseTex != null)
+            {
                 m.SetTexture("_MainTex", md.DiffuseTex);
+            }
+
 
             return m;
         }
