@@ -3,26 +3,20 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
     using System.Text;
     using System.Threading;
     using Microsoft.Xna.Framework;
     using Model;
     using UnityEngine;
-    using Debug = UnityEngine.Debug;
 
     public class PyriteLoader : MonoBehaviour
     {
-        private readonly Stopwatch _sw = Stopwatch.StartNew();
+        private DictionaryCache<string, GeometryBuffer> _eboCache;
 
-        private readonly DictionaryCache<string, GeometryBuffer> _eboCache =
-            new DictionaryCache<string, GeometryBuffer>(250);
+        private DictionaryCache<string, Material> _materialCache;
 
-        private readonly DictionaryCache<string, Material> _materialCache = new DictionaryCache<string, Material>(100);
-
-        private readonly DictionaryCache<string, MaterialData> _materialDataCache =
-            new DictionaryCache<string, MaterialData>(100);
+        private DictionaryCache<string, MaterialData> _materialDataCache;
 
         private readonly Dictionary<string, MaterialData> _partiallyConstructedMaterialDatas =
             new Dictionary<string, MaterialData>();
@@ -65,6 +59,10 @@
         public List<int> DetailLevelsToFilter;
         public string ModelVersion = "V2";
         public string SetName;
+
+        [Header("Performance options")] public int EboCacheSize = 250;
+        public int MaterialCacheSize = 100;
+        public int MaterialDataCacheSize = 100;
 
         [Header("Debug Options")] public bool UseCameraDetection = true;
         public bool UseUnlitShader = true;
@@ -119,6 +117,8 @@
 
             _guiStyle.normal.textColor = Color.red;
 
+            InitializeCaches();
+
             ObjectPooler.Current.CreatePoolForObject(BaseModelCube);
 
             // Optional pool only used in camera detection scenario
@@ -130,6 +130,36 @@
             CacheWebRequest.RehydrateCache(CacheSize);
 
             StartCoroutine(Load());
+        }
+
+        private void InitializeCaches()
+        {
+            if (_eboCache == null)
+            {
+                _eboCache = new DictionaryCache<string, GeometryBuffer>(EboCacheSize);
+            }
+            else
+            {
+                Debug.LogWarning("Ebo cache already initialized. Skipping initizliation.");
+            }
+
+            if (_materialDataCache == null)
+            {
+                _materialDataCache = new DictionaryCache<string, MaterialData>(MaterialDataCacheSize);
+            }
+            else
+            {
+                Debug.LogWarning("Material Data cache  already initialized. Skipping initizliation.");
+            }
+
+            if (_materialCache == null)
+            {
+                _materialCache = new DictionaryCache<string, Material>(MaterialCacheSize);
+            }
+            else
+            {
+                Debug.LogWarning("Material cache  already initialized. Skipping initizliation.");
+            }
         }
 
         private static bool CheckThread(bool expectMainThread)

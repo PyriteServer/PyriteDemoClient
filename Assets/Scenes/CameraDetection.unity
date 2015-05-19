@@ -330,6 +330,9 @@ MonoBehaviour:
   DetailLevelsToFilter: 03000000
   ModelVersion: V1
   SetName: 
+  EboCacheSize: 250
+  MaterialCacheSize: 100
+  MaterialDataCacheSize: 100
   UseCameraDetection: 1
   UseUnlitShader: 1
   UseFileCache: 1
