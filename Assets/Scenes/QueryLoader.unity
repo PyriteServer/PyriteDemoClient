@@ -309,6 +309,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   RotationDeltaRate: 90
   TranslationDeltaRate: 100
+  TouchTranslationDeltaRate: .200000003
 --- !u!1 &1608615648
 GameObject:
   m_ObjectHideFlags: 0
@@ -391,6 +392,7 @@ GameObject:
   m_Component:
   - 4: {fileID: 2132541550}
   - 114: {fileID: 2132541549}
+  - 114: {fileID: 2132541551}
   m_Layer: 0
   m_Name: CubeContainer
   m_TagString: Untagged
@@ -412,15 +414,29 @@ MonoBehaviour:
   CameraRig: {fileID: 0}
   EnableDebugLogs: 1
   PlaceHolderCube: {fileID: 0}
+  BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   PyriteServer: 
   MaxConcurrentRequests: 8
-  DetailLevel: 6
+  DetailLevel: 4
+  FilterDetailLevels: 0
+  DetailLevelsToFilter: 
   ModelVersion: V2
   SetName: 
+  EboCacheSize: 250
+  MaterialCacheSize: 100
+  MaterialDataCacheSize: 100
   UseCameraDetection: 0
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 1
+  UpgradeFactor: 1.04999995
+  UpgradeConstant: 0
+  DowngradeFactor: 1.10000002
+  DowngradeConstant: 0
+  UseWwwForTextures: 1
+  UseWwwForEbo: 1
+  CacheFill: 0
+  CacheSize: 3000
   QueryPosition: {x: 0, y: 0, z: 0}
   TargetGameObject: {fileID: 1608615648}
   SkipLowerDetailedCubes: 1
@@ -437,3 +453,16 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
+--- !u!114 &2132541551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 2132541548}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a293b1448e4ec5a439d64758b7132b05, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pooledAmount: 20
+  willGrow: 1

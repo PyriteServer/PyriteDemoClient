@@ -158,12 +158,12 @@
             for (var l = 0; l < parsedCubeGroups.Count; l++)
             {
                 string lodName = parsedCubeGroups[l][NameKey];
-                var detailLevelNumber = Int32.Parse(lodName.Substring(1));
+                var detailLevelindex = Int32.Parse(lodName.Substring(1)) - 1;
                 var parsedCubes = parsedCubeGroups[l][CubesKey].AsArray;
-                DetailLevels[detailLevelNumber].Cubes = new PyriteCube[parsedCubes.Count];
+                DetailLevels[detailLevelindex].Cubes = new PyriteCube[parsedCubes.Count];
                 for (var c = 0; c < parsedCubes.Count; c++)
                 {
-                    DetailLevels[detailLevelNumber].Cubes[c] = new PyriteCube
+                    DetailLevels[detailLevelindex].Cubes[c] = new PyriteCube
                     {
                         X = parsedCubes[c][0].AsInt,
                         Y = parsedCubes[c][1].AsInt,

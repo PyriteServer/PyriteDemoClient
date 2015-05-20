@@ -41,35 +41,47 @@
 
         private float _geometryBufferAltitudeTransform;
 
+        [Tooltip("If set object will be moved closer to model being loaded")]
         public GameObject CameraRig;
 
         public bool EnableDebugLogs = false;
 
-        // Prefab for detection cubes
+        [Tooltip("Prefab for detection cubes")]
         public GameObject PlaceHolderCube;
 
-        // Prefab for base cube object that we will populate data
+        [Tooltip("Prefab for base cube object that we will populate data")]
         public GameObject BaseModelCube;
 
-        [Header("Server Options")] public string PyriteServer;
-        [Range(0, 100)] public int MaxConcurrentRequests = 8;
+        [Header("Server Options")]
+        public string PyriteServer;
 
-        [Header("Set Options (required)")] public int DetailLevel = 6;
+        [Range(0, 100)]
+        public int MaxConcurrentRequests = 8;
+
+        [Header("Set Options (required)")]
+        public int DetailLevel = 6;
+
         public bool FilterDetailLevels = false;
         public List<int> DetailLevelsToFilter;
         public string ModelVersion = "V2";
         public string SetName;
 
-        [Header("Performance options")] public int EboCacheSize = 250;
+        [Header("Performance options")]
+        public int EboCacheSize = 250;
+
         public int MaterialCacheSize = 100;
         public int MaterialDataCacheSize = 100;
 
-        [Header("Debug Options")] public bool UseCameraDetection = true;
+        [Header("Debug Options")]
+        public bool UseCameraDetection = true;
+
         public bool UseUnlitShader = true;
         public bool UseFileCache = true;
         public bool ShowDebugText = true;
 
-        [Header("Other Options")] public float UpgradeFactor = 1.05f;
+        [Header("Other Options")]
+        public float UpgradeFactor = 1.05f;
+
         public float UpgradeConstant = 0.0f;
         public float DowngradeFactor = 1.05f;
         public float DowngradeConstant = 0.0f;
@@ -78,7 +90,8 @@
         public bool CacheFill = false;
         public int CacheSize = 3000;
 
-        [HideInInspector] public Plane[] CameraFrustrum;
+        [HideInInspector]
+        public Plane[] CameraFrustrum;
 
         // Queue for requests that are waiting for their material data
         private readonly Queue<LoadCubeRequest> _loadMaterialQueue = new Queue<LoadCubeRequest>(10);
@@ -99,6 +112,8 @@
 
         private static Thread _mainThread;
 
+        protected bool Loaded { get; private set; }
+
         private void Start()
         {
             if (string.IsNullOrEmpty(SetName))
@@ -113,27 +128,23 @@
                 return;
             }
 
+            InternalSetup();
+            StartCoroutine(InternalLoad());
+        }
+
+        private IEnumerator InternalLoad()
+        {
+            yield return StartCoroutine(Load());
+            Loaded = true;
+        }
+
+        private void InternalSetup()
+        {
             _mainThread = Thread.CurrentThread;
 
             _guiStyle.normal.textColor = Color.red;
 
-            InitializeCaches();
 
-            ObjectPooler.Current.CreatePoolForObject(BaseModelCube);
-
-            // Optional pool only used in camera detection scenario
-            if (PlaceHolderCube != null)
-            {
-                ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
-            }
-
-            CacheWebRequest.RehydrateCache(CacheSize);
-
-            StartCoroutine(Load());
-        }
-
-        private void InitializeCaches()
-        {
             if (_eboCache == null)
             {
                 _eboCache = new DictionaryCache<string, GeometryBuffer>(EboCacheSize);
@@ -160,6 +171,16 @@
             {
                 Debug.LogWarning("Material cache  already initialized. Skipping initizliation.");
             }
+
+            ObjectPooler.Current.CreatePoolForObject(BaseModelCube);
+
+            // Optional pool only used in camera detection scenario
+            if (PlaceHolderCube != null)
+            {
+                ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
+            }
+
+            CacheWebRequest.RehydrateCache(CacheSize);
         }
 
         private static bool CheckThread(bool expectMainThread)
@@ -184,6 +205,11 @@
 
         private void Update()
         {
+            if (!Loaded)
+            {
+                return;
+            }
+
             // Update camera frustrum
             CameraFrustrum = GeometryUtility.CalculateFrustumPlanes(Camera.main);
 
@@ -338,21 +364,21 @@
             };
         }
 
-        public IEnumerator Load()
+        protected virtual IEnumerator Load()
         {
             var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant,
                 DowngradeFactor, DowngradeConstant);
             yield return StartCoroutine(pyriteQuery.LoadAll(FilterDetailLevels ? DetailLevelsToFilter : null));
-            var initialDetailLevel = DetailLevel;
+            var initialDetailLevelIndex = DetailLevel - 1;
             if (UseCameraDetection)
             {
-                initialDetailLevel = pyriteQuery.DetailLevels.Length - 1;
+                initialDetailLevelIndex = pyriteQuery.DetailLevels.Length - 1;
             }
 
             var pyriteLevel =
-                pyriteQuery.DetailLevels[initialDetailLevel];
+                pyriteQuery.DetailLevels[initialDetailLevelIndex];
 
-            var allOctCubes = pyriteQuery.DetailLevels[initialDetailLevel].Octree.AllItems();
+            var allOctCubes = pyriteQuery.DetailLevels[initialDetailLevelIndex].Octree.AllItems();
             foreach (var octCube in allOctCubes)
             {
                 var pCube = CreateCubeFromCubeBounds(octCube);
@@ -371,7 +397,7 @@
                     var meshRenderer = detectionCube.GetComponent<MeshRenderer>();
                     meshRenderer.enabled = true;
                     detectionCube.GetComponent<IsRendered>()
-                        .SetCubePosition(x, y, z, initialDetailLevel, pyriteQuery, this);
+                        .SetCubePosition(x, y, z, initialDetailLevelIndex, pyriteQuery, this);
 
                     detectionCube.transform.localScale = new Vector3(
                         pyriteLevel.WorldCubeScale.x,
@@ -382,7 +408,7 @@
                 }
                 else
                 {
-                    var loadRequest = new LoadCubeRequest(x, y, z, initialDetailLevel, pyriteQuery, null);
+                    var loadRequest = new LoadCubeRequest(x, y, z, initialDetailLevelIndex, pyriteQuery, null);
                     yield return StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
                 }
             }

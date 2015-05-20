@@ -345,12 +345,25 @@ MonoBehaviour:
   PyriteServer: 
   MaxConcurrentRequests: 8
   DetailLevel: 4
+  FilterDetailLevels: 0
+  DetailLevelsToFilter: 
   ModelVersion: V2
   SetName: 
+  EboCacheSize: 250
+  MaterialCacheSize: 100
+  MaterialDataCacheSize: 100
   UseCameraDetection: 0
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 1
+  UpgradeFactor: 1.04999995
+  UpgradeConstant: 0
+  DowngradeFactor: 1.04999995
+  DowngradeConstant: 0
+  UseWwwForTextures: 0
+  UseWwwForEbo: 0
+  CacheFill: 0
+  CacheSize: 3000
 --- !u!4 &2132541550
 Transform:
   m_ObjectHideFlags: 0
