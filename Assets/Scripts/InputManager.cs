@@ -1,4 +1,4 @@
-﻿namespace Pyrite
+﻿namespace PyriteDemoClient
 {
     using UnityEngine;
 

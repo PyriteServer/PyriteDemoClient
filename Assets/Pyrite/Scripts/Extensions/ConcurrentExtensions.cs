@@ -1,4 +1,4 @@
-﻿namespace Pyrite
+﻿namespace Pyrite.Extensions
 {
     using System.Collections;
     using System.Collections.Generic;
