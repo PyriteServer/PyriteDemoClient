@@ -1,15 +1,14 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Assets.Cube_Loader.src
+﻿namespace Pyrite
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+
     public class DictionaryCache<TKey, TValue> : IDictionary<TKey, TValue>
     {
-        private Dictionary<TKey, TValue> _dictionary = new Dictionary<TKey, TValue>();
-        private LinkedList<TKey> _queue = new LinkedList<TKey>();
+        private readonly Dictionary<TKey, TValue> _dictionary = new Dictionary<TKey, TValue>();
+        private readonly LinkedList<TKey> _queue = new LinkedList<TKey>();
 
         public int MaximumLength { get; set; }
 
@@ -25,47 +24,29 @@ namespace Assets.Cube_Loader.src
 
         public TValue this[TKey key]
         {
-            get
-            {
-                return _dictionary[key];
-            }
+            get { return _dictionary[key]; }
 
-            set
-            {
-                _dictionary[key] = value;
-            }
+            set { _dictionary[key] = value; }
         }
 
         public int Count
         {
-            get
-            {
-                return _dictionary.Count;
-            }
+            get { return _dictionary.Count; }
         }
 
         public bool IsReadOnly
         {
-            get
-            {
-                return false;
-            }
+            get { return false; }
         }
 
         public ICollection<TKey> Keys
         {
-            get
-            {
-                return _dictionary.Keys;
-            }
+            get { return _dictionary.Keys; }
         }
 
         public ICollection<TValue> Values
         {
-            get
-            {
-                return _dictionary.Values;
-            }
+            get { return _dictionary.Values; }
         }
 
         public void Add(KeyValuePair<TKey, TValue> item)

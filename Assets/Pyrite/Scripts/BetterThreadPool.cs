@@ -1,61 +1,64 @@
-﻿using UnityEngine;
-using System.Threading;
-
-namespace Assets.Cube_Loader.src
+﻿namespace Pyrite
 {
+    using System.Threading;
+    using UnityEngine;
+
     /// <summary>
     /// Thread pool.
     /// This class itself is not thread safe. Only a single thread can call QueueUserWorkItem safely.
     /// </summary>
     public class BetterThreadPool
     {
-        private static BetterThreadPool s_instance = null;
         public static void InitInstance()
         {
-            if (s_instance == null)
+            if (Instance == null)
             {
                 InitInstance(2048, 4);
             }
         }
+
         public static bool InitInstance(int queueSize, int threadNum)
         {
-            if (s_instance != null)
+            if (Instance != null)
             {
                 Debug.LogWarning("TreadPool instance is already created.");
                 return false;
             }
-            s_instance = new BetterThreadPool(queueSize, threadNum);
+            Instance = new BetterThreadPool(queueSize, threadNum);
             return true;
         }
-        public static BetterThreadPool Instance
-        {
-            get { return s_instance; }
-        }
+
+        public static BetterThreadPool Instance { get; private set; }
+
         public static void QueueUserWorkItem(WaitCallback callback)
         {
-            s_instance.EnqueueTask(callback);
+            Instance.EnqueueTask(callback);
         }
-        private Thread[] m_threadPool;
-        struct TaskInfo
+
+        private readonly Thread[] m_threadPool;
+
+        private struct TaskInfo
         {
             public WaitCallback callback;
             public object args;
         }
-        private TaskInfo[] m_taskQueue;
+
+        private readonly TaskInfo[] m_taskQueue;
         private int m_nPutPointer;
         private int m_nGetPointer;
         private int m_numTasks;
-        private AutoResetEvent m_putNotification;
-        private AutoResetEvent m_getNotification;
+        private readonly AutoResetEvent m_putNotification;
+        private readonly AutoResetEvent m_getNotification;
 #if !UNITY_WEBPLAYER
         // according to this page (https://docs.unity3d.com/401/Documentation/ScriptReference/MonoCompatibility.html),
         // Semaphore is not available on web player.
-        private Semaphore m_semaphore;
+        private readonly Semaphore m_semaphore;
 #endif
+
         private BetterThreadPool(int queueSize, int threadNum)
         {
 #if UNITY_WEBPLAYER
-			threadNum = 1;
+            threadNum = 1;
 #else
             if (threadNum == 0)
             {
@@ -73,7 +76,7 @@ namespace Assets.Cube_Loader.src
             if (1 < threadNum)
             {
                 m_semaphore = new Semaphore(0, queueSize);
-                for (int i = 0; i < threadNum; ++i)
+                for (var i = 0; i < threadNum; ++i)
                 {
                     m_threadPool[i] = new Thread(ThreadFunc);
                     m_threadPool[i].Start();
@@ -86,6 +89,12 @@ namespace Assets.Cube_Loader.src
                 m_threadPool[0].Start();
             }
         }
+
+        static BetterThreadPool()
+        {
+            Instance = null;
+        }
+
         private void EnqueueTask(WaitCallback callback)
         {
             lock (this)
@@ -118,10 +127,11 @@ namespace Assets.Cube_Loader.src
 #endif
             }
         }
+
 #if !UNITY_WEBPLAYER
         private void ThreadFunc()
         {
-            for (; ;)
+            for (;;)
             {
                 m_semaphore.WaitOne();
                 int nCurrentPointer, nNextPointer;
@@ -133,8 +143,9 @@ namespace Assets.Cube_Loader.src
                     {
                         nNextPointer = 0;
                     }
-                } while (Interlocked.CompareExchange(ref m_nGetPointer, nNextPointer, nCurrentPointer) != nCurrentPointer);
-                TaskInfo task = m_taskQueue[nCurrentPointer];
+                } while (Interlocked.CompareExchange(ref m_nGetPointer, nNextPointer, nCurrentPointer) !=
+                         nCurrentPointer);
+                var task = m_taskQueue[nCurrentPointer];
                 if (Interlocked.Decrement(ref m_numTasks) == m_taskQueue.Length - 1)
                 {
                     m_getNotification.Set();
@@ -143,15 +154,16 @@ namespace Assets.Cube_Loader.src
             }
         }
 #endif
+
         private void SingleThreadFunc()
         {
-            for (; ;)
+            for (;;)
             {
                 while (m_numTasks == 0)
                 {
                     m_putNotification.WaitOne();
                 }
-                TaskInfo task = m_taskQueue[m_nGetPointer++];
+                var task = m_taskQueue[m_nGetPointer++];
                 if (m_nGetPointer == m_taskQueue.Length)
                 {
                     m_nGetPointer = 0;

@@ -1,13 +1,10 @@
-﻿namespace Assets.Cube_Loader.Extensions
+﻿namespace Pyrite.Extensions
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
-    using System.Text;
     using ICSharpCode.SharpZipLib.GZip;
     using UnityEngine;
-
 
     public static class WwwExtensions
     {
@@ -16,7 +13,7 @@
 
         public static string GetDecompressedText(this WWW www)
         {
-        #if UNITY_STANDALONE_WIN || UNITY_WEBGL
+#if UNITY_STANDALONE_WIN || UNITY_WEBGL
             string contentEncoding;
             if (www.responseHeaders == null ||
                 !www.responseHeaders.TryGetValue(ContentEncodingHeaderName, out contentEncoding) ||
@@ -32,14 +29,14 @@
                 return sr.ReadToEnd();
             }
 
-        #else
+#else
             return www.text;
         #endif
         }
 
         public static byte[] GetDecompressedBytes(this WWW www)
         {
-        #if UNITY_STANDALONE_WIN || UNITY_WEBGL
+#if UNITY_STANDALONE_WIN || UNITY_WEBGL
             string contentEncoding;
             if (www.responseHeaders == null ||
                 !www.responseHeaders.TryGetValue(ContentEncodingHeaderName, out contentEncoding) ||
@@ -48,20 +45,20 @@
                 return www.bytes;
             }
 
-            byte[] buffer = new byte[4096];
+            var buffer = new byte[4096];
             using (var stream = new MemoryStream(www.bytes))
             using (var gzip = new GZipInputStream(stream))
             using (var outMs = new MemoryStream(www.bytes.Length))
             {
-                int bytesRead = 0;
+                var bytesRead = 0;
                 while ((bytesRead = gzip.Read(buffer, 0, buffer.Length)) > 0)
                 {
-                    outMs.Write(buffer,0, bytesRead);
+                    outMs.Write(buffer, 0, bytesRead);
                 }
                 return outMs.ToArray();
             }
 
-        #else
+#else
             return www.bytes;
         #endif
         }
@@ -76,10 +73,10 @@
         /// <returns></returns>
         public static WWW CreateWWW(string path, bool requestCompression)
         {
-            Dictionary<string, string> headers = new Dictionary<string, string>();
+            var headers = new Dictionary<string, string>();
             if (requestCompression)
             {
-            #if UNITY_WEBGL
+#if UNITY_WEBGL
                 headers.Add("Accept-Encoding", "gzip, deflate");
             #endif
             }

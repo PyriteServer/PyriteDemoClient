@@ -1,11 +1,10 @@
-﻿namespace Assets.Cube_Loader.src
+﻿namespace Pyrite
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
     using System.Text;
-    using System.Threading;
     using UnityEngine;
 
     internal class CacheWebRequest
@@ -31,7 +30,7 @@
         // The path to the cache location on disk
         private static string _temporaryCachePath;
 
-        private static bool _hydrated = false;
+        private static bool _hydrated;
 
         private static readonly char[] InvalidFileCharacters = Path.GetInvalidFileNameChars();
 
@@ -42,7 +41,6 @@
         // List of cache items. When eviction is needed the First item is deleted
         // New items should be added to the back
         private static readonly LinkedList<string> _cacheFileList = new LinkedList<string>();
-
 
         static CacheWebRequest()
         {
@@ -79,7 +77,7 @@
         }
 
         public static string GetCacheFilePath(string originalPath)
-        {                            
+        {
             var sb = new StringBuilder(originalPath);
             foreach (var invalidChar in InvalidFileCharacters)
             {
@@ -139,7 +137,8 @@
             InsertOrUpdateCacheEntry(cacheFilePath);
         }
 
-        public static void GetBytes(string url, Action<CacheWebResponse<byte[]>> onBytesDownloaded, Func<string, bool> isRequestCancelled)
+        public static void GetBytes(string url, Action<CacheWebResponse<byte[]>> onBytesDownloaded,
+            Func<string, bool> isRequestCancelled)
         {
             BetterThreadPool.QueueUserWorkItem(state =>
             {
@@ -175,7 +174,8 @@
                         {
                             response.Content = client.DownloadData(url);
                             response.Status = CacheWebResponseStatus.Success;
-                            BetterThreadPool.QueueUserWorkItem(s => { SaveResponseToFileCache(cachePath, response.Content); });
+                            BetterThreadPool.QueueUserWorkItem(
+                                s => { SaveResponseToFileCache(cachePath, response.Content); });
                         }
                         catch (WebException wex)
                         {

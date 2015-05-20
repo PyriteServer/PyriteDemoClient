@@ -4,12 +4,12 @@
 // // // </copyright>
 // // //-------------------------------------------------------------------------------------------------
 
-namespace Assets.Cube_Loader.src.Model
+namespace Pyrite.Model
 {
     using System;
+    using Client.Contracts;
+    using Client.Model;
     using Microsoft.Xna.Framework;
-    using Pyrite.Client.Contracts;
-    using Pyrite.Client.Model;
     using UnityEngine;
 
     public class CubeBounds : IBounds<CubeBounds>
@@ -19,14 +19,14 @@ namespace Assets.Cube_Loader.src.Model
 
         public Intersection<CubeBounds> Intersects(Ray ray)
         {
-            if (this.BoundingBox.Max != this.BoundingBox.Min)
+            if (BoundingBox.Max != BoundingBox.Min)
             {
-                if (this.BoundingBox.Intersects(ray) != null)
+                if (BoundingBox.Intersects(ray) != null)
                     return new Intersection<CubeBounds>(this);
             }
-            else if (this.BoundingSphere.Radius != 0f)
+            else if (BoundingSphere.Radius != 0f)
             {
-                if (this.BoundingSphere.Intersects(ray) != null)
+                if (BoundingSphere.Intersects(ray) != null)
                     return new Intersection<CubeBounds>(this);
             }
 
@@ -39,11 +39,11 @@ namespace Assets.Cube_Loader.src.Model
 
             if (obj.BoundingBox.Min != obj.BoundingBox.Max)
             {
-                ir = this.Intersects(obj.BoundingBox);
+                ir = Intersects(obj.BoundingBox);
             }
             else if (obj.BoundingSphere.Radius != 0f)
             {
-                ir = this.Intersects(obj.BoundingSphere);
+                ir = Intersects(obj.BoundingSphere);
             }
             else
                 return null;
@@ -59,14 +59,14 @@ namespace Assets.Cube_Loader.src.Model
 
         public Intersection<CubeBounds> Intersects(BoundingSphere intersectionSphere)
         {
-            if (this.BoundingBox.Max != this.BoundingBox.Min)
+            if (BoundingBox.Max != BoundingBox.Min)
             {
-                if (this.BoundingBox.Contains(intersectionSphere) != ContainmentType.Disjoint)
+                if (BoundingBox.Contains(intersectionSphere) != ContainmentType.Disjoint)
                     return new Intersection<CubeBounds>(this);
             }
-            else if (this.BoundingSphere.Radius != 0f)
+            else if (BoundingSphere.Radius != 0f)
             {
-                if (this.BoundingSphere.Contains(intersectionSphere) != ContainmentType.Disjoint)
+                if (BoundingSphere.Contains(intersectionSphere) != ContainmentType.Disjoint)
                     return new Intersection<CubeBounds>(this);
             }
 
@@ -75,15 +75,15 @@ namespace Assets.Cube_Loader.src.Model
 
         public Intersection<CubeBounds> Intersects(BoundingBox intersectionBox)
         {
-            if (this.BoundingBox.Max != this.BoundingBox.Min)
+            if (BoundingBox.Max != BoundingBox.Min)
             {
-                ContainmentType ct = this.BoundingBox.Contains(intersectionBox);
+                var ct = BoundingBox.Contains(intersectionBox);
                 if (ct != ContainmentType.Disjoint)
                     return new Intersection<CubeBounds>(this);
             }
-            else if (this.BoundingSphere.Radius != 0f)
+            else if (BoundingSphere.Radius != 0f)
             {
-                if (this.BoundingSphere.Contains(intersectionBox) != ContainmentType.Disjoint)
+                if (BoundingSphere.Contains(intersectionBox) != ContainmentType.Disjoint)
                     return new Intersection<CubeBounds>(this);
             }
 
@@ -92,15 +92,15 @@ namespace Assets.Cube_Loader.src.Model
 
         public Intersection<CubeBounds> Intersects(BoundingFrustum frustum)
         {
-            if (this.BoundingBox.Max != this.BoundingBox.Min)
+            if (BoundingBox.Max != BoundingBox.Min)
             {
-                ContainmentType ct = this.BoundingBox.Contains(frustum);
+                var ct = BoundingBox.Contains(frustum);
                 if (ct != ContainmentType.Disjoint)
                     return new Intersection<CubeBounds>(this);
             }
-            else if (this.BoundingSphere.Radius != 0f)
+            else if (BoundingSphere.Radius != 0f)
             {
-                if (this.BoundingSphere.Contains(frustum) != ContainmentType.Disjoint)
+                if (BoundingSphere.Contains(frustum) != ContainmentType.Disjoint)
                     return new Intersection<CubeBounds>(this);
             }
 
@@ -109,7 +109,7 @@ namespace Assets.Cube_Loader.src.Model
 
         public override string ToString()
         {
-            return String.Format("{0} BoundingBox:{1}", this.GetType().Name, this.BoundingBox);
+            return String.Format("{0} BoundingBox:{1}", GetType().Name, BoundingBox);
         }
     }
 }

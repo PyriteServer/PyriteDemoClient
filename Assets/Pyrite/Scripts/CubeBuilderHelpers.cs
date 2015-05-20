@@ -1,7 +1,6 @@
-﻿namespace Assets.Cube_Loader.src
+﻿namespace Pyrite
 {
     using System;
-    using System.Collections.Generic;
     using System.Globalization;
     using UnityEngine;
 

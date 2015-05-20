@@ -4,7 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 
-namespace Assets.Cube_Loader.src
+namespace Pyrite
 {
     public class TimeoutWebClient : WebClient
     {

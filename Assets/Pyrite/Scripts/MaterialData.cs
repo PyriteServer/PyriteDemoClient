@@ -1,6 +1,5 @@
-﻿namespace Assets.Cube_Loader.src
+﻿namespace Pyrite
 {
-    using System.Collections.Generic;
     using System.Text;
     using UnityEngine;
 
@@ -28,7 +27,7 @@
             {
                 if (string.IsNullOrEmpty(_name))
                 {
-                    StringBuilder sb = new StringBuilder("materialData_L");
+                    var sb = new StringBuilder("materialData_L");
                     sb.Append(Lod);
                     sb.Append("_");
                     sb.Append(X);

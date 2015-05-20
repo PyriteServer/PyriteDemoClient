@@ -1,4 +1,4 @@
-﻿namespace Assets.Cube_Loader.src
+﻿namespace Pyrite
 {
     using System;
     using System.Collections;
