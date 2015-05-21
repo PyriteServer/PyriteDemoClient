@@ -236,14 +236,24 @@ MonoBehaviour:
   PyriteServer: 
   MaxConcurrentRequests: 8
   DetailLevel: 4
+  FilterDetailLevels: 0
+  DetailLevelsToFilter: 
   ModelVersion: V1
-  SetName: 
+  EboCacheSize: 250
+  MaterialCacheSize: 100
+  MaterialDataCacheSize: 100
   UseCameraDetection: 1
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 0
   UpgradeFactor: 1.04999995
   UpgradeConstant: 0
+  DowngradeFactor: 1.04999995
+  DowngradeConstant: 0
+  UseWwwForTextures: 0
+  UseWwwForEbo: 0
+  CacheFill: 0
+  CacheSize: 3000
 --- !u!4 &681042936
 Transform:
   m_ObjectHideFlags: 0
@@ -265,7 +275,6 @@ GameObject:
   m_Component:
   - 4: {fileID: 703181006}
   - 114: {fileID: 703181008}
-  - 114: {fileID: 703181007}
   m_Layer: 0
   m_Name: CameraRig
   m_TagString: Player
@@ -286,21 +295,6 @@ Transform:
   - {fileID: 306297981}
   m_Father: {fileID: 0}
   m_RootOrder: 1
---- !u!114 &703181007
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 703181005}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1e531c81df75594080f196dfd25d218, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  RotationDeltaRate: 90
-  TranslationDeltaRate: 50
-  TouchTranslationDeltaRate: 2
-  VcrFilename: C:\Users\keir_000\Documents\PyriteDemoClient\Assets\Demo\2.js
 --- !u!114 &703181008
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -309,41 +303,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 703181005}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f64a38049e402446bbff4a9a02eeaeaf, type: 3}
+  m_Script: {fileID: 11500000, guid: ae8fdc3ed12ec1349813d20c5c42824e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  inputsToRecord:
-  - inputName: Horizontal
-    isAxis: 1
-    mouseButtonNum: 0
-    buttonState: 0
-    axisValue: 0
-  - inputName: Vertical
-    isAxis: 1
-    mouseButtonNum: 0
-    buttonState: 0
-    axisValue: 0
-  - inputName: Forward
-    isAxis: 1
-    mouseButtonNum: 0
-    buttonState: 0
-    axisValue: 0
-  - inputName: HorizontalTurn
-    isAxis: 1
-    mouseButtonNum: 0
-    buttonState: 0
-    axisValue: 0
-  - inputName: VerticalTurn
-    isAxis: 1
-    mouseButtonNum: 0
-    buttonState: 0
-    axisValue: 0
-  recordMouseEvents: 0
-  syncRecordLocations: 0
-  autoSyncLocationRate: 1
-  snapToSyncedLocation: 1
-  recordingFrameRate: 60
-  _mode: 2
+  RotationDeltaRate: 90
+  TranslationDeltaRate: 50
+  TouchTranslationDeltaRate: .200000003
 --- !u!1 &1144268638
 GameObject:
   m_ObjectHideFlags: 0

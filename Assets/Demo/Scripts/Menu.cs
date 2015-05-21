@@ -15,6 +15,6 @@ public class Menu : MonoBehaviour {
 
     public void LaunchGlider()
     {
-        Application.LoadLevel("Glider");
+        AutoFade.LoadLevel("Glider", 0.5f, 0.5f, new Color(50,9,5));
     }
 }
