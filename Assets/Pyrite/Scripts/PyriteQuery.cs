@@ -380,13 +380,22 @@
         // Returns the center of the cube (point at the middle of each axis distance) in world space
         public Vector3 GetWorldCoordinatesForCube(PyriteCube cube)
         {
+            var xPos = WorldBoundsMin.x + WorldCubeScale.x*cube.X + WorldCubeScale.x*0.5f;
+            var yPos = WorldBoundsMin.y + WorldCubeScale.y*cube.Y + WorldCubeScale.y*0.5f;
+            var zPos = WorldBoundsMin.z + WorldCubeScale.z * cube.Z + WorldCubeScale.z * 0.5f;            
+            return new Vector3(xPos, yPos, zPos);
+        }
+
+        public Vector3 GetUnityWorldCoordinatesForCube(PyriteCube cube)
+        {
             var xPos = -(WorldBoundsMin.x + WorldCubeScale.x*cube.X + WorldCubeScale.x*0.5f);
             var yPos = WorldBoundsMin.z + WorldCubeScale.z * cube.Z + WorldCubeScale.z * 0.5f;
             var zPos = WorldBoundsMin.y + WorldCubeScale.y*cube.Y + WorldCubeScale.y*0.5f;            
             return new Vector3(xPos, yPos, zPos);
         }
 
-        public PyriteCube GetCubeForWorldCoordinates(Vector3 pos)
+
+        public PyriteCube GetCubeForUnityWorldCoordinates(Vector3 pos)
         {
             var YZOffset = WorldBoundsMin.y - WorldBoundsMin.z;
             var cx = (int)((-pos.x - WorldBoundsMin.x) / WorldCubeScale.x);
