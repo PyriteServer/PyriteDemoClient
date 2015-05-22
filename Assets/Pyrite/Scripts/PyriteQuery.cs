@@ -394,7 +394,6 @@
             return new Vector3(xPos, yPos, zPos);
         }
 
-
         public PyriteCube GetCubeForUnityWorldCoordinates(Vector3 pos)
         {
             var YZOffset = WorldBoundsMin.y - WorldBoundsMin.z;

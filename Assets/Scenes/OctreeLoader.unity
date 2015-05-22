@@ -116,9 +116,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CameraRig: {fileID: 1589477367}
   MeshPlaceholder: {fileID: 135038, guid: 60a096d0e6079b041bffbe077cfdbb20, type: 2}
-  OctreeTrackingCube: {fileID: 184526, guid: dc3cc2520c5517849870a598ced0a465, type: 2}
+  OctreeTrackingCube: {fileID: 100618, guid: 547fcef88f7c7df44878fafaaa15d4a3, type: 2}
   PyriteServer: 
-  DetailLevel: 1
+  DetailLevel: 2
   FilterDetailLevels: 0
   DetailLevelsToFilter: 
   ModelVersion: V1
@@ -321,7 +321,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1589477367}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -380, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 933702245}

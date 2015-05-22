@@ -69,10 +69,10 @@
         {
             if (Loaded)
             {
-                cubeCamPosNew = pyriteLevel.GetCubeForWorldCoordinates(CameraRig.transform.position);
+                cubeCamPosNew = pyriteLevel.GetCubeForUnityWorldCoordinates(CameraRig.transform.position);
                 if (!cubeCamPos.Equals(cubeCamPosNew))
                 {
-                    //Debug.Log("NEW CUBE POSITION");
+                    Debug.Log(String.Format("NEW CUBE POSITION: ({0},{1},{2})", cubeCamPosNew.X, cubeCamPosNew.Y, cubeCamPosNew.Z));
                     cubeCamPos = cubeCamPosNew;
                     LoadCamCubes();
                 }
@@ -107,9 +107,9 @@
             
             pyriteLevel = pyriteQuery.DetailLevels[DetailLevel];            
             var setSize = pyriteLevel.SetSize;
-            Debug.Log("Set Size " + setSize);            
+            Debug.Log("Set Size " + setSize);
 
-            cubeCamPos = pyriteLevel.GetCubeForWorldCoordinates(CameraRig.transform.position);
+            cubeCamPos = pyriteLevel.GetCubeForUnityWorldCoordinates(CameraRig.transform.position);
             LoadCamCubes();
 
             var worldObject = new GameObject("WorldParent") as GameObject;
@@ -118,8 +118,9 @@
             foreach (var i in pyriteLevel.Octree.AllItems())
             {
                 var pCube = CreateCubeFromCubeBounds(i);
-                var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pCube);
+                var cubePos = pyriteLevel.GetUnityWorldCoordinatesForCube(pCube);
                 var loc = Instantiate(MeshPlaceholder, cubePos, Quaternion.identity) as GameObject;
+                loc.name = string.Format("Mesh:{0},{1},{2}", pCube.X, pCube.Y, pCube.Z);
                 loc.transform.localScale = new Vector3(
                           pyriteLevel.WorldCubeScale.x,
                           pyriteLevel.WorldCubeScale.z,
@@ -144,7 +145,7 @@
 
         void LoadCamCubes()
         {
-            Debug.Log(String.Format("Cube: ({0},{1},{2})", cubeCamPos.X, cubeCamPos.Y, cubeCamPos.Z));
+            Debug.Log(String.Format("LoadCamCubes: ({0},{1},{2})", cubeCamPos.X, cubeCamPos.Y, cubeCamPos.Z));
             var cubeCamVector = new Vector3(cubeCamPos.X + 0.5f, cubeCamPos.Y + 0.5f, cubeCamPos.Z + 0.5f);
 
             var minVector = cubeCamVector - Vector3.one;
@@ -158,7 +159,7 @@
             {
                 cubeCounter++;
                 var pCube = CreateCubeFromCubeBounds(i.Object);
-                var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pCube);
+                var cubePos = pyriteLevel.GetUnityWorldCoordinatesForCube(pCube);
 
                 // Setup object at cube location
                 if (cubeDict.ContainsKey(pCube.GetKey()))
