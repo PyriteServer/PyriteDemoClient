@@ -110,6 +110,7 @@
             Debug.Log("Set Size " + setSize);
 
             cubeCamPos = pyriteLevel.GetCubeForUnityWorldCoordinates(CameraRig.transform.position);
+            LoadCamCubes();
             
             var worldObject = new GameObject("WorldParent") as GameObject;
             worldObject.transform.position = Vector3.zero;
@@ -127,8 +128,7 @@
                 loc.transform.parent = worldObject.transform;
             }
 
-            LoadCamCubes();
-
+         
             transform.position = tempPosition;
             Loaded = true;
         }
