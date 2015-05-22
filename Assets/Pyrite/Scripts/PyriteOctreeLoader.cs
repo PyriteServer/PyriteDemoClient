@@ -94,7 +94,7 @@
             tempPosition = transform.position;
             transform.position = Vector3.zero;
 
-            var pyriteQuery = new PyriteQuery(this, 
+            pyriteQuery = new PyriteQuery(this, 
                 SetName, 
                 ModelVersion, 
                 PyriteServer, 
@@ -110,8 +110,7 @@
             Debug.Log("Set Size " + setSize);
 
             cubeCamPos = pyriteLevel.GetCubeForUnityWorldCoordinates(CameraRig.transform.position);
-            LoadCamCubes();
-
+            
             var worldObject = new GameObject("WorldParent") as GameObject;
             worldObject.transform.position = Vector3.zero;
             worldObject.transform.rotation = Quaternion.identity;
@@ -127,6 +126,8 @@
                           pyriteLevel.WorldCubeScale.y);
                 loc.transform.parent = worldObject.transform;
             }
+
+            LoadCamCubes();
 
             transform.position = tempPosition;
             Loaded = true;
@@ -147,11 +148,10 @@
         {
             Debug.Log(String.Format("LoadCamCubes: ({0},{1},{2})", cubeCamPos.X, cubeCamPos.Y, cubeCamPos.Z));
             var cubeCamVector = new Vector3(cubeCamPos.X + 0.5f, cubeCamPos.Y + 0.5f, cubeCamPos.Z + 0.5f);
-
+            
             var minVector = cubeCamVector - Vector3.one;
-            var maxVector = cubeCamVector + Vector3.one;
-            //minVector.z = 0f; // HACK:  Hit the ground to see reference
-
+            var maxVector = cubeCamVector + Vector3.one;                        
+            
             var octIntCubes = pyriteLevel.Octree.AllIntersections(new BoundingBox(minVector, maxVector));
 
             int cubeCounter = 0;
