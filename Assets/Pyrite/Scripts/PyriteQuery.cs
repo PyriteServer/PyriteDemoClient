@@ -343,6 +343,11 @@
             hashCode ^= Z.GetHashCode();
             return hashCode;
         }
+
+        public string GetKey()
+        {
+            return (string.Format("{0},{1},{2}", X, Y, Z));
+        }
     }
 
     public class PyriteSetVersionDetailLevel
@@ -375,13 +380,19 @@
         // Returns the center of the cube (point at the middle of each axis distance) in world space
         public Vector3 GetWorldCoordinatesForCube(PyriteCube cube)
         {
-            var xPos = WorldBoundsMin.x + WorldCubeScale.x*cube.X +
-                       WorldCubeScale.x*0.5f;
-            var yPos = WorldBoundsMin.y + WorldCubeScale.y*cube.Y +
-                       WorldCubeScale.y*0.5f;
-            var zPos = WorldBoundsMin.z + WorldCubeScale.z*cube.Z +
-                       WorldCubeScale.z*0.5f;
+            var xPos = -(WorldBoundsMin.x + WorldCubeScale.x*cube.X + WorldCubeScale.x*0.5f);
+            var yPos = WorldBoundsMin.z + WorldCubeScale.z * cube.Z + WorldCubeScale.z * 0.5f;
+            var zPos = WorldBoundsMin.y + WorldCubeScale.y*cube.Y + WorldCubeScale.y*0.5f;            
             return new Vector3(xPos, yPos, zPos);
+        }
+
+        public PyriteCube GetCubeForWorldCoordinates(Vector3 pos)
+        {
+            var YZOffset = WorldBoundsMin.y - WorldBoundsMin.z;
+            var cx = (int)((-pos.x - WorldBoundsMin.x) / WorldCubeScale.x);
+            var cy = (int)((pos.z - YZOffset - WorldBoundsMin.z) / WorldCubeScale.z);
+            var cz = (int)((pos.y - YZOffset - WorldBoundsMin.y) / WorldCubeScale.y);            
+            return new PyriteCube() { X = cx, Y = cy, Z = cz };
         }
     }
 }
