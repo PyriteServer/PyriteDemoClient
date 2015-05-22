@@ -1,6 +1,7 @@
 ﻿namespace PyriteDemoClient
 {
     using UnityEngine;
+	using UnityStandardAssets.CrossPlatformInput;
 
     public class InputManager : MonoBehaviour
     {
@@ -26,65 +27,27 @@
 
         private void FixedUpdate()
         {
-            if (Input.touchCount > 0)
+           
+            _moveX = CrossPlatformInputManager.GetAxis("Horizontal")*Time.deltaTime*TranslationDeltaRate;
+            _moveY = CrossPlatformInputManager.GetAxis("Vertical")*Time.deltaTime*TranslationDeltaRate;
+            _moveZ = CrossPlatformInputManager.GetAxis("Forward")*Time.deltaTime*TranslationDeltaRate;
+
+            _yaw += CrossPlatformInputManager.GetAxis("HorizontalTurn")*Time.deltaTime*RotationDeltaRate;
+            _camPitch += CrossPlatformInputManager.GetAxis("VerticalTurn")*Time.deltaTime*RotationDeltaRate;
+
+            if (CrossPlatformInputManager.GetButton("XboxLB"))
             {
-                if (Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Moved)
-                {
-                    // Get movement of the finger since last frame
-                    var touchDeltaPosition = Input.GetTouch(0).deltaPosition;
-
-                    // Move object across XY plane
-                    _targetPosition.Translate(
-                        -touchDeltaPosition.x*TouchTranslationDeltaRate,
-                        0,
-                        -touchDeltaPosition.y*TouchTranslationDeltaRate);
-                }
-                // Pinch Zoom -> Y Axis
-                if (Input.touchCount == 2)
-                {
-                    // Store both touches.
-                    var touchZero = Input.GetTouch(0);
-                    var touchOne = Input.GetTouch(1);
-
-                    // Find the position in the previous frame of each touch.
-                    var touchZeroPrevPos = touchZero.position - touchZero.deltaPosition;
-                    var touchOnePrevPos = touchOne.position - touchOne.deltaPosition;
-
-                    // Find the magnitude of the vector (the distance) between the touches in each frame.
-                    var prevTouchDeltaMag = (touchZeroPrevPos - touchOnePrevPos).magnitude;
-                    var touchDeltaMag = (touchZero.position - touchOne.position).magnitude;
-
-                    // Find the difference in the distances between each frame.
-                    var deltaMagnitudeDiff = prevTouchDeltaMag - touchDeltaMag;
-
-                    _targetPosition.Translate(
-                        0,
-                        deltaMagnitudeDiff*TouchTranslationDeltaRate,
-                        0);
-                }
+                _moveY -= Time.deltaTime*TranslationDeltaRate;
             }
-            else
+            if (CrossPlatformInputManager.GetButton("XboxRB"))
             {
-                _moveX = Input.GetAxis("Horizontal")*Time.deltaTime*TranslationDeltaRate;
-                _moveY = Input.GetAxis("Vertical")*Time.deltaTime*TranslationDeltaRate;
-                _moveZ = Input.GetAxis("Forward")*Time.deltaTime*TranslationDeltaRate;
-
-                _yaw += Input.GetAxis("HorizontalTurn")*Time.deltaTime*RotationDeltaRate;
-                _camPitch += Input.GetAxis("VerticalTurn")*Time.deltaTime*RotationDeltaRate;
-
-                if (Input.GetButton("XboxLB"))
-                {
-                    _moveY -= Time.deltaTime*TranslationDeltaRate;
-                }
-                if (Input.GetButton("XboxRB"))
-                {
-                    _moveY += Time.deltaTime*TranslationDeltaRate;
-                }
-
-
-                _targetPosition.Translate(Vector3.up*_moveY, Space.World);
-                _targetPosition.Translate(Vector3.forward*_moveZ + Vector3.right*_moveX, Space.Self);
+                _moveY += Time.deltaTime*TranslationDeltaRate;
             }
+
+
+            _targetPosition.Translate(Vector3.up*_moveY, Space.World);
+            _targetPosition.Translate(Vector3.forward*_moveZ + Vector3.right*_moveX, Space.Self);
+        
 
             transform.position = Vector3.Lerp(transform.position, _targetPosition.position, Time.time);
 
