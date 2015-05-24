@@ -386,6 +386,14 @@
             return new Vector3(xPos, yPos, zPos);
         }
 
+        public PyriteCube GetCubeForWorldCoordinates(Vector3 pos)
+        {
+            var cx = (int)((pos.x - WorldBoundsMin.x) / WorldCubeScale.x);
+            var cy = (int)((pos.y - WorldBoundsMin.y) / WorldCubeScale.y);
+            var cz = (int)((pos.z - WorldBoundsMin.z) / WorldCubeScale.z);
+            return new PyriteCube() { X = cx, Y = cy, Z = cz };
+        }
+
         public Vector3 GetUnityWorldCoordinatesForCube(PyriteCube cube)
         {
             var xPos = WorldBoundsMin.x + WorldCubeScale.x * cube.X + WorldCubeScale.x * 0.5f;            

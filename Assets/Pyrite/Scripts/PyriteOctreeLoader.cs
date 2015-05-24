@@ -44,8 +44,7 @@
         private PyriteSetVersionDetailLevel pyriteLevel;
 
         protected bool Loaded { get; private set; }
-        Dictionary<string, CubeTracker> cubeDict = new Dictionary<string, CubeTracker>();
-        Queue<CubeTracker> cubeQueue = new Queue<CubeTracker>();
+        Dictionary<string, CubeTracker> cubeDict = new Dictionary<string, CubeTracker>();        
         LinkedList<CubeTracker> cubeList = new LinkedList<CubeTracker>();
         
         void Start()
@@ -119,7 +118,8 @@
             {
                 var pCube = CreateCubeFromCubeBounds(i);
                 var cubePos = pyriteLevel.GetUnityWorldCoordinatesForCube(pCube);
-                var loc = Instantiate(MeshPlaceholder, cubePos, Quaternion.identity) as GameObject;
+
+                var loc = Instantiate(MeshPlaceholder, cubePos, Quaternion.identity) as GameObject;                
                 loc.name = string.Format("Mesh:{0},{1},{2}", pCube.X, pCube.Y, pCube.Z);
                 loc.transform.localScale = new Vector3(
                           pyriteLevel.WorldCubeScale.x,
@@ -177,8 +177,13 @@
                 {
                     CubeTracker ct;
                     // TODO: Create GameObject
-
+                    
                     var gObj = Instantiate(OctreeTrackingCube, cubePos, Quaternion.identity) as GameObject;
+                    gObj.transform.localScale = new Vector3(
+                        pyriteLevel.WorldCubeScale.x * 0.8f,
+                        pyriteLevel.WorldCubeScale.y * 0.8f, 
+                        pyriteLevel.WorldCubeScale.z * 0.8f);
+
                     if (cubeList.Count < MaxListCount)
                     {
                         ct = new CubeTracker(pCube.GetKey(), null);

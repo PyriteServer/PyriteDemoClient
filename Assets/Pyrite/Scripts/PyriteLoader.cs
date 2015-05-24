@@ -74,11 +74,17 @@
         public int MaterialDataCacheSize = 100;
 
         [Header("Debug Options")]
-        public bool UseCameraDetection = true;
-
+        public bool UseCameraDetection = true;        
         public bool UseUnlitShader = true;
         public bool UseFileCache = true;
         public bool ShowDebugText = true;
+
+        [Header("Octree Options")]
+        public bool UseOctreeSelection = false;
+        public int MaxListCount = 50;
+        public GameObject OctreeTranslucenttCube;
+        public GameObject OctreeMarkerCube;
+        
 
         [Header("Other Options")]
         public float UpgradeFactor = 1.05f;
@@ -114,6 +120,17 @@
         private static Thread _mainThread;
 
         protected bool Loaded { get; private set; }
+
+        // Octree State Tracking
+        private Dictionary<string, CubeTracker> cubeDict = new Dictionary<string, CubeTracker>();
+        private LinkedList<CubeTracker> cubeList = new LinkedList<CubeTracker>();
+        private Vector3 tempPosition;
+        private PyriteCube cubeCamPos;
+        private PyriteCube cubeCamPosNew;
+        private PyriteQuery pyriteQuery;
+        private PyriteSetVersionDetailLevel pyriteLevel;
+        private PyriteSetVersionDetailLevel pyriteLevel1;
+        private GameObject OctreeWorld;
 
         private void Start()
         {
@@ -212,7 +229,20 @@
             }
 
             // Update camera frustrum
-            CameraFrustrum = GeometryUtility.CalculateFrustumPlanes(Camera.main);
+            if(UseCameraDetection)
+                CameraFrustrum = GeometryUtility.CalculateFrustumPlanes(Camera.main);
+
+            cubeCamPosNew = pyriteLevel1.GetCubeForWorldCoordinates(new Vector3(
+                -CameraRig.transform.position.x,
+                -CameraRig.transform.position.z,
+                CameraRig.transform.position.y - _geometryBufferAltitudeTransform));          
+
+            if (!cubeCamPos.Equals(cubeCamPosNew))
+            {
+                Debug.Log(String.Format("NEW CUBE POSITION: ({0},{1},{2})", cubeCamPosNew.X, cubeCamPosNew.Y, cubeCamPosNew.Z));
+                cubeCamPos = cubeCamPosNew;
+                LoadCamCubes();
+            }
 
             // Check for work in Update
             ProcessQueues();
@@ -367,7 +397,7 @@
 
         protected virtual IEnumerator Load()
         {
-            var pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant,
+            pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant,
                 DowngradeFactor, DowngradeConstant);
             yield return StartCoroutine(pyriteQuery.LoadAll(FilterDetailLevels ? DetailLevelsToFilter : null));
             var initialDetailLevelIndex = DetailLevel - 1;
@@ -376,8 +406,15 @@
                 initialDetailLevelIndex = pyriteQuery.DetailLevels.Length - 1;
             }
 
-            var pyriteLevel =
-                pyriteQuery.DetailLevels[initialDetailLevelIndex];
+            pyriteLevel1 = pyriteQuery.DetailLevels[0];
+            pyriteLevel = pyriteQuery.DetailLevels[initialDetailLevelIndex];
+
+            if (UseOctreeSelection)
+            {
+                OctreeWorld = new GameObject("OctreeWorld");
+                OctreeWorld.transform.position = Vector3.zero;
+                OctreeWorld.transform.rotation = Quaternion.identity;
+            }
 
             var allOctCubes = pyriteQuery.DetailLevels[initialDetailLevelIndex].Octree.AllItems();
             foreach (var octCube in allOctCubes)
@@ -407,13 +444,25 @@
 
                     detectionCube.SetActive(true);
                 }
-                else
+                else if (!UseOctreeSelection)
                 {
                     var loadRequest = new LoadCubeRequest(x, y, z, initialDetailLevelIndex, pyriteQuery, null);
                     yield return StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
                 }
-            }
 
+                //if (UseOctreeSelection)
+                //{
+                //    var adjustedPos = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
+                //    var loc = Instantiate(OctreeTranslucenttCube, adjustedPos, Quaternion.identity) as GameObject;
+                //    loc.name = string.Format("Mesh:{0},{1},{2}", pCube.X, pCube.Y, pCube.Z);
+                //    loc.transform.localScale = new Vector3(
+                //          pyriteLevel.WorldCubeScale.x,
+                //          pyriteLevel.WorldCubeScale.z,
+                //          pyriteLevel.WorldCubeScale.y);
+                //    loc.transform.parent = OctreeWorld.transform;
+                //}
+            }
+            
             if (CameraRig != null)
             {
                 // Hardcodes the coordinate inversions which are parameterized on the geometry buffer
@@ -427,11 +476,113 @@
                     pyriteLevel.ModelBoundsMax.z + _geometryBufferAltitudeTransform,
                     -pyriteLevel.ModelBoundsMax.y);
 
-                var newCameraPosition = min + (max - min)/2.0f;
-                newCameraPosition += new Vector3(0, (max - min).y*1.4f, 0);
+                var newCameraPosition = min + (max - min)/2.0f;                
+                newCameraPosition += new Vector3(0, (max - min).y*1.4f, 0);                
                 CameraRig.transform.position = newCameraPosition;
-
                 CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
+            }
+
+            cubeCamPos = pyriteLevel1.GetCubeForWorldCoordinates(new Vector3(
+                -CameraRig.transform.position.x,
+                -CameraRig.transform.position.z,
+                CameraRig.transform.position.y - _geometryBufferAltitudeTransform));
+            LoadCamCubes();
+        }
+
+        void LoadCamCubes()
+        {
+            //int detailLevel = DetailLevel - 1;
+            for (int detailLevel = pyriteQuery.DetailLevels.Length - 1; detailLevel >= 0; detailLevel--)            
+            {
+                var pLevel = pyriteQuery.DetailLevels[detailLevel];
+
+                var cPos = pLevel.GetCubeForWorldCoordinates(new Vector3(
+                    -CameraRig.transform.position.x,
+                    -CameraRig.transform.position.z,
+                    CameraRig.transform.position.y - _geometryBufferAltitudeTransform));
+
+                Debug.Log(String.Format("LoadCamCubes: ({0},{1},{2})", cPos.X, cPos.Y, cPos.Z));
+                var cubeCamVector = new Vector3(cPos.X + 0.5f, cPos.Y + 0.5f, cPos.Z + 0.5f);
+                var minVector = cubeCamVector - Vector3.one;
+                var maxVector = cubeCamVector + Vector3.one;
+                var octIntCubes = pLevel.Octree.AllIntersections(new BoundingBox(minVector, maxVector));
+
+                int cubeCounter = 0;
+                foreach (var i in octIntCubes)
+                {
+                    cubeCounter++;
+                    var pCube = CreateCubeFromCubeBounds(i.Object);
+                    var cubePos = pLevel.GetWorldCoordinatesForCube(pCube);
+                    var cubeKey = string.Format("{0},{1}", detailLevel, pCube.GetKey());
+
+                    // Setup object at cube location
+                    if (cubeDict.ContainsKey(cubeKey))
+                    {
+                        var cube = cubeDict[cubeKey];
+                        cubeList.Remove(cube);
+                        cubeList.AddFirst(cube);
+                        if (!cube.Active)
+                        {
+                            cube.Active = true;
+                            // TODO: Re-activate cube
+                        }
+                    }
+                    else
+                    {
+                        CubeTracker ct;
+                        // TODO: Create GameObject
+
+                        var adjustedPos = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
+                        var gObj = Instantiate(OctreeMarkerCube, adjustedPos, Quaternion.identity) as GameObject;
+                        gObj.transform.localScale = new Vector3(
+                            pLevel.WorldCubeScale.x * .1f,
+                            pLevel.WorldCubeScale.y * .1f,
+                            pLevel.WorldCubeScale.z * .1f);
+
+                        var loadRequest = new LoadCubeRequest(
+                            pCube.X,
+                            pCube.Y,
+                            pCube.Z,
+                            detailLevel, pyriteQuery, null);
+                        StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
+
+                        if (cubeList.Count < MaxListCount)
+                        {
+                            ct = new CubeTracker(cubeKey, null);
+                        }
+                        else
+                        {
+                            // Reuse Last CubeTracker
+                            Debug.Log("Reusing Cube");
+                            ct = cubeList.Last.Value;
+                            cubeList.RemoveLast();
+                            cubeDict.Remove(ct.DictKey);
+                            ct.DictKey = cubeKey;
+
+                            // TODO: Reassign GameObject Content instead of destroying
+                            Destroy(ct.gameObject);
+
+                            if (ct.Active)
+                            {
+                                Debug.Log("ALERT: Active Object in List Tail");
+                            }
+                        }
+                        gObj.transform.parent = gameObject.transform;
+                        ct.gameObject = gObj;
+                        ct.pyriteQuery = pyriteQuery;
+                        ct.Active = true;
+                        cubeList.AddFirst(ct);
+                        cubeDict.Add(ct.DictKey, ct);
+                    }
+                }
+                Debug.Log(String.Format("CubeCounter: {0}  CubeList/Dict: {1}/{2}", cubeCounter, cubeList.Count,
+                    cubeDict.Count));
+
+                foreach (var q in cubeList.Skip(cubeCounter).TakeWhile(q => q.Active))
+                {                    
+                    if(q.l == detailLevel)
+                        q.Active = false;
+                }
             }
         }
 
