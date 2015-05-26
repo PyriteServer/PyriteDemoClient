@@ -235,16 +235,20 @@
             if(UseCameraDetection)
                 CameraFrustrum = GeometryUtility.CalculateFrustumPlanes(Camera.main);
 
-            cubeCamPosNew = pyriteLevel1.GetCubeForWorldCoordinates(new Vector3(
-                -CameraRig.transform.position.x,
-                -CameraRig.transform.position.z,
-                CameraRig.transform.position.y - _geometryBufferAltitudeTransform));          
-
-            if (!cubeCamPos.Equals(cubeCamPosNew))
+            if (UseOctreeSelection)
             {
-                Debug.Log(String.Format("NEW CUBE POSITION: ({0},{1},{2})", cubeCamPosNew.X, cubeCamPosNew.Y, cubeCamPosNew.Z));
-                cubeCamPos = cubeCamPosNew;
-                LoadCamCubes();
+                cubeCamPosNew = pyriteLevel1.GetCubeForWorldCoordinates(new Vector3(
+                    -CameraRig.transform.position.x,
+                    -CameraRig.transform.position.z,
+                    CameraRig.transform.position.y - _geometryBufferAltitudeTransform));
+
+                if (!cubeCamPos.Equals(cubeCamPosNew))
+                {
+                    Debug.Log(String.Format("NEW CUBE POSITION: ({0},{1},{2})", cubeCamPosNew.X, cubeCamPosNew.Y,
+                        cubeCamPosNew.Z));
+                    cubeCamPos = cubeCamPosNew;
+                    LoadCamCubes();
+                }
             }
 
             // Check for work in Update
@@ -408,12 +412,12 @@
             {
                 initialDetailLevelIndex = pyriteQuery.DetailLevels.Length - 1;
             }
-
-            pyriteLevel1 = pyriteQuery.DetailLevels[0];
+       
             pyriteLevel = pyriteQuery.DetailLevels[initialDetailLevelIndex];
 
             if (UseOctreeSelection)
             {
+                pyriteLevel1 = pyriteQuery.DetailLevels[0];
                 OctreeWorld = new GameObject("OctreeWorld");
                 OctreeWorld.transform.position = Vector3.zero;
                 OctreeWorld.transform.rotation = Quaternion.identity;
@@ -485,11 +489,14 @@
                 CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
             }
 
-            cubeCamPos = pyriteLevel1.GetCubeForWorldCoordinates(new Vector3(
-                -CameraRig.transform.position.x,
-                -CameraRig.transform.position.z,
-                CameraRig.transform.position.y - _geometryBufferAltitudeTransform));
-            LoadCamCubes();
+            if (UseOctreeSelection)
+            {
+                cubeCamPos = pyriteLevel1.GetCubeForWorldCoordinates(new Vector3(
+                    -CameraRig.transform.position.x,
+                    -CameraRig.transform.position.z,
+                    CameraRig.transform.position.y - _geometryBufferAltitudeTransform));
+                LoadCamCubes();
+            }
         }
 
         void LoadCamCubes()
