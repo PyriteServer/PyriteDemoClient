@@ -81,6 +81,9 @@
 
         [Header("Octree Options")]
         public bool UseOctreeSelection = false;
+        public bool ShowOctreeDebugCubes = false;
+        public bool ShowOctreeColorCubes = false;
+        public bool ShowOctreeCubes = false;
         public int MaxListCount = 50;
         public GameObject OctreeTranslucenttCube;
         public GameObject OctreeMarkerCube;
@@ -450,17 +453,17 @@
                     yield return StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
                 }
 
-                //if (UseOctreeSelection)
-                //{
-                //    var adjustedPos = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
-                //    var loc = Instantiate(OctreeTranslucenttCube, adjustedPos, Quaternion.identity) as GameObject;
-                //    loc.name = string.Format("Mesh:{0},{1},{2}", pCube.X, pCube.Y, pCube.Z);
-                //    loc.transform.localScale = new Vector3(
-                //          pyriteLevel.WorldCubeScale.x,
-                //          pyriteLevel.WorldCubeScale.z,
-                //          pyriteLevel.WorldCubeScale.y);
-                //    loc.transform.parent = OctreeWorld.transform;
-                //}
+                if (UseOctreeSelection && ShowOctreeCubes)
+                {
+                    var adjustedPos = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
+                    var loc = Instantiate(OctreeTranslucenttCube, adjustedPos, Quaternion.identity) as GameObject;
+                    loc.name = string.Format("Mesh:{0},{1},{2}", pCube.X, pCube.Y, pCube.Z);
+                    loc.transform.localScale = new Vector3(
+                          pyriteLevel.WorldCubeScale.x,
+                          pyriteLevel.WorldCubeScale.z,
+                          pyriteLevel.WorldCubeScale.y);
+                    loc.transform.parent = OctreeWorld.transform;
+                }
             }
             
             if (CameraRig != null)
@@ -490,12 +493,10 @@
         }
 
         void LoadCamCubes()
-        {
-            //int detailLevel = DetailLevel - 1;
+        {            
             for (int detailLevel = pyriteQuery.DetailLevels.Length - 1; detailLevel >= 0; detailLevel--)            
             {
                 var pLevel = pyriteQuery.DetailLevels[detailLevel];
-
                 var cPos = pLevel.GetCubeForWorldCoordinates(new Vector3(
                     -CameraRig.transform.position.x,
                     -CameraRig.transform.position.z,
@@ -504,71 +505,111 @@
                 Debug.Log(String.Format("LoadCamCubes: ({0},{1},{2})", cPos.X, cPos.Y, cPos.Z));
                 var cubeCamVector = new Vector3(cPos.X + 0.5f, cPos.Y + 0.5f, cPos.Z + 0.5f);
                 var minVector = cubeCamVector - Vector3.one;
-                var maxVector = cubeCamVector + Vector3.one;
-                var octIntCubes = pLevel.Octree.AllIntersections(new BoundingBox(minVector, maxVector));
-
+                var maxVector = cubeCamVector + Vector3.one;                
                 int cubeCounter = 0;
+                var octIntCubes = pLevel.Octree.AllIntersections(new BoundingBox(minVector, maxVector));
                 foreach (var i in octIntCubes)
                 {
                     cubeCounter++;
-                    var pCube = CreateCubeFromCubeBounds(i.Object);
-                    var cubePos = pLevel.GetWorldCoordinatesForCube(pCube);
+                    var pCube = CreateCubeFromCubeBounds(i.Object);                    
                     var cubeKey = string.Format("{0},{1}", detailLevel, pCube.GetKey());
+                    var cubePos = pLevel.GetWorldCoordinatesForCube(pCube);
+
+                    CubeTracker ct = null;
+                    bool ctNeedLoad = false;
 
                     // Setup object at cube location
                     if (cubeDict.ContainsKey(cubeKey))
                     {
-                        var cube = cubeDict[cubeKey];
-                        cubeList.Remove(cube);
-                        cubeList.AddFirst(cube);
-                        if (!cube.Active)
+                        ct = cubeDict[cubeKey];
+                        cubeList.Remove(ct);
+                        cubeList.AddFirst(ct);
+                        if (!ct.Active)
                         {
-                            cube.Active = true;
-                            // TODO: Re-activate cube
+                            ct.Active = true;   // TODO: Active status should retain mesh
+                            
+                            ct.trackObject.SetActive(true);
+                            if(ShowOctreeColorCubes)
+                                ct.trackObject.GetComponent<MeshRenderer>().material.color = Color.green;
+                            
+                            ct.ClearMesh();
+                            //Destroy(ct.gameObject);
+                            var loadRequest = new LoadCubeRequest(
+                                pCube.X,
+                                pCube.Y,
+                                pCube.Z,
+                                detailLevel, pyriteQuery, createdObject =>
+                                {
+                                    ct.gameObject = createdObject;
+                                });
+                            StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
                         }
                     }
                     else
-                    {
-                        CubeTracker ct;
-                        // TODO: Create GameObject
-
-                        var adjustedPos = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
-                        var gObj = Instantiate(OctreeMarkerCube, adjustedPos, Quaternion.identity) as GameObject;
-                        gObj.transform.localScale = new Vector3(
-                            pLevel.WorldCubeScale.x * .1f,
-                            pLevel.WorldCubeScale.y * .1f,
-                            pLevel.WorldCubeScale.z * .1f);
-
-                        var loadRequest = new LoadCubeRequest(
-                            pCube.X,
-                            pCube.Y,
-                            pCube.Z,
-                            detailLevel, pyriteQuery, null);
-                        StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
-
+                    {                        
                         if (cubeList.Count < MaxListCount)
                         {
-                            ct = new CubeTracker(cubeKey, null);
+                            ct = new CubeTracker(cubeKey);
                         }
                         else
                         {
                             // Reuse Last CubeTracker
                             Debug.Log("Reusing Cube");
                             ct = cubeList.Last.Value;
+                            if (ct.Active)
+                            {
+                                Debug.Log("ERROR: Active Object in List Tail. Too many required cubes.");
+                                return;
+                            }
                             cubeList.RemoveLast();
                             cubeDict.Remove(ct.DictKey);
                             ct.DictKey = cubeKey;
-
-                            // TODO: Reassign GameObject Content instead of destroying
-                            Destroy(ct.gameObject);
-
-                            if (ct.Active)
+                            
+                            if (ct.gameObject != null)
                             {
-                                Debug.Log("ALERT: Active Object in List Tail");
+                                ct.ClearMesh();
+                                Destroy(ct.gameObject);
                             }
                         }
-                        gObj.transform.parent = gameObject.transform;
-                        ct.gameObject = gObj;
+                        
+                        var loadRequest = new LoadCubeRequest(
+                            pCube.X,
+                            pCube.Y,
+                            pCube.Z,
+                            detailLevel, pyriteQuery, createdObject =>
+                            {
+                                ct.gameObject = createdObject;
+                            });
+                        StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
+
+                        // Setup Locator GameObject
+                        var adjustedPos = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);                        
+                        GameObject gObj = null;                        
+                        if (UseOctreeSelection && ShowOctreeDebugCubes)
+                        {
+                            if (ct.trackObject)
+                            {
+                                ct.trackObject.transform.position = adjustedPos;
+                                ct.trackObject.transform.localScale = new Vector3(
+                                    pLevel.WorldCubeScale.x * .8f,
+                                    pLevel.WorldCubeScale.y * .8f,
+                                    pLevel.WorldCubeScale.z * .8f);                                
+                                ct.trackObject.SetActive(true);
+                                if (ShowOctreeColorCubes)
+                                    ct.trackObject.GetComponent<MeshRenderer>().material.color = Color.yellow;
+                            }
+                            else
+                            {
+                                gObj = Instantiate(OctreeTranslucenttCube, adjustedPos, Quaternion.identity) as GameObject;
+                                gObj.transform.localScale = new Vector3(
+                                    pLevel.WorldCubeScale.x*.8f,
+                                    pLevel.WorldCubeScale.y*.8f,
+                                    pLevel.WorldCubeScale.z*.8f);
+                                gObj.transform.parent = OctreeWorld.transform;
+                                ct.trackObject = gObj;
+                            }
+                        }                        
+
                         ct.pyriteQuery = pyriteQuery;
                         ct.Active = true;
                         cubeList.AddFirst(ct);
@@ -577,11 +618,31 @@
                 }
                 Debug.Log(String.Format("CubeCounter: {0}  CubeList/Dict: {1}/{2}", cubeCounter, cubeList.Count,
                     cubeDict.Count));
-
-                foreach (var q in cubeList.Skip(cubeCounter).TakeWhile(q => q.Active))
-                {                    
-                    if(q.l == detailLevel)
-                        q.Active = false;
+                
+                int levelCount = 0;
+                foreach (var cube in cubeList)
+                {
+                    if (cube.l == detailLevel)
+                    {
+                        levelCount++;
+                        if (levelCount > cubeCounter)
+                        {
+                            if (!cube.Active)
+                            {
+                                Debug.Log("Break List");
+                                break;
+                            }
+                            cube.Active = false;
+                            
+                            if (ShowOctreeDebugCubes && cube.trackObject)
+                            {
+                                if (ShowOctreeColorCubes)
+                                    cube.trackObject.GetComponent<MeshRenderer>().material.color = Color.red;
+                                else
+                                    cube.trackObject.SetActive(false);
+                            }                            
+                        }
+                    }
                 }
             }
         }

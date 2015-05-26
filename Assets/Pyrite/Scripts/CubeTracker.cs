@@ -9,7 +9,7 @@ namespace Pyrite
     using System.Net.Sockets;
     using System.Security.Policy;
 
-    public class CubeTracker : MonoBehaviour
+    public class CubeTracker
     {
         private bool _active = false;
         private string _DictKey;
@@ -21,6 +21,7 @@ namespace Pyrite
         public int z;
 
         public GameObject gameObject { get; set; }
+        public GameObject trackObject { get; set; }
         public PyriteQuery pyriteQuery { get; set; }
 
         public string DictKey
@@ -45,29 +46,29 @@ namespace Pyrite
                 _active = value;
                 if (gameObject != null)
                 {
-                    // TODO: Activate/Deactivate Cube
-                    //gameObject.SetActive(_active);                    
-                    if (value)
-                    {
-                        gameObject.GetComponent<MeshRenderer>().material.color = Color.yellow;
-                        var loadRequest = new LoadCubeRequest(x, y, z, l, pyriteQuery, null);
-                        // TODO: FIX THIS
-                        //yield return StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
-                    }
-                    else
-                    {
-                        gameObject.GetComponent<MeshRenderer>().material.color = Color.red;
-                    }                    
-                    
-                    
+                    // TODO: Activate/Deactivate Cube Using Caching
+                    //if (!_active)
+                    //{
+                    //    ClearMesh();
+                    //}
+                    gameObject.SetActive(_active);                    
                 }
             }
         }
 
-        public CubeTracker(string key, GameObject obj)
+        public void ClearMesh()
         {
-            this.DictKey = key;
-            this.gameObject = obj;
+            if (gameObject == null)
+                return;
+
+            Active = false;
+            gameObject.GetComponent<MeshFilter>().mesh.Clear();
+            gameObject.GetComponent<Renderer>().sharedMaterial = null;            
+        }
+
+        public CubeTracker(string key)
+        {
+            this.DictKey = key;            
         }
     }
 }

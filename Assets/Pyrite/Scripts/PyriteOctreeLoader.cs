@@ -186,7 +186,7 @@
 
                     if (cubeList.Count < MaxListCount)
                     {
-                        ct = new CubeTracker(pCube.GetKey(), null);
+                        ct = new CubeTracker(pCube.GetKey());
                     }
                     else
                     {

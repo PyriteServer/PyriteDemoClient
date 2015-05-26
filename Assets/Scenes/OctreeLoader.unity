@@ -331,7 +331,10 @@ MonoBehaviour:
   UseFileCache: 1
   ShowDebugText: 1
   UseOctreeSelection: 1
-  MaxListCount: 500
+  ShowOctreeDebugCubes: 1
+  ShowOctreeColorCubes: 1
+  ShowOctreeCubes: 0
+  MaxListCount: 100
   OctreeTranslucenttCube: {fileID: 135038, guid: 60a096d0e6079b041bffbe077cfdbb20,
     type: 2}
   OctreeMarkerCube: {fileID: 184526, guid: dc3cc2520c5517849870a598ced0a465, type: 2}
