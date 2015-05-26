@@ -329,7 +329,7 @@ MonoBehaviour:
   FilterDetailLevels: 0
   DetailLevelsToFilter: 03000000
   ModelVersion: V1
-  SetName: NashvilleNew
+  SetName: 
   EboCacheSize: 250
   MaterialCacheSize: 100
   MaterialDataCacheSize: 100
@@ -337,13 +337,6 @@ MonoBehaviour:
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 1
-  UseOctreeSelection: 0
-  ShowOctreeDebugCubes: 0
-  ShowOctreeColorCubes: 0
-  ShowOctreeCubes: 0
-  MaxListCount: 50
-  OctreeTranslucenttCube: {fileID: 0}
-  OctreeMarkerCube: {fileID: 0}
   UpgradeFactor: 1.04999995
   UpgradeConstant: 0
   DowngradeFactor: 1.10000002
