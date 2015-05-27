@@ -3,7 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+#if UNITY_STANDALONE_WIN || UNITY_WEBGL
     using ICSharpCode.SharpZipLib.GZip;
+#endif
     using UnityEngine;
 
     public static class WwwExtensions
