@@ -346,6 +346,7 @@ MonoBehaviour:
   FilterDetailLevels: 1
   DetailLevelsToFilter: 01000000
   ModelVersion: V1
+  SetName: 
   EboCacheSize: 150
   MaterialCacheSize: 50
   MaterialDataCacheSize: 50
@@ -353,6 +354,13 @@ MonoBehaviour:
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 0
+  UseOctreeSelection: 0
+  ShowOctreeDebugCubes: 0
+  ShowOctreeColorCubes: 0
+  ShowOctreeCubes: 0
+  MaxListCount: 50
+  OctreeTranslucenttCube: {fileID: 0}
+  OctreeMarkerCube: {fileID: 0}
   UpgradeFactor: 1.04999995
   UpgradeConstant: 0
   DowngradeFactor: 1.04999995
