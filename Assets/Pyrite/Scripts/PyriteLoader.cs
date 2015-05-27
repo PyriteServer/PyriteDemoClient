@@ -82,7 +82,7 @@
         [Header("Octree Options")]
         public bool UseOctreeSelection = false;
         public bool ShowOctreeDebugCubes = false;
-        public bool ShowOctreeColorCubes = false;
+        public bool ShowOctreeLocatorCubes = false;
         public bool ShowOctreeCubes = false;
         public int MaxListCount = 50;
         public GameObject OctreeTranslucenttCube;
@@ -533,12 +533,14 @@
                         cubeList.AddFirst(ct);
                         if (!ct.Active)
                         {
-                            ct.Active = true;   // TODO: Active status should retain mesh
-                            
-                            ct.trackObject.SetActive(true);
-                            if(ShowOctreeColorCubes)
+                            ct.Active = true;   // TODO: Active status should retain mesh                            
+
+                            if (ShowOctreeLocatorCubes)
+                            {
                                 ct.trackObject.GetComponent<MeshRenderer>().material.color = Color.green;
-                            
+                                ct.trackObject.SetActive(true);
+                            }
+
                             ct.ClearMesh();
                             //Destroy(ct.gameObject);
                             var loadRequest = new LoadCubeRequest(
@@ -548,7 +550,8 @@
                                 detailLevel, pyriteQuery, createdObject =>
                                 {
                                     ct.gameObject = createdObject;
-                                });
+                                },
+                                true);
                             StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
                         }
                     }
@@ -565,7 +568,7 @@
                             ct = cubeList.Last.Value;
                             if (ct.Active)
                             {
-                                Debug.Log("ERROR: Active Object in List Tail. Too many required cubes.");
+                                Debug.Log(">>>>>>>>> ERROR: Active Object in List Tail. Too many required cubes.");
                                 return;
                             }
                             cubeList.RemoveLast();
@@ -575,7 +578,7 @@
                             if (ct.gameObject != null)
                             {
                                 ct.ClearMesh();
-                                Destroy(ct.gameObject);
+                                //Destroy(ct.gameObject);
                             }
                         }
                         
@@ -602,7 +605,7 @@
                                     pLevel.WorldCubeScale.y * .8f,
                                     pLevel.WorldCubeScale.z * .8f);                                
                                 ct.trackObject.SetActive(true);
-                                if (ShowOctreeColorCubes)
+                                if (ShowOctreeLocatorCubes)
                                     ct.trackObject.GetComponent<MeshRenderer>().material.color = Color.yellow;
                             }
                             else
@@ -636,14 +639,16 @@
                         {
                             if (!cube.Active)
                             {
-                                Debug.Log("Break List");
-                                break;
-                            }
-                            cube.Active = false;
+                                //Debug.Log("Break List OPTION");
+                                //break;
+                            }                                                        
+                            // TODO: Create Interim status Cube without auto cleanup
+                            cube.Active = false;                            
+                            cube.ClearMesh();
                             
                             if (ShowOctreeDebugCubes && cube.trackObject)
                             {
-                                if (ShowOctreeColorCubes)
+                                if (ShowOctreeLocatorCubes)
                                     cube.trackObject.GetComponent<MeshRenderer>().material.color = Color.red;
                                 else
                                     cube.trackObject.SetActive(false);
