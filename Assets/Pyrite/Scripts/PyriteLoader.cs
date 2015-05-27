@@ -550,8 +550,7 @@
                                 detailLevel, pyriteQuery, createdObject =>
                                 {
                                     ct.gameObject = createdObject;
-                                },
-                                true);
+                                });
                             StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
                         }
                     }
