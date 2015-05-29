@@ -356,7 +356,7 @@ MonoBehaviour:
   ShowDebugText: 0
   UseOctreeSelection: 0
   ShowOctreeDebugCubes: 0
-  ShowOctreeColorCubes: 0
+  ShowOctreeLocatorCubes: 0
   ShowOctreeCubes: 0
   MaxListCount: 50
   OctreeTranslucenttCube: {fileID: 0}
