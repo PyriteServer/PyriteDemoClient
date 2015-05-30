@@ -102,7 +102,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &662348520
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -114,20 +114,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e81f63ccc54b804d871efc4eaa3500c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CameraRig: {fileID: 0}
-  MeshPlaceholder: {fileID: 0}
-  OctreeTrackingCube: {fileID: 0}
+  CameraRig: {fileID: 1589477367}
   PyriteServer: 
+  ModelVersion: V1
+  SetName: 
   DetailLevel: 2
   FilterDetailLevels: 0
   DetailLevelsToFilter: 
-  ModelVersion: V1
-  SetName: 
-  MaxListCount: 50
   UpgradeFactor: 1.04999995
   UpgradeConstant: 0
   DowngradeFactor: 1.04999995
   DowngradeConstant: 0
+  WorldYOffset: 450
+  ShowDebugCubes: 1
+  ShowLocatorCubes: 1
+  ShowCubes: 1
+  OctreeListCount: 100
+  RenderCube: {fileID: 135038, guid: 60a096d0e6079b041bffbe077cfdbb20, type: 2}
+  TranslucentCube: {fileID: 135038, guid: 60a096d0e6079b041bffbe077cfdbb20, type: 2}
+  LocatorCube: {fileID: 184526, guid: dc3cc2520c5517849870a598ced0a465, type: 2}
 --- !u!4 &662348521
 Transform:
   m_ObjectHideFlags: 0
@@ -300,7 +305,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1219206767
 MonoBehaviour:
   m_ObjectHideFlags: 0
