@@ -9,10 +9,10 @@
         public readonly int X, Y, Z, LodIndex;
         public readonly PyriteQuery Query;
         public readonly Action<GameObject> RegisterCreatedObjects;
+        public readonly GameObject gameObject;
         private string _name;
 
-        public LoadCubeRequest(int x, int y, int z, int lod, PyriteQuery query,
-            Action<GameObject> registerCreatedObjects)
+        public LoadCubeRequest(int x, int y, int z, int lod, PyriteQuery query, Action<GameObject> registerCreatedObjects)
         {
             X = x;
             Y = y;
@@ -20,6 +20,18 @@
             LodIndex = lod;
             Query = query;
             RegisterCreatedObjects = registerCreatedObjects;
+        }
+
+        public LoadCubeRequest(int x, int y, int z, int lod, GameObject obj)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+            LodIndex = lod;
+            gameObject = obj;
+
+            Query = null;
+            RegisterCreatedObjects = null;
         }
 
         public GeometryBuffer GeometryBuffer { get; set; }

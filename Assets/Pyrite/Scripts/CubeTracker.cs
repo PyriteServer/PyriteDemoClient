@@ -13,8 +13,7 @@ namespace Pyrite
     {
         private bool _active = false;
         private string _DictKey;
-
-        private LoadCubeRequest _loadCubeRequest;
+        
         public int l;
         public int x;
         public int y;
@@ -68,7 +67,7 @@ namespace Pyrite
 
         public CubeTracker(string key)
         {
-            this.DictKey = key;            
+            DictKey = key;            
         }
     }
 }
