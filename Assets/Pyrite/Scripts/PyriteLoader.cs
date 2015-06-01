@@ -4,6 +4,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Text;
     using System.Threading;
     using Extensions;
@@ -99,6 +100,9 @@
         public bool UseWwwForEbo = false;
         public bool CacheFill = false;
         public int CacheSize = 3000;
+        public string ProxyUrl;
+
+        private WebProxy _proxy;
 
         [HideInInspector]
         public Plane[] CameraFrustrum;
@@ -201,7 +205,12 @@
                 ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
             }
 
-            CacheWebRequest.RehydrateCache(CacheSize);
+            if (!string.IsNullOrEmpty(ProxyUrl))
+            {
+                _proxy = new WebProxy(ProxyUrl);
+            }
+
+            CacheWebRequest.InitializeCache(CacheSize, _proxy);
         }
 
         private static bool CheckThread(bool expectMainThread)
