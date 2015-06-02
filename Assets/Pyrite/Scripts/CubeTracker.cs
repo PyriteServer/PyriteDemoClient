@@ -1,19 +1,12 @@
-﻿using System.Globalization;
-
-namespace Pyrite
+﻿namespace Pyrite
 {
-    using System;
     using UnityEngine;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.Net.Sockets;
-    using System.Security.Policy;
 
     public class CubeTracker
     {
-        private bool _active = false;
+        private bool _active;
         private string _DictKey;
-        
+
         public int l;
         public int x;
         public int y;
@@ -35,7 +28,7 @@ namespace Pyrite
                 y = int.Parse(sKey[2]);
                 z = int.Parse(sKey[3]);
             }
-        }        
+        }
 
         public bool Active
         {
@@ -50,7 +43,7 @@ namespace Pyrite
                     //{
                     //    ClearMesh();
                     //}
-                    gameObject.SetActive(_active);                    
+                    gameObject.SetActive(_active);
                 }
             }
         }
@@ -62,12 +55,12 @@ namespace Pyrite
 
             Active = false;
             gameObject.GetComponent<MeshFilter>().mesh.Clear();
-            gameObject.GetComponent<Renderer>().sharedMaterial = null;            
+            gameObject.GetComponent<Renderer>().sharedMaterial = null;
         }
 
         public CubeTracker(string key)
         {
-            DictKey = key;            
+            DictKey = key;
         }
     }
 }

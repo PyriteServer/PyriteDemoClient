@@ -69,8 +69,9 @@ namespace Pyrite
         // Processing Objects
         private const int RETRY_LIMIT = 2;
         private float _geometryBufferAltitudeTransform = 0;
-
+#if !UNITY_WSA
         private static Thread _mainThread;
+#endif
         private readonly Queue<LoadCubeRequest> _loadMaterialQueue = new Queue<LoadCubeRequest>(10);
         private readonly DictionaryCache<string, MaterialData> _materialDataCache = new DictionaryCache<string, MaterialData>(MaterialDataCacheSize);
         private readonly Dictionary<string, LinkedList<LoadCubeRequest>> _dependentCubes = new Dictionary<string, LinkedList<LoadCubeRequest>>();
@@ -128,7 +129,9 @@ namespace Pyrite
 
         private IEnumerator InternalLoad()
         {
+            #if !UNITY_WSA
             _mainThread = Thread.CurrentThread;
+            #endif
             yield return StartCoroutine(Load());
             Loaded = true;
         }
@@ -630,18 +633,26 @@ namespace Pyrite
         }
 
         private static bool CheckThread(bool expectMainThread)
-        {
+        {   
+#if !UNITY_WSA
             var asExpected = expectMainThread != _mainThread.Equals(Thread.CurrentThread);
             if (asExpected)
             {
                 Debug.LogWarning("Warning unexpected thread. Expected: " + expectMainThread);
             }
             return asExpected;
+#else
+            return true;
+#endif
         }
 
         private void MoveRequestForward(LoadCubeRequest loadRequest)
         {
+            #if !UNITY_WSA
             var onMainThread = _mainThread.Equals(Thread.CurrentThread);
+#else
+            var onMainThread = false;
+#endif
             if (loadRequest.GeometryBuffer == null)
             {
                 if (onMainThread)

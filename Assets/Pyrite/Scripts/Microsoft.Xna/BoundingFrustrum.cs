@@ -37,7 +37,9 @@ using UnityEngine;
 
 namespace Microsoft.Xna.Framework
 {
+#if !UNITY_WSA
     [Serializable, TypeConverter(typeof(ExpandableObjectConverter))]
+#endif
     public class BoundingFrustum : IEquatable<BoundingFrustum>
     {
         #region Private Fields

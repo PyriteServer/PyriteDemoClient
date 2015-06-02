@@ -1,4 +1,5 @@
-﻿namespace Pyrite
+﻿#if !UNITY_WSA
+namespace Pyrite
 {
     using System;
     using System.Net;
@@ -13,3 +14,4 @@
         }
     }
 }
+#endif

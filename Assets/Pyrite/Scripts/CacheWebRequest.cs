@@ -58,6 +58,7 @@
                 if (!_hydrated)
                 {
                     _hydrated = true;
+
                     foreach (var file in Directory.GetFiles(TemporaryCachePath))
                     {
                         InsertOrUpdateCacheEntry(file);
@@ -75,6 +76,9 @@
                 if (string.IsNullOrEmpty(_temporaryCachePath))
                 {
                     _temporaryCachePath = Application.temporaryCachePath;
+#if UNITY_WSA
+                    _temporaryCachePath = _temporaryCachePath.Replace("/", "\\");
+#endif
                 }
                 return _temporaryCachePath;
             }
@@ -86,10 +90,12 @@
             foreach (var invalidChar in InvalidFileCharacters)
             {
                 sb.Replace(invalidChar, '_');
-                // originalPath = originalPath.Replace(invalidChar, '_');
             }
-
+#if !UNITY_WSA
             return TemporaryCachePath + Path.DirectorySeparatorChar + sb;
+#else
+            return TemporaryCachePath + "\\" + sb;
+#endif
         }
 
         public static bool IsItemInCache(string cacheKey)
@@ -171,6 +177,7 @@
                     }
                     else
                     {
+#if !UNITY_WSA // We do not have WebClient in Windows Store Apps
                         var client = new TimeoutWebClient();
                         // set a proxy if one was used
                         if (!string.IsNullOrEmpty(_proxyUrl))
@@ -189,6 +196,9 @@
                             response.Status = CacheWebResponseStatus.Error;
                             response.ErrorMessage = wex.ToString();
                         }
+#else
+                        Debug.LogError("This should not execute.");
+#endif
                     }
                 }
                 onBytesDownloaded(response);

@@ -9,6 +9,8 @@
     /// </summary>
     public class BetterThreadPool
     {
+        public delegate void WaitCallback(object state);
+
         public static void InitInstance()
         {
             if (Instance == null)
@@ -32,10 +34,16 @@
 
         public static void QueueUserWorkItem(WaitCallback callback)
         {
+#if !UNITY_WSA
             Instance.EnqueueTask(callback);
+#elif NETFX_CORE
+            Windows.System.Threading.ThreadPool.RunAsync(new Windows.System.Threading.WorkItemHandler(callback));
+#endif
         }
 
+#if !UNITY_WSA
         private readonly Thread[] m_threadPool;
+#endif
 
         private struct TaskInfo
         {
@@ -57,6 +65,7 @@
 
         private BetterThreadPool(int queueSize, int threadNum)
         {
+#if !UNITY_WSA
 #if UNITY_WEBPLAYER
             threadNum = 1;
 #else
@@ -88,6 +97,7 @@
                 m_threadPool[0] = new Thread(SingleThreadFunc);
                 m_threadPool[0].Start();
             }
+#endif //!UNITY_WSA
         }
 
         static BetterThreadPool()
@@ -97,6 +107,7 @@
 
         private void EnqueueTask(WaitCallback callback)
         {
+#if !UNITY_WSA
             lock (this)
             {
                 while (m_numTasks == m_taskQueue.Length)
@@ -126,6 +137,7 @@
                 }
 #endif
             }
+#endif //!UNITY_WSA
         }
 
 #if !UNITY_WEBPLAYER

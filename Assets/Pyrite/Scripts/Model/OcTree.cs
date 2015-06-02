@@ -473,7 +473,6 @@ namespace Pyrite.Client.Model
 
             foreach (TObject obj in this.objects)
             {
-                Trace.WriteLine(obj.ToString());
                 Intersection<TObject> ir = obj.Intersects(sphere);
                 if (ir != null)
                 {
