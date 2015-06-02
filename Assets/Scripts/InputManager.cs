@@ -8,6 +8,7 @@
         public float RotationDeltaRate = 20;
         public float TranslationDeltaRate = 50.0f;
         public float TouchTranslationDeltaRate = 0.2f;
+        public bool InvertY = false;
 
         private float _camPitch = 30;
         private float _yaw;
@@ -27,7 +28,7 @@
             _moveZ = CrossPlatformInputManager.GetAxis("Forward")*Time.deltaTime*TranslationDeltaRate;
 
             _yaw += CrossPlatformInputManager.GetAxis("HorizontalTurn")*Time.deltaTime*RotationDeltaRate;
-            _camPitch -= CrossPlatformInputManager.GetAxis("VerticalTurn")*Time.deltaTime*RotationDeltaRate;
+            _camPitch -= CrossPlatformInputManager.GetAxis("VerticalTurn")*Time.deltaTime*RotationDeltaRate * (InvertY ? -1f : 1f);
 
 
             if (CrossPlatformInputManager.GetButton("XboxLB"))

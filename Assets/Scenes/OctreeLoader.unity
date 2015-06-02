@@ -118,7 +118,7 @@ MonoBehaviour:
   PyriteServer: 
   ModelVersion: V1
   SetName: 
-  DetailLevel: 2
+  DetailLevel: 1
   FilterDetailLevels: 0
   DetailLevelsToFilter: 
   UpgradeFactor: 1.04999995
@@ -131,11 +131,12 @@ MonoBehaviour:
   CacheFill: 0
   CacheSize: 3000
   UseUnlitShader: 1
-  ShowDebugCubes: 1
+  ShowDebugCubes: 0
+  HideModelMesh: 0
   ShowLocatorCubes: 0
   ShowCubes: 0
   OctreeListCount: 500
-  BoundBoxSize: 2
+  BoundBoxSize: 1
   RenderCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   TranslucentCube: {fileID: 135038, guid: 60a096d0e6079b041bffbe077cfdbb20, type: 2}
   LocatorCube: {fileID: 184526, guid: dc3cc2520c5517849870a598ced0a465, type: 2}
@@ -295,93 +296,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
---- !u!1 &1219206766
-GameObject:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  serializedVersion: 4
-  m_Component:
-  - 4: {fileID: 1219206768}
-  - 114: {fileID: 1219206767}
-  - 114: {fileID: 1219206769}
-  m_Layer: 0
-  m_Name: PyriteLoaderOctTree
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &1219206767
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1219206766}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f0328f508dd8e4488ef12556cb0807b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  CameraRig: {fileID: 1589477367}
-  EnableDebugLogs: 0
-  PlaceHolderCube: {fileID: 135038, guid: 2f934764d71518942b1b6029f72c985b, type: 2}
-  BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
-  PyriteServer: 
-  MaxConcurrentRequests: 8
-  DetailLevel: 3
-  FilterDetailLevels: 0
-  DetailLevelsToFilter: 
-  ModelVersion: V1
-  SetName: 
-  EboCacheSize: 250
-  MaterialCacheSize: 100
-  MaterialDataCacheSize: 100
-  UseCameraDetection: 0
-  UseUnlitShader: 1
-  UseFileCache: 1
-  ShowDebugText: 1
-  UseOctreeSelection: 1
-  ShowOctreeDebugCubes: 0
-  ShowOctreeLocatorCubes: 0
-  ShowOctreeCubes: 0
-  MaxListCount: 100
-  OctreeTranslucenttCube: {fileID: 135038, guid: 60a096d0e6079b041bffbe077cfdbb20,
-    type: 2}
-  OctreeMarkerCube: {fileID: 184526, guid: dc3cc2520c5517849870a598ced0a465, type: 2}
-  UpgradeFactor: 1.04999995
-  UpgradeConstant: 0
-  DowngradeFactor: 1.04999995
-  DowngradeConstant: 0
-  UseWwwForTextures: 0
-  UseWwwForEbo: 0
-  CacheFill: 0
-  CacheSize: 3000
---- !u!4 &1219206768
-Transform:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1219206766}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 3
---- !u!114 &1219206769
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1219206766}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a293b1448e4ec5a439d64758b7132b05, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  pooledAmount: 20
-  willGrow: 1
 --- !u!1 &1589477367
 GameObject:
   m_ObjectHideFlags: 0
@@ -412,6 +326,7 @@ MonoBehaviour:
   RotationDeltaRate: 90
   TranslationDeltaRate: 50
   TouchTranslationDeltaRate: .200000003
+  InvertY: 1
 --- !u!4 &1589477369
 Transform:
   m_ObjectHideFlags: 0
