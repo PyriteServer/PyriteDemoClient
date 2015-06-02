@@ -100,9 +100,8 @@
         public bool UseWwwForEbo = false;
         public bool CacheFill = false;
         public int CacheSize = 3000;
+        [Tooltip("If set will bet used as the address for the proxy used for web requests")]
         public string ProxyUrl;
-
-        private WebProxy _proxy;
 
         [HideInInspector]
         public Plane[] CameraFrustrum;
@@ -205,12 +204,7 @@
                 ObjectPooler.Current.CreatePoolForObject(PlaceHolderCube);
             }
 
-            if (!string.IsNullOrEmpty(ProxyUrl))
-            {
-                _proxy = new WebProxy(ProxyUrl);
-            }
-
-            CacheWebRequest.InitializeCache(CacheSize, _proxy);
+            CacheWebRequest.InitializeCache(CacheSize, ProxyUrl);
         }
 
         private static bool CheckThread(bool expectMainThread)

@@ -32,7 +32,7 @@
 
         private static bool _hydrated;
 
-        private static WebProxy _proxy;
+        private static string _proxyUrl;
 
         private static readonly char[] InvalidFileCharacters = Path.GetInvalidFileNameChars();
 
@@ -50,7 +50,7 @@
             InitializeCache(DefaultMaxCacheSize);
         }
 
-        public static void InitializeCache(int maxCacheSize, WebProxy proxy = null)
+        public static void InitializeCache(int maxCacheSize, String proxyUrl = null)
         {
             _maxCacheSize = maxCacheSize;
             lock (_cacheFileList)
@@ -64,7 +64,7 @@
                     }
                 }
 
-                _proxy = proxy;
+                _proxyUrl = proxyUrl;
             }
         }
 
@@ -173,9 +173,9 @@
                     {
                         var client = new TimeoutWebClient();
                         // set a proxy if one was used
-                        if (_proxy != null)
+                        if (!string.IsNullOrEmpty(_proxyUrl))
                         {
-                            client.Proxy = _proxy;
+                            client.Proxy = new WebProxy(_proxyUrl);
                         }
                         try
                         {
