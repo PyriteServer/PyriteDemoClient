@@ -32,6 +32,8 @@
 
         private static bool _hydrated;
 
+        private static string _proxyUrl;
+
         private static readonly char[] InvalidFileCharacters = Path.GetInvalidFileNameChars();
 
         // MRU index for cache items. The key points to the node in the list that can be used to delete it or refresh it (move it to the end)
@@ -45,10 +47,10 @@
         static CacheWebRequest()
         {
             BetterThreadPool.InitInstance();
-            RehydrateCache(DefaultMaxCacheSize);
+            InitializeCache(DefaultMaxCacheSize);
         }
 
-        public static void RehydrateCache(int maxCacheSize)
+        public static void InitializeCache(int maxCacheSize, String proxyUrl = null)
         {
             _maxCacheSize = maxCacheSize;
             lock (_cacheFileList)
@@ -61,6 +63,8 @@
                         InsertOrUpdateCacheEntry(file);
                     }
                 }
+
+                _proxyUrl = proxyUrl;
             }
         }
 
@@ -168,8 +172,11 @@
                     else
                     {
                         var client = new TimeoutWebClient();
-                        // fiddler
-                        //client.Proxy = new WebProxy("http://localhost:8888");
+                        // set a proxy if one was used
+                        if (!string.IsNullOrEmpty(_proxyUrl))
+                        {
+                            client.Proxy = new WebProxy(_proxyUrl);
+                        }
                         try
                         {
                             response.Content = client.DownloadData(url);
