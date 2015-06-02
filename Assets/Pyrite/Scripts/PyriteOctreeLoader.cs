@@ -213,9 +213,11 @@ namespace Pyrite
         void LoadCamCubes()
         {            
             var octIntCubeDict = new Dictionary<string, Intersection<CubeBounds>>();
+            var boxSize = new Vector3(BoundBoxSize, BoundBoxSize, BoundBoxSize);
 
-            for (int detailLevel = pyriteQuery.DetailLevels.Length - 1; detailLevel > 0; detailLevel--)
+            for (int detailLevel = pyriteQuery.DetailLevels.Length - 1; detailLevel > 0; detailLevel--)                
             {
+                //var detailLevel = 2;
                 var detailLevel2 = detailLevel - 1;
                 var pLevel = pyriteQuery.DetailLevels[detailLevel];
                 var pLevel2 = pyriteQuery.DetailLevels[detailLevel2];
@@ -224,16 +226,33 @@ namespace Pyrite
                 var cPos2 = pLevel2.GetCubeForWorldCoordinates(OctreeAdjustedPosition(CameraRig.transform.position));
 
                 var cubeCamVector = new Vector3(cPos.X + 0.5f, cPos.Y + 0.5f, cPos.Z + 0.5f);
-                var cubeCamVector2 = new Vector3(cPos2.X + 0.5f, cPos2.Y + 0.5f, cPos2.Z + 0.5f);
+                //var cubeCamVector2 = new Vector3(cPos2.X + 0.5f, cPos2.Y + 0.5f, cPos2.Z + 0.5f);
 
-                var boxSize = new Vector3(BoundBoxSize, BoundBoxSize, BoundBoxSize);
                 var minVector = cubeCamVector - boxSize;
                 var maxVector = cubeCamVector + boxSize;
-                var minVector2 = cubeCamVector2 - boxSize;
-                var maxVector2 = cubeCamVector2 + boxSize;
 
+                var minVector2 = new PyriteCube()
+                {
+                    X = cPos2.X - 1,
+                    Y = cPos2.Y - 1,
+                    Z = cPos2.Z - 1,
+                };
+                var maxVector2 = new PyriteCube()
+                {
+                    X = cPos2.X + 1,
+                    Y = cPos2.Y + 1,
+                    Z = cPos2.Z + 1,
+                };
+
+                var minVector2World = pLevel2.GetWorldCoordinatesForCube(minVector2);
+                var maxVector2World = pLevel2.GetWorldCoordinatesForCube(maxVector2);
+                var minVectorLevel = pLevel.GetCubeForWorldCoordinates(minVector2World);
+                var maxVectorLevel = pLevel.GetCubeForWorldCoordinates(maxVector2World);
+                var minV2 = new Vector3(minVectorLevel.X + 0.5f, minVectorLevel.Y + 0.5f, minVectorLevel.Z + 0.5f);
+                var maxV2 = new Vector3(maxVectorLevel.X + 0.5f, maxVectorLevel.Y + 0.5f, maxVectorLevel.Z + 0.5f);
                 var octIntCubes = pLevel.Octree.AllIntersections(new BoundingBox(minVector, maxVector)).ToList();
-                var octIntCubes2 = pLevel.Octree.AllIntersections(new BoundingBox(minVector2, maxVector2)).ToList();
+                var octIntCubes2 = pLevel.Octree.AllIntersections(new BoundingBox(minV2, maxV2)).ToList();
+                
                 Debug.Log(string.Format("L{0}-Cube Count: {1}/{2}", detailLevel, octIntCubes.Count, octIntCubes2.Count));
 
                 // Load current level cubes
@@ -252,9 +271,17 @@ namespace Pyrite
                     var pCube = CreateCubeFromCubeBounds(c.Object);
                     var cubeKey = string.Format("{0},{1}", detailLevel, pCube.GetKey());
                     if (octIntCubeDict.ContainsKey(cubeKey))
-                    {
-                        octIntCubeDict.Remove(cubeKey);
-                        var q = pLevel2.Octree.AllIntersections(new BoundingBox(c.Position,c.Position));                        
+                    {                        
+                        octIntCubeDict.Remove(cubeKey);                                                
+                        var cubeW = pLevel.GetWorldCoordinatesForCube(pCube);
+                        var cubeL = pLevel2.GetCubeForWorldCoordinates(cubeW);
+                        var cubeV = new Vector3(cubeL.X + 0.5f, cubeL.Y + 0.5f, cubeL.Z + 0.5f);
+                        var minCubeV = cubeV - boxSize;
+                        var maxCubeV = cubeV + boxSize;
+
+                        var q = pLevel2.Octree.AllIntersections(new BoundingBox(minCubeV, maxCubeV)).ToList();
+                        Debug.LogFormat("Replacement Count: {0}", q.Count);
+
                         foreach (var c2 in q)
                         {
                             var pCube2 = CreateCubeFromCubeBounds(c2.Object);
