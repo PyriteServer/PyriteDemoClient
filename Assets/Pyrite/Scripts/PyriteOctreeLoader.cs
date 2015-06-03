@@ -44,7 +44,7 @@ namespace Pyrite
         public bool ShowLocatorCubes = false;
         public bool ShowCubes = false;
         public int OctreeListCount = 50;
-        public float BoundBoxSize = 2.0f;
+        public int BoundBoxSize = 1;
         public GameObject RenderCube;
         public GameObject TranslucentCube;
         public GameObject LocatorCube;
@@ -216,7 +216,7 @@ namespace Pyrite
         void LoadCamCubes()
         {            
             var octIntCubeDict = new Dictionary<string, Intersection<CubeBounds>>();
-            var boxSize = new Vector3(BoundBoxSize, BoundBoxSize, BoundBoxSize);
+            var boundBoxVector = new Vector3(BoundBoxSize, BoundBoxSize, BoundBoxSize);
 
             for (int detailLevel = pyriteQuery.DetailLevels.Length - 1; detailLevel > 0; detailLevel--)                
             {
@@ -224,37 +224,44 @@ namespace Pyrite
                 var detailLevel2 = detailLevel - 1;
                 var pLevel = pyriteQuery.DetailLevels[detailLevel];
                 var pLevel2 = pyriteQuery.DetailLevels[detailLevel2];
+                var camPos = CameraRig.transform.position;
+                var camPosAdjusted = OctreeAdjustedPosition(camPos);
 
-                var cPos = pLevel.GetCubeForWorldCoordinates(OctreeAdjustedPosition(CameraRig.transform.position));
-                var cPos2 = pLevel2.GetCubeForWorldCoordinates(OctreeAdjustedPosition(CameraRig.transform.position));
+                var cPos = pLevel.GetCubeForWorldCoordinates(camPosAdjusted);
+                var cPos2 = pLevel2.GetCubeForWorldCoordinates(camPosAdjusted);
 
                 var cubeCamVector = new Vector3(cPos.X + 0.5f, cPos.Y + 0.5f, cPos.Z + 0.5f);
-                //var cubeCamVector2 = new Vector3(cPos2.X + 0.5f, cPos2.Y + 0.5f, cPos2.Z + 0.5f);
+                var cubeCamVector2 = new Vector3(cPos2.X + 0.5f, cPos2.Y + 0.5f, cPos2.Z + 0.5f);
+                
 
-                var minVector = cubeCamVector - boxSize;
-                var maxVector = cubeCamVector + boxSize;
+                var minVector = cubeCamVector - boundBoxVector;
+                var maxVector = cubeCamVector + boundBoxVector;
 
-                var minVector2 = new PyriteCube()
+                var minCube2 = cubeCamVector2 - boundBoxVector;
+                var maxCube2 = cubeCamVector2 + boundBoxVector;
+
+                var minPC = new PyriteCube()
                 {
-                    X = cPos2.X - 1,
-                    Y = cPos2.Y - 1,
-                    Z = cPos2.Z - 1,
+                    X = (int) minCube2.x,
+                    Y = (int) minCube2.y,
+                    Z = (int) minCube2.z
                 };
-                var maxVector2 = new PyriteCube()
+                var maxPC = new PyriteCube()
                 {
-                    X = cPos2.X + 1,
-                    Y = cPos2.Y + 1,
-                    Z = cPos2.Z + 1,
+                    X = (int)maxCube2.x,
+                    Y = (int)maxCube2.y,
+                    Z = (int)maxCube2.z
                 };
 
-                var minVector2World = pLevel2.GetWorldCoordinatesForCube(minVector2);
-                var maxVector2World = pLevel2.GetWorldCoordinatesForCube(maxVector2);
-                var minVectorLevel = pLevel.GetCubeForWorldCoordinates(minVector2World);
-                var maxVectorLevel = pLevel.GetCubeForWorldCoordinates(maxVector2World);
-                var minV2 = new Vector3(minVectorLevel.X + 0.5f, minVectorLevel.Y + 0.5f, minVectorLevel.Z + 0.5f);
-                var maxV2 = new Vector3(maxVectorLevel.X + 0.5f, maxVectorLevel.Y + 0.5f, maxVectorLevel.Z + 0.5f);
+                var minWorld2 = pLevel2.GetWorldCoordinatesForCube(minPC);
+                var maxWorld2 = pLevel2.GetWorldCoordinatesForCube(maxPC);       
+                var minCubeC2 = pLevel.GetCubeForWorldCoordinates(minWorld2);
+                var maxCubeC2 = pLevel.GetCubeForWorldCoordinates(maxWorld2);
+                var minVector2 = new Vector3(minCubeC2.X + 0.5f, minCubeC2.Y + 0.5f, minCubeC2.Z + 0.5f);
+                var maxVector2 = new Vector3(maxCubeC2.X + 0.5f, maxCubeC2.Y + 0.5f, maxCubeC2.Z + 0.5f);
+
                 var octIntCubes = pLevel.Octree.AllIntersections(new BoundingBox(minVector, maxVector)).ToList();
-                var octIntCubes2 = pLevel.Octree.AllIntersections(new BoundingBox(minV2, maxV2)).ToList();
+                var octIntCubes2 = pLevel.Octree.AllIntersections(new BoundingBox(minVector2, maxVector2)).ToList();
                 
                 Debug.Log(string.Format("L{0}-Cube Count: {1}/{2}", detailLevel, octIntCubes.Count, octIntCubes2.Count));
 
@@ -279,8 +286,8 @@ namespace Pyrite
                         var cubeW = pLevel.GetWorldCoordinatesForCube(pCube);
                         var cubeL = pLevel2.GetCubeForWorldCoordinates(cubeW);
                         var cubeV = new Vector3(cubeL.X + 0.5f, cubeL.Y + 0.5f, cubeL.Z + 0.5f);
-                        var minCubeV = cubeV - boxSize;
-                        var maxCubeV = cubeV + boxSize;
+                        var minCubeV = cubeV - boundBoxVector;
+                        var maxCubeV = cubeV + boundBoxVector;
 
                         var q = pLevel2.Octree.AllIntersections(new BoundingBox(minCubeV, maxCubeV)).ToList();
                         Debug.LogFormat("Replacement Count: {0}", q.Count);
