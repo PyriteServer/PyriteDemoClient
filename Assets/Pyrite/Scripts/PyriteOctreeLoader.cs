@@ -508,7 +508,8 @@ namespace Pyrite
                         var materialData = CubeBuilderHelpers.GetDefaultMaterialData(
                             (int) textureCoordinates.x,
                             (int) textureCoordinates.y,
-                            loadRequest.LodIndex);
+                            loadRequest.LodIndex,
+                            texturePath);
                         var cachePath = CacheWebRequest.GetCacheFilePath(texturePath);
                         if (!CacheFill)
                         {
@@ -540,7 +541,8 @@ namespace Pyrite
                         var materialData = CubeBuilderHelpers.GetDefaultMaterialData(
                             (int) textureCoordinates.x,
                             (int) textureCoordinates.y,
-                            loadRequest.LodIndex);
+                            loadRequest.LodIndex,
+                            texturePath);
                         _partiallyConstructedMaterialDatas[texturePath] = materialData;
 
                         CacheWebRequest.GetBytes(texturePath, textureResponse =>

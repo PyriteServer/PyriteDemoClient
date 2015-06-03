@@ -310,6 +310,7 @@ MonoBehaviour:
   RotationDeltaRate: 90
   TranslationDeltaRate: 100
   TouchTranslationDeltaRate: .200000003
+  InvertY: 0
 --- !u!1 &1608615648
 GameObject:
   m_ObjectHideFlags: 0
@@ -416,14 +417,12 @@ MonoBehaviour:
   PlaceHolderCube: {fileID: 0}
   BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   PyriteServer: 
-  MaxConcurrentRequests: 8
   DetailLevel: 4
   FilterDetailLevels: 0
   DetailLevelsToFilter: 
   ModelVersion: V2
   SetName: 
   EboCacheSize: 250
-  MaterialCacheSize: 100
   MaterialDataCacheSize: 100
   UseCameraDetection: 0
   UseUnlitShader: 1
@@ -437,6 +436,7 @@ MonoBehaviour:
   UseWwwForEbo: 1
   CacheFill: 0
   CacheSize: 3000
+  ProxyUrl: 
   QueryPosition: {x: 0, y: 0, z: 0}
   TargetGameObject: {fileID: 1608615648}
   SkipLowerDetailedCubes: 1

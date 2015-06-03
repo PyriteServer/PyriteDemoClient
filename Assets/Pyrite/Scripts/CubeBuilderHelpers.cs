@@ -26,9 +26,9 @@
 
         private static readonly Shader UnlitShader = Shader.Find("Unlit/Texture");
 
-        public static MaterialData GetDefaultMaterialData(int x, int y, int lod)
+        public static MaterialData GetDefaultMaterialData(int x, int y, int lod, string path)
         {
-            var current = new MaterialData();
+            var current = new MaterialData(path);
 
             // newmtl material_0
             current.X = x;
@@ -54,7 +54,7 @@
             current.Shininess = DefaultShininess; // Cf("0.000000")/1000;
 
             // map_Kd model.jpg
-            current.DiffuseTexPath = "model.jpg";
+            current.DiffuseTexPath = path;
 
             return current;
         }

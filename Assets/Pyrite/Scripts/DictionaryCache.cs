@@ -1,22 +1,27 @@
 ﻿namespace Pyrite
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
 
-    public class DictionaryCache<TKey, TValue> : IDictionary<TKey, TValue>
+    public class DictionaryCache<TKey, TValue>
     {
-        private readonly Dictionary<TKey, TValue> _dictionary = new Dictionary<TKey, TValue>();
-        private readonly LinkedList<TKey> _queue = new LinkedList<TKey>();
+        protected class ValueEntry
+        {
+            public TValue Value;
+            public LinkedListNode<TKey> KeyNode;
+        }
+
+        protected readonly Dictionary<TKey, ValueEntry> Dictionary = new Dictionary<TKey, ValueEntry>();
+        protected readonly LinkedList<TKey> EvictionQueue = new LinkedList<TKey>();
 
         public int MaximumLength { get; set; }
 
         public DictionaryCache(int maximumLength)
         {
-            if (maximumLength < 2)
+            if (maximumLength < 0)
             {
-                throw new ArgumentException("Length must be >= 2", "maximumLength");
+                throw new ArgumentException("Length must be >= 0", "maximumLength");
             }
 
             MaximumLength = maximumLength;
@@ -24,14 +29,22 @@
 
         public TValue this[TKey key]
         {
-            get { return _dictionary[key]; }
+            get { return GetValueForKey(key); }
 
-            set { _dictionary[key] = value; }
+            set { Add(key, value); }
+        }
+
+        private TValue GetValueForKey(TKey key)
+        {
+            var node = Dictionary[key].KeyNode;
+            EvictionQueue.Remove(node);
+            EvictionQueue.AddFirst(node);
+            return Dictionary[key].Value;
         }
 
         public int Count
         {
-            get { return _dictionary.Count; }
+            get { return Dictionary.Count; }
         }
 
         public bool IsReadOnly
@@ -39,78 +52,52 @@
             get { return false; }
         }
 
-        public ICollection<TKey> Keys
-        {
-            get { return _dictionary.Keys; }
-        }
-
-        public ICollection<TValue> Values
-        {
-            get { return _dictionary.Values; }
-        }
-
         public void Add(KeyValuePair<TKey, TValue> item)
         {
             Add(item.Key, item.Value);
         }
 
-        public void Add(TKey key, TValue value)
+        protected virtual void EvictCacheEntry()
         {
-            if (_dictionary.Count >= MaximumLength)
+            Dictionary.Remove(EvictionQueue.Last());
+            EvictionQueue.RemoveLast();
+        }
+
+        public virtual void Add(TKey key, TValue value)
+        {
+            if (MaximumLength == 0)
             {
-                _dictionary.Remove(_queue.Last());
-                _queue.RemoveLast();
+                return;
             }
 
-            _dictionary.Add(key, value);
-            _queue.AddFirst(key);
-        }
+            if (Dictionary.Count >= MaximumLength)
+            {
+                EvictCacheEntry();
+            }
 
-        public void Clear()
-        {
-            _dictionary.Clear();
-            _queue.Clear();
-        }
-
-        public bool Contains(KeyValuePair<TKey, TValue> item)
-        {
-            return _dictionary.Contains(item);
+            if (Dictionary.ContainsKey(key))
+            {
+                var node = Dictionary[key].KeyNode;
+                Dictionary[key].Value = value;
+                EvictionQueue.Remove(node);
+                EvictionQueue.AddFirst(node);
+            }
+            else
+            {
+                var node = EvictionQueue.AddFirst(key);
+                Dictionary.Add(key, new ValueEntry {Value = value, KeyNode = node});
+            }
         }
 
         public bool ContainsKey(TKey key)
         {
-            return _dictionary.ContainsKey(key);
+            return Dictionary.ContainsKey(key);
         }
 
-        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        public virtual bool Remove(TKey key)
         {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-        {
-            return _dictionary.GetEnumerator();
-        }
-
-        public bool Remove(KeyValuePair<TKey, TValue> item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Remove(TKey key)
-        {
-            _dictionary.Remove(key);
-            return _queue.Remove(key);
-        }
-
-        public bool TryGetValue(TKey key, out TValue value)
-        {
-            return _dictionary.TryGetValue(key, out value);
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _dictionary.GetEnumerator();
+            Dictionary.Remove(key);
+            return EvictionQueue.Remove(key);
         }
     }
 }

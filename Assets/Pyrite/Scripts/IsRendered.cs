@@ -109,7 +109,16 @@
         {
             cubeToRelease.name = "Released: " + cubeToRelease.name;
             cubeToRelease.GetComponent<MeshFilter>().mesh.Clear();
-            cubeToRelease.GetComponent<Renderer>().sharedMaterial = null;
+            var material = cubeToRelease.GetComponent<Renderer>().sharedMaterial;
+            if (material != null)
+            {
+                cubeToRelease.GetComponent<Renderer>().sharedMaterial = null;
+                lock (_manager.MaterialDataCache)
+                {
+                    _manager.MaterialDataCache.Release(material.mainTexture.name);
+                }
+            }
+
             cubeToRelease.SetActive(false);
         }
 
@@ -150,7 +159,6 @@
             _childDetectors.Clear();
         }
 
-
         private void DestroyChildren()
         {
             CancelRequest();
@@ -161,6 +169,7 @@
 
             _upgraded = false;
             _upgrading = false;
+            // Resources.UnloadUnusedAssets();
         }
 
         private IEnumerator WaitForChildrenToLoad(IEnumerable<GameObject> newDetectors)

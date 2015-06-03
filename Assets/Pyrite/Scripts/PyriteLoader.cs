@@ -15,10 +15,6 @@
     {
         private DictionaryCache<string, GeometryBuffer> _eboCache;
 
-        private DictionaryCache<string, Material> _materialCache;
-
-        private DictionaryCache<string, MaterialData> _materialDataCache;
-
         private readonly Dictionary<string, MaterialData> _partiallyConstructedMaterialDatas =
             new Dictionary<string, MaterialData>();
 
@@ -56,9 +52,6 @@
         [Header("Server Options")]
         public string PyriteServer;
 
-        [Range(0, 100)]
-        public int MaxConcurrentRequests = 8;
-
         [Header("Set Options (required)")]
         public int DetailLevel = 6;
 
@@ -70,8 +63,7 @@
         [Header("Performance options")]
         public int EboCacheSize = 250;
 
-        public int MaterialCacheSize = 100;
-        public int MaterialDataCacheSize = 100;
+        public int MaterialDataCacheSize = 25;
 
         [Header("Debug Options")]
         public bool UseCameraDetection = true;
@@ -79,16 +71,6 @@
         public bool UseUnlitShader = true;
         public bool UseFileCache = true;
         public bool ShowDebugText = true;
-
-        [Header("Octree Options")]
-        public bool UseOctreeSelection = false;
-
-        public bool ShowOctreeDebugCubes = false;
-        public bool ShowOctreeLocatorCubes = false;
-        public bool ShowOctreeCubes = false;
-        public int MaxListCount = 50;
-        public GameObject OctreeTranslucenttCube;
-        public GameObject OctreeMarkerCube;
 
         [Header("Other Options")]
         public float UpgradeFactor = 1.05f;
@@ -106,6 +88,9 @@
 
         [HideInInspector]
         public Plane[] CameraFrustrum;
+
+        [HideInInspector]
+        public MaterialDataCache MaterialDataCache { get; private set; }
 
         // Queue for requests that are waiting for their material data
         private readonly Queue<LoadCubeRequest> _loadMaterialQueue = new Queue<LoadCubeRequest>(10);
@@ -138,7 +123,6 @@
         private PyriteQuery pyriteQuery;
         private PyriteSetVersionDetailLevel pyriteLevel;
         private PyriteSetVersionDetailLevel pyriteLevel1;
-        private GameObject OctreeWorld;
 
         private void Start()
         {
@@ -181,22 +165,13 @@
                 Debug.LogWarning("Ebo cache already initialized. Skipping initizliation.");
             }
 
-            if (_materialDataCache == null)
+            if (MaterialDataCache == null)
             {
-                _materialDataCache = new DictionaryCache<string, MaterialData>(MaterialDataCacheSize);
+                MaterialDataCache = new MaterialDataCache(MaterialDataCacheSize);
             }
             else
             {
                 Debug.LogWarning("Material Data cache  already initialized. Skipping initizliation.");
-            }
-
-            if (_materialCache == null)
-            {
-                _materialCache = new DictionaryCache<string, Material>(MaterialCacheSize);
-            }
-            else
-            {
-                Debug.LogWarning("Material cache  already initialized. Skipping initizliation.");
             }
 
             ObjectPooler.Current.CreatePoolForObject(BaseModelCube);
@@ -219,8 +194,8 @@
                 Debug.LogWarning("Warning unexpected thread. Expected: " + expectMainThread);
             }
             return asExpected;
-        #else
-            // We do not get Thread class in Windows Store Apps so just return true
+#else
+    // We do not get Thread class in Windows Store Apps so just return true
             return true;
 #endif
         }
@@ -245,22 +220,6 @@
             // Update camera frustrum
             if (UseCameraDetection)
                 CameraFrustrum = GeometryUtility.CalculateFrustumPlanes(Camera.main);
-
-            if (UseOctreeSelection)
-            {
-                cubeCamPosNew = pyriteLevel1.GetCubeForWorldCoordinates(new Vector3(
-                    -CameraRig.transform.position.x,
-                    -CameraRig.transform.position.z,
-                    CameraRig.transform.position.y - _geometryBufferAltitudeTransform));
-
-                if (!cubeCamPos.Equals(cubeCamPosNew))
-                {
-                    Debug.Log(String.Format("NEW CUBE POSITION: ({0},{1},{2})", cubeCamPosNew.X, cubeCamPosNew.Y,
-                        cubeCamPosNew.Z));
-                    cubeCamPos = cubeCamPosNew;
-                    LoadCamCubes();
-                }
-            }
 
             // Check for work in Update
             ProcessQueues();
@@ -303,6 +262,13 @@
                     }
                     else
                     {
+                        lock (MaterialDataCache)
+                        {
+                            if (request.MaterialData != null && request.MaterialData.DiffuseTex != null)
+                            {
+                                MaterialDataCache.Release(request.MaterialData.DiffuseTex.name);
+                            }
+                        }
                         CancelledRequests++;
                     }
                 }
@@ -376,16 +342,20 @@
 
                 if (UseFileCache)
                 {
-                    caches = string.Format("Mesh {0}/{1} Mat {2}/{3} File {4}/{5} Cr {6} Lcr {7} Dr {8}",
-                        EboCacheHits,
-                        EboCacheMisses,
-                        MaterialCacheHits,
-                        MaterialCacheMisses,
-                        FileCacheHits,
-                        FileCacheMisses,
-                        CancelledRequests,
-                        LateCancelledRequests,
-                        _dependentCubes.Count);
+                    caches =
+                        string.Format("Mesh {0}/{1} ({2}) Mat {3}/{4} ({5}|{6}) File {7}/{8} Cr {9} Lcr {10} Dr {11}",
+                            EboCacheHits,
+                            EboCacheMisses,
+                            _eboCache.Count,
+                            MaterialCacheHits,
+                            MaterialCacheMisses,
+                            MaterialDataCache.Count,
+                            MaterialDataCache.Evictions,
+                            FileCacheHits,
+                            FileCacheMisses,
+                            CancelledRequests,
+                            LateCancelledRequests,
+                            _dependentCubes.Count);
                 }
                 else
                 {
@@ -426,14 +396,6 @@
 
             pyriteLevel = pyriteQuery.DetailLevels[initialDetailLevelIndex];
 
-            if (UseOctreeSelection)
-            {
-                pyriteLevel1 = pyriteQuery.DetailLevels[0];
-                OctreeWorld = new GameObject("OctreeWorld");
-                OctreeWorld.transform.position = Vector3.zero;
-                OctreeWorld.transform.rotation = Quaternion.identity;
-            }
-
             var allOctCubes = pyriteQuery.DetailLevels[initialDetailLevelIndex].Octree.AllItems();
             foreach (var octCube in allOctCubes)
             {
@@ -462,22 +424,10 @@
 
                     detectionCube.SetActive(true);
                 }
-                else if (!UseOctreeSelection)
+                else
                 {
                     var loadRequest = new LoadCubeRequest(x, y, z, initialDetailLevelIndex, pyriteQuery, null);
                     yield return StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
-                }
-
-                if (UseOctreeSelection && ShowOctreeCubes)
-                {
-                    var adjustedPos = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform, -cubePos.y);
-                    var loc = Instantiate(OctreeTranslucenttCube, adjustedPos, Quaternion.identity) as GameObject;
-                    loc.name = string.Format("Mesh:{0},{1},{2}", pCube.X, pCube.Y, pCube.Z);
-                    loc.transform.localScale = new Vector3(
-                        pyriteLevel.WorldCubeScale.x,
-                        pyriteLevel.WorldCubeScale.z,
-                        pyriteLevel.WorldCubeScale.y);
-                    loc.transform.parent = OctreeWorld.transform;
                 }
             }
 
@@ -498,170 +448,6 @@
                 newCameraPosition += new Vector3(0, (max - min).y*1.4f, 0);
                 CameraRig.transform.position = newCameraPosition;
                 CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
-            }
-
-            if (UseOctreeSelection)
-            {
-                cubeCamPos = pyriteLevel1.GetCubeForWorldCoordinates(new Vector3(
-                    -CameraRig.transform.position.x,
-                    -CameraRig.transform.position.z,
-                    CameraRig.transform.position.y - _geometryBufferAltitudeTransform));
-                LoadCamCubes();
-            }
-        }
-
-        private void LoadCamCubes()
-        {
-            for (var detailLevel = pyriteQuery.DetailLevels.Length - 1; detailLevel >= 0; detailLevel--)
-            {
-                var pLevel = pyriteQuery.DetailLevels[detailLevel];
-                var cPos = pLevel.GetCubeForWorldCoordinates(new Vector3(
-                    -CameraRig.transform.position.x,
-                    -CameraRig.transform.position.z,
-                    CameraRig.transform.position.y - _geometryBufferAltitudeTransform));
-
-                Debug.Log(String.Format("LoadCamCubes: ({0},{1},{2})", cPos.X, cPos.Y, cPos.Z));
-                var cubeCamVector = new Vector3(cPos.X + 0.5f, cPos.Y + 0.5f, cPos.Z + 0.5f);
-                var minVector = cubeCamVector - Vector3.one;
-                var maxVector = cubeCamVector + Vector3.one;
-                var cubeCounter = 0;
-                var octIntCubes = pLevel.Octree.AllIntersections(new BoundingBox(minVector, maxVector));
-                foreach (var i in octIntCubes)
-                {
-                    cubeCounter++;
-                    var pCube = CreateCubeFromCubeBounds(i.Object);
-                    var cubeKey = string.Format("{0},{1}", detailLevel, pCube.GetKey());
-                    var cubePos = pLevel.GetWorldCoordinatesForCube(pCube);
-
-                    CubeTracker ct = null;
-                    var ctNeedLoad = false;
-
-                    // Setup object at cube location
-                    if (cubeDict.ContainsKey(cubeKey))
-                    {
-                        ct = cubeDict[cubeKey];
-                        cubeList.Remove(ct);
-                        cubeList.AddFirst(ct);
-                        if (!ct.Active)
-                        {
-                            ct.Active = true; // TODO: Active status should retain mesh                            
-
-                            if (ShowOctreeLocatorCubes)
-                            {
-                                ct.trackObject.GetComponent<MeshRenderer>().material.color = Color.green;
-                                ct.trackObject.SetActive(true);
-                            }
-
-                            ct.ClearMesh();
-                            //Destroy(ct.gameObject);
-                            var loadRequest = new LoadCubeRequest(
-                                pCube.X,
-                                pCube.Y,
-                                pCube.Z,
-                                detailLevel, pyriteQuery, createdObject => { ct.gameObject = createdObject; });
-                            StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
-                        }
-                    }
-                    else
-                    {
-                        if (cubeList.Count < MaxListCount)
-                        {
-                            ct = new CubeTracker(cubeKey);
-                        }
-                        else
-                        {
-                            // Reuse Last CubeTracker
-                            Debug.Log("Reusing Cube");
-                            ct = cubeList.Last.Value;
-                            if (ct.Active)
-                            {
-                                Debug.Log(">>>>>>>>> ERROR: Active Object in List Tail. Too many required cubes.");
-                                return;
-                            }
-                            cubeList.RemoveLast();
-                            cubeDict.Remove(ct.DictKey);
-                            ct.DictKey = cubeKey;
-
-                            if (ct.gameObject != null)
-                            {
-                                ct.ClearMesh();
-                                //Destroy(ct.gameObject);
-                            }
-                        }
-
-                        var loadRequest = new LoadCubeRequest(
-                            pCube.X,
-                            pCube.Y,
-                            pCube.Z,
-                            detailLevel, pyriteQuery, createdObject => { ct.gameObject = createdObject; });
-                        StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
-
-                        // Setup Locator GameObject
-                        var adjustedPos = new Vector3(-cubePos.x, cubePos.z + _geometryBufferAltitudeTransform,
-                            -cubePos.y);
-                        GameObject gObj = null;
-                        if (UseOctreeSelection && ShowOctreeDebugCubes)
-                        {
-                            if (ct.trackObject)
-                            {
-                                ct.trackObject.transform.position = adjustedPos;
-                                ct.trackObject.transform.localScale = new Vector3(
-                                    pLevel.WorldCubeScale.x*.8f,
-                                    pLevel.WorldCubeScale.y*.8f,
-                                    pLevel.WorldCubeScale.z*.8f);
-                                ct.trackObject.SetActive(true);
-                                if (ShowOctreeLocatorCubes)
-                                    ct.trackObject.GetComponent<MeshRenderer>().material.color = Color.yellow;
-                            }
-                            else
-                            {
-                                gObj =
-                                    Instantiate(OctreeTranslucenttCube, adjustedPos, Quaternion.identity) as GameObject;
-                                gObj.transform.localScale = new Vector3(
-                                    pLevel.WorldCubeScale.x*.8f,
-                                    pLevel.WorldCubeScale.y*.8f,
-                                    pLevel.WorldCubeScale.z*.8f);
-                                gObj.transform.parent = OctreeWorld.transform;
-                                ct.trackObject = gObj;
-                            }
-                        }
-
-                        ct.pyriteQuery = pyriteQuery;
-                        ct.Active = true;
-                        cubeList.AddFirst(ct);
-                        cubeDict.Add(ct.DictKey, ct);
-                    }
-                }
-                Debug.Log(String.Format("CubeCounter: {0}  CubeList/Dict: {1}/{2}", cubeCounter, cubeList.Count,
-                    cubeDict.Count));
-
-                var levelCount = 0;
-                foreach (var cube in cubeList)
-                {
-                    if (cube.l == detailLevel)
-                    {
-                        levelCount++;
-                        if (levelCount > cubeCounter)
-                        {
-                            if (!cube.Active)
-                            {
-                                //Debug.Log("Break List OPTION");
-                                //break;
-                            }
-                            // TODO: Create Interim status Cube without auto cleanup
-                            cube.Active = false;
-                            cube.ClearMesh();
-
-                            if (ShowOctreeDebugCubes && cube.trackObject)
-                            {
-                                if (ShowOctreeLocatorCubes)
-                                    cube.trackObject.GetComponent<MeshRenderer>().material.color = Color.red;
-                                else
-                                    cube.trackObject.SetActive(false);
-                            }
-                        }
-                    }
-                }
             }
         }
 
@@ -753,10 +539,10 @@
         {
             CheckIfBackgroundThread();
             loadRequest.Failures++;
-            lock (_materialDataCache)
+            lock (MaterialDataCache)
             {
                 // Remove the 'in progress' marker from the cache
-                _materialDataCache.Remove(materialPath);
+                MaterialDataCache.Remove(materialPath);
             }
 
             if (RETRY_LIMIT > loadRequest.Failures)
@@ -782,7 +568,7 @@
             }
         }
 
-        private IEnumerator SucceedGetGeometryBufferRequest(string modelPath)
+        private IEnumerator SucceedGetGeometryBufferRequest(string modelPath, GeometryBuffer buffer)
         {
             // Check to see if any other requests were waiting on this model
             LinkedList<LoadCubeRequest> dependentRequests;
@@ -801,7 +587,7 @@
             {
                 foreach (var request in dependentRequests)
                 {
-                    request.GeometryBuffer = _eboCache[modelPath];
+                    request.GeometryBuffer = buffer;
                     MoveRequestForward(request);
                 }
             }
@@ -810,7 +596,7 @@
         // Called when the material data has been constructed into the cache
         // The material data is constructed using a materialkey for reference
         // The method sets the material data for any dependent requests and moves them along
-        private IEnumerator SucceedGetMaterialDataRequests(string materialDataKey)
+        private IEnumerator SucceedGetMaterialDataRequests(string materialDataKey, MaterialData materialData)
         {
             CheckIfMainThread();
             // Check to see if any other requests were waiting on this model
@@ -824,16 +610,25 @@
                 _dependentCubes.Remove(materialDataKey);
             }
             Monitor.Exit(_dependentCubes);
-
+            while (!Monitor.TryEnter(MaterialDataCache))
+            {
+                yield return null;
+            }
             // If any were send them to their next stage
             if (dependentRequests != null)
             {
                 foreach (var request in dependentRequests)
                 {
-                    request.MaterialData = _materialDataCache[materialDataKey];
+                    request.MaterialData = materialData;
+
+                    MaterialDataCache.AddRef(request.MaterialData.DiffuseTexPath);
+
                     MoveRequestForward(request);
                 }
             }
+            // Now that added references for the dependent requests. We can release the interim reference
+            MaterialDataCache.Release(materialData.DiffuseTexPath);
+            Monitor.Exit(MaterialDataCache);
         }
 
         // Determine the next appropriate queue for the request
@@ -842,7 +637,7 @@
 #if !UNITY_WSA
             var onMainThread = _mainThread.Equals(Thread.CurrentThread);
 #else
-            // Can't check for UIThread yet on Windows Store Apps so assume we are not (trying to StartCoroutine will fail otherwise)
+    // Can't check for UIThread yet on Windows Store Apps so assume we are not (trying to StartCoroutine will fail otherwise)
             var onMainThread = false;
 #endif
 
@@ -892,7 +687,10 @@
         {
             var modelPath = loadRequest.Query.GetModelPath(loadRequest.LodIndex, loadRequest.X, loadRequest.Y,
                 loadRequest.Z);
-
+            while (!Monitor.TryEnter(_eboCache))
+            {
+                yield return null;
+            }
             // If the geometry data is being loaded or this is the first request to load it add the request the dependency list
             if (!_eboCache.ContainsKey(modelPath) || _eboCache[modelPath] == null)
             {
@@ -922,41 +720,47 @@
                             CacheWebRequest.AddToCache(cachePath, modelWww.bytes);
                         }
 
-                        _eboCache[modelPath] =
+                        var buffer =
                             new GeometryBuffer(_geometryBufferAltitudeTransform, true)
                             {
                                 Buffer = modelWww.bytes
                             };
-                        yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath));
+                        _eboCache[modelPath] = buffer;
+                        yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath, buffer));
                     }
                     else
                     {
                         CacheWebRequest.GetBytes(modelPath, modelResponse =>
                         {
-                            if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
+                            lock (_eboCache)
                             {
-                                Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
-                                FailGetGeometryBufferRequest(loadRequest, modelPath);
-                            }
-                            else if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
-                            {
-                                _eboCache.Remove(modelPath);
-                            }
-                            else
-                            {
-                                if (modelResponse.IsCacheHit)
+                                if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
                                 {
-                                    FileCacheHits++;
+                                    Debug.LogError("Error getting model [" + modelPath + "] " +
+                                                   modelResponse.ErrorMessage);
+                                    FailGetGeometryBufferRequest(loadRequest, modelPath);
+                                }
+                                else if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
+                                {
+                                    _eboCache.Remove(modelPath);
                                 }
                                 else
                                 {
-                                    FileCacheMisses++;
+                                    if (modelResponse.IsCacheHit)
+                                    {
+                                        FileCacheHits++;
+                                    }
+                                    else
+                                    {
+                                        FileCacheMisses++;
+                                    }
+                                    var buffer = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                                    {
+                                        Buffer = modelResponse.Content
+                                    };
+                                    _eboCache[modelPath] = buffer;
+                                    SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
                                 }
-                                _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
-                                {
-                                    Buffer = modelResponse.Content
-                                };
-                                SucceedGetGeometryBufferRequest(modelPath).Wait();
                             }
                         }, DependentRequestsExistBlocking);
                     }
@@ -969,6 +773,8 @@
                 loadRequest.GeometryBuffer = _eboCache[modelPath];
                 MoveRequestForward(loadRequest);
             }
+
+            Monitor.Exit(_eboCache);
         }
 
         // Responsible for getting the material data for a load request
@@ -987,14 +793,18 @@
                 (int) textureCoordinates.x,
                 (int) textureCoordinates.y);
 
+            while (!Monitor.TryEnter(MaterialDataCache))
+            {
+                yield return null;
+            }
             // If the material data is not in the cache or in the middle of being constructed add this request as a dependency
-            if (!_materialDataCache.ContainsKey(texturePath) || _materialDataCache[texturePath] == null)
+            if (!MaterialDataCache.ContainsKey(texturePath) || MaterialDataCache[texturePath] == null)
             {
                 // Add this requst to list of requests that is waiting for the data
                 yield return StartCoroutine(AddDependentRequest(loadRequest, texturePath));
 
                 // Check if this is the first request for material (or it isn't in the cache)
-                if (!_materialDataCache.ContainsKey(texturePath))
+                if (!MaterialDataCache.ContainsKey(texturePath))
                 {
                     if (UseWwwForTextures)
                     {
@@ -1003,9 +813,10 @@
                         MaterialCacheMisses++;
                         // Set to null to signal to other tasks that the key is in the process
                         // of being filled
-                        _materialDataCache[texturePath] = null;
+                        MaterialDataCache[texturePath] = null;
                         var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
-                            (int) textureCoordinates.y, loadRequest.LodIndex);
+                            (int) textureCoordinates.y, loadRequest.LodIndex,
+                            texturePath);
                         var cachePath = CacheWebRequest.GetCacheFilePath(texturePath);
                         if (!CacheFill)
                         {
@@ -1025,11 +836,13 @@
                             }
 
                             materialData.DiffuseTex = textureWww.texture;
+                            materialData.DiffuseTex.name = materialData.Name;
                         }
-                        _materialDataCache[texturePath] = materialData;
-
+                        MaterialDataCache[texturePath] = materialData;
+                        // Add a reference to keep the texture around until we queue off the related load requests
+                        MaterialDataCache.AddRef(texturePath);
                         // Move forward dependent requests that wanted this material data
-                        yield return StartCoroutine(SucceedGetMaterialDataRequests(texturePath));
+                        yield return StartCoroutine(SucceedGetMaterialDataRequests(texturePath, materialData));
                     }
                     else
                     {
@@ -1038,9 +851,10 @@
                         MaterialCacheMisses++;
                         // Set to null to signal to other tasks that the key is in the process
                         // of being filled
-                        _materialDataCache[texturePath] = null;
+                        MaterialDataCache[texturePath] = null;
                         var materialData = CubeBuilderHelpers.GetDefaultMaterialData((int) textureCoordinates.x,
-                            (int) textureCoordinates.y, loadRequest.LodIndex);
+                            (int) textureCoordinates.y, loadRequest.LodIndex,
+                            texturePath);
                         _partiallyConstructedMaterialDatas[texturePath] = materialData;
 
                         CacheWebRequest.GetBytes(texturePath, textureResponse =>
@@ -1054,7 +868,10 @@
                             }
                             else if (textureResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
                             {
-                                _materialDataCache.Remove(texturePath);
+                                lock (MaterialDataCache)
+                                {
+                                    MaterialDataCache.Remove(texturePath);
+                                }
                             }
                             else
                             {
@@ -1075,16 +892,13 @@
             }
             else // The material was in the cache
             {
-                while (!Monitor.TryEnter(_materialDataCache))
-                {
-                    yield return null;
-                }
                 // Material data ready get it and move on
                 MaterialCacheHits++;
-                loadRequest.MaterialData = _materialDataCache[texturePath];
+                loadRequest.MaterialData = MaterialDataCache[texturePath];
+                MaterialDataCache.AddRef(texturePath);
                 MoveRequestForward(loadRequest);
-                Monitor.Exit(_materialDataCache);
             }
+            Monitor.Exit(MaterialDataCache);
         }
 
         // Used to create material data when a texture has finished downloading
@@ -1104,17 +918,23 @@
 #if UNITY_IOS
                 var texture = new Texture2D(1, 1, TextureFormat.RGB24, false);
 #else
-				var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
+                var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
 #endif
                 texture.LoadImage(materialDataKeyAndTexturePair.Value);
 
                 inProgressMaterialData.DiffuseTex = texture;
+                inProgressMaterialData.DiffuseTex.name = inProgressMaterialData.Name;
             }
-
-            _materialDataCache[materialDataKey] = inProgressMaterialData;
-
+            while (!Monitor.TryEnter(MaterialDataCache))
+            {
+                yield return null;
+            }
+            MaterialDataCache[materialDataKey] = inProgressMaterialData;
+            // Add reference until we add references for dependent requests
+            MaterialDataCache.AddRef(materialDataKey);
+            Monitor.Exit(MaterialDataCache);
             // Move forward dependent requests that wanted this material data
-            yield return StartCoroutine(SucceedGetMaterialDataRequests(materialDataKey));
+            yield return StartCoroutine(SucceedGetMaterialDataRequests(materialDataKey, inProgressMaterialData));
         }
 
         // Used to create a and populate a game object for this request 
@@ -1128,11 +948,6 @@
         private void Build(GeometryBuffer buffer, MaterialData materialData, int x, int y, int z, int lod,
             Action<GameObject> registerCreatedObjects)
         {
-            if (!_materialCache.ContainsKey(materialData.Name))
-            {
-                _materialCache[materialData.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, materialData);
-            }
-
             if (CacheFill)
             {
                 return;
@@ -1149,9 +964,7 @@
 
             var newCube = ObjectPooler.Current.GetPooledObject(BaseModelCube);
             newCube.name = cubeName.ToString();
-
-            buffer.PopulateMeshes(newCube, _materialCache[materialData.Name]);
-
+            buffer.PopulateMeshes(newCube, materialData.Material);
             // Put object in scene, claim from pool
             newCube.SetActive(true);
 

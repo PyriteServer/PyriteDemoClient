@@ -341,26 +341,17 @@ MonoBehaviour:
   PlaceHolderCube: {fileID: 135038, guid: 2f934764d71518942b1b6029f72c985b, type: 2}
   BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   PyriteServer: 
-  MaxConcurrentRequests: 8
   DetailLevel: 4
-  FilterDetailLevels: 1
+  FilterDetailLevels: 0
   DetailLevelsToFilter: 01000000
   ModelVersion: V1
   SetName: 
-  EboCacheSize: 150
-  MaterialCacheSize: 50
-  MaterialDataCacheSize: 50
+  EboCacheSize: 100
+  MaterialDataCacheSize: 20
   UseCameraDetection: 1
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 0
-  UseOctreeSelection: 0
-  ShowOctreeDebugCubes: 0
-  ShowOctreeLocatorCubes: 0
-  ShowOctreeCubes: 0
-  MaxListCount: 50
-  OctreeTranslucenttCube: {fileID: 0}
-  OctreeMarkerCube: {fileID: 0}
   UpgradeFactor: 1.04999995
   UpgradeConstant: 0
   DowngradeFactor: 1.04999995
@@ -369,6 +360,7 @@ MonoBehaviour:
   UseWwwForEbo: 0
   CacheFill: 0
   CacheSize: 1000
+  ProxyUrl: 
 --- !u!4 &681042936
 Transform:
   m_ObjectHideFlags: 0
@@ -424,6 +416,7 @@ MonoBehaviour:
   RotationDeltaRate: 90
   TranslationDeltaRate: 50
   TouchTranslationDeltaRate: .200000003
+  InvertY: 0
 --- !u!1 &989273975
 GameObject:
   m_ObjectHideFlags: 0
@@ -497,6 +490,33 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
+--- !u!1 &998921912
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 4
+  m_Component:
+  - 4: {fileID: 998921913}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &998921913
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 998921912}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -5.52943659, y: 0, z: -6.20880461}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 5
 --- !u!1 &1130590117
 GameObject:
   m_ObjectHideFlags: 0
@@ -514,7 +534,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1130590118
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -655,7 +675,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2029546708
 RectTransform:
   m_ObjectHideFlags: 0

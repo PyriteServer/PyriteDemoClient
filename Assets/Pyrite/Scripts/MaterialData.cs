@@ -19,7 +19,25 @@
         public int Y;
         public int Lod;
 
+        public Material Material
+        {
+            get
+            {
+                if (_material == null)
+                {
+                    _material = CubeBuilderHelpers.GetMaterial(true, this);
+                }
+                return _material;
+            }
+        }
+
         private string _name;
+        private Material _material;
+
+        public MaterialData(string name)
+        {
+            _name = name;
+        }
 
         public string Name
         {
