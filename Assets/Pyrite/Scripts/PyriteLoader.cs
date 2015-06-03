@@ -1101,7 +1101,11 @@
             Monitor.Exit(_partiallyConstructedMaterialDatas);
             if (!CacheFill)
             {
-                var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
+#if UNITY_IOS
+                var texture = new Texture2D(1, 1, TextureFormat.RGB24, false);
+#else
+				var texture = new Texture2D(1, 1, TextureFormat.DXT1, false);
+#endif
                 texture.LoadImage(materialDataKeyAndTexturePair.Value);
 
                 inProgressMaterialData.DiffuseTex = texture;
