@@ -69,7 +69,7 @@ AnimatorState:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_Name: Take 001
-  m_Speed: .5
+  m_Speed: .200000003
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 110166664}
@@ -87,7 +87,7 @@ AnimatorState:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_Name: Take 001 0
-  m_Speed: .5
+  m_Speed: .200000003
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 110191644}
