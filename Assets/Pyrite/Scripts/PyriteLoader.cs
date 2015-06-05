@@ -65,6 +65,15 @@
 
         public int MaterialDataCacheSize = 25;
 
+        [Tooltip("Sets how many cubes can be built per frame (0 for No Limit)")]
+        public int CubeBuildLimitPerFrame = 0;
+
+        [Tooltip("Sets how many textures will be requested per frame (0 for No Limit)")]
+        public int MaterialRequestLimitPerFrame = 0;
+
+        [Tooltip("Sets how many models will be requested per frame (0 for No Limit)")]
+        public int ModelRequestLimitPerFrame = 0;
+
         [Header("Debug Options")]
         public bool UseCameraDetection = true;
 
@@ -222,7 +231,7 @@
         private void ProcessQueues()
         {
             // Look for requests that are ready to be constructed
-            ProcessQueue(_buildCubeRequests, BuildCubeRequest);
+            ProcessQueue(_buildCubeRequests, BuildCubeRequest, CubeBuildLimitPerFrame);
 
             // Look for textures that have been downloaded and need to be converted to MaterialData
             if (Monitor.TryEnter(_texturesReadyForMaterialDataConstruction))
@@ -235,18 +244,20 @@
                 Monitor.Exit(_texturesReadyForMaterialDataConstruction);
             }
             // Look for requests that need material data set
-            ProcessQueue(_loadMaterialQueue, GetMaterialForRequest);
+            ProcessQueue(_loadMaterialQueue, GetMaterialForRequest, MaterialRequestLimitPerFrame);
 
             // Look for requests that need geometry buffer (model data)
-            ProcessQueue(_loadGeometryBufferQueue, GetModelForRequest);
+            ProcessQueue(_loadGeometryBufferQueue, GetModelForRequest, ModelRequestLimitPerFrame);
         }
 
         // Helper for locking a queue, pulling off requests and invoking a handler function for them
-        private void ProcessQueue(Queue<LoadCubeRequest> queue, Func<LoadCubeRequest, IEnumerator> requestProcessFunc)
+        private void ProcessQueue(Queue<LoadCubeRequest> queue, Func<LoadCubeRequest, IEnumerator> requestProcessFunc,
+            int limit)
         {
+            var noLimit = limit == 0;
             if (Monitor.TryEnter(queue))
             {
-                while (queue.Count > 0)
+                while (queue.Count > 0 && (noLimit || (limit-- > 0)))
                 {
                     var request = queue.Dequeue();
                     if (!request.Cancelled)
@@ -719,6 +730,7 @@
                                 Buffer = modelWww.bytes
                             };
                         _eboCache[modelPath] = buffer;
+                        buffer.Process();
                         yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath, buffer));
                     }
                     else
@@ -752,6 +764,7 @@
                                         Buffer = modelResponse.Content
                                     };
                                     _eboCache[modelPath] = buffer;
+                                    buffer.Process();
                                     SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
                                 }
                             }

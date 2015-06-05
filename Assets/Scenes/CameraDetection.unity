@@ -331,7 +331,10 @@ MonoBehaviour:
   ModelVersion: V1
   SetName: 
   EboCacheSize: 250
-  MaterialDataCacheSize: 25
+  MaterialDataCacheSize: 50
+  CubeBuildLimitPerFrame: 0
+  MaterialRequestLimitPerFrame: 0
+  ModelRequestLimitPerFrame: 0
   UseCameraDetection: 1
   UseUnlitShader: 1
   UseFileCache: 1
@@ -340,7 +343,7 @@ MonoBehaviour:
   UpgradeConstant: 0
   DowngradeFactor: 1.10000002
   DowngradeConstant: 0
-  UseWwwForTextures: 0
+  UseWwwForTextures: 1
   UseWwwForEbo: 0
   CacheFill: 0
   CacheSize: 30000
