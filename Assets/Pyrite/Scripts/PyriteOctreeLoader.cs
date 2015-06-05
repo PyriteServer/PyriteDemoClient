@@ -80,7 +80,6 @@ namespace Pyrite
         private readonly Queue<KeyValuePair<string, byte[]>> _texturesReadyForMaterialDataConstruction = new Queue<KeyValuePair<string, byte[]>>(5);
         private readonly Queue<LoadCubeRequest> _buildCubeRequests = new Queue<LoadCubeRequest>(10);
         private readonly DictionaryCache<string, GeometryBuffer> _eboCache = new DictionaryCache<string, GeometryBuffer>(EboCacheSize);
-        private readonly DictionaryCache<string, Material> _materialCache = new DictionaryCache<string, Material>(MaterialCacheSize);
         
         void Start()
         {
@@ -759,7 +758,10 @@ namespace Pyrite
         {
             //var modelPath = loadRequest.Query.GetModelPath(loadRequest.LodIndex, loadRequest.X, loadRequest.Y, loadRequest.Z);
             var modelPath = pyriteQuery.GetModelPath(loadRequest.LodIndex, loadRequest.X, loadRequest.Y, loadRequest.Z);
-
+            while (!Monitor.TryEnter(_eboCache))
+            {
+                yield return null;
+            }
             // If the geometry data is being loaded or this is the first request to load it add the request the dependency list
             if (!_eboCache.ContainsKey(modelPath) || _eboCache[modelPath] == null)
             {
@@ -789,43 +791,51 @@ namespace Pyrite
                             CacheWebRequest.AddToCache(cachePath, modelWww.bytes);
                         }
 
-                        _eboCache[modelPath] =
+                        GeometryBuffer buffer =
                             new GeometryBuffer(_geometryBufferAltitudeTransform, true)
                             {
                                 Buffer = modelWww.bytes
                             };
-                        _eboCache[modelPath].Process();
-                        yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath));
+                        buffer.Process();
+                        _eboCache[modelPath] = buffer;
+                        yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath,buffer));
                     }
                     else
                     {
                         CacheWebRequest.GetBytes(modelPath, modelResponse =>
                         {
-                            if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
+                            lock (_eboCache)
                             {
-                                Debug.LogError("Error getting model [" + modelPath + "] " + modelResponse.ErrorMessage);
-                                FailGetGeometryBufferRequest(loadRequest, modelPath);
-                            }
-                            else if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
-                            {
-                                _eboCache.Remove(modelPath);
-                            }
-                            else
-                            {
-                                if (modelResponse.IsCacheHit)
+                                if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
                                 {
-                                    //FileCacheHits++;
+                                    Debug.LogError("Error getting model [" + modelPath + "] " +
+                                                   modelResponse.ErrorMessage);
+                                    FailGetGeometryBufferRequest(loadRequest, modelPath);
+                                }
+                                else if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
+                                {
+                                    _eboCache.Remove(modelPath);
                                 }
                                 else
                                 {
-                                    //FileCacheMisses++;
+                                    if (modelResponse.IsCacheHit)
+                                    {
+                                        //FileCacheHits++;
+                                    }
+                                    else
+                                    {
+                                        //FileCacheMisses++;
+                                    }
+
+                                    GeometryBuffer buffer =
+                                        new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                                        {
+                                            Buffer = modelResponse.Content
+                                        };
+                                    buffer.Process();
+                                    _eboCache[modelPath] = buffer;
+                                    SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
                                 }
-                                _eboCache[modelPath] = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
-                                {
-                                    Buffer = modelResponse.Content
-                                };
-                                _eboCache[modelPath].Process();
-                                SucceedGetGeometryBufferRequest(modelPath).Wait();
                             }
                         }, DependentRequestsExistBlocking);
                     }
@@ -838,9 +848,10 @@ namespace Pyrite
                 loadRequest.GeometryBuffer = _eboCache[modelPath];
                 MoveRequestForward(loadRequest);
             }
+            Monitor.Exit(_eboCache);
         }
 
-        private IEnumerator SucceedGetGeometryBufferRequest(string modelPath)
+        private IEnumerator SucceedGetGeometryBufferRequest(string modelPath, GeometryBuffer buffer)
         {
             // Check to see if any other requests were waiting on this model
             LinkedList<LoadCubeRequest> dependentRequests;
@@ -859,7 +870,7 @@ namespace Pyrite
             {
                 foreach (var request in dependentRequests)
                 {
-                    request.GeometryBuffer = _eboCache[modelPath];
+                    request.GeometryBuffer = buffer;
                     MoveRequestForward(request);
                 }
             }
@@ -914,11 +925,6 @@ namespace Pyrite
 
         private void Build(GeometryBuffer buffer, MaterialData materialData, int x, int y, int z, int lod, GameObject obj)
         {
-            if (!_materialCache.ContainsKey(materialData.Name))
-            {
-                _materialCache[materialData.Name] = CubeBuilderHelpers.GetMaterial(UseUnlitShader, materialData);
-            }
-
             if (CacheFill)
             {
                 return;
@@ -934,7 +940,7 @@ namespace Pyrite
             cubeName.Append(z);
             
             obj.name = cubeName.ToString();
-            buffer.PopulateMeshes(obj, _materialCache[materialData.Name]);
+            buffer.PopulateMeshes(obj, materialData.Material);
             obj.SetActive(true);            
         }
 
