@@ -58,6 +58,10 @@
                 if (!_hydrated)
                 {
                     _hydrated = true;
+                    if (!Directory.Exists(TemporaryCachePath))
+                    {
+                        Directory.CreateDirectory(TemporaryCachePath);
+                    }
 
                     foreach (var file in Directory.GetFiles(TemporaryCachePath))
                     {
@@ -69,13 +73,25 @@
             }
         }
 
+        private static char PathSeparator
+        {
+            get
+            {
+#if !UNITY_WSA
+                return Path.DirectorySeparatorChar;
+#else
+            return '\\';
+#endif
+            }
+        }
+
         private static string TemporaryCachePath
         {
             get
             {
                 if (string.IsNullOrEmpty(_temporaryCachePath))
                 {
-                    _temporaryCachePath = Application.temporaryCachePath;
+                    _temporaryCachePath = Application.temporaryCachePath + PathSeparator + "PyriteCache" + PathSeparator;
 #if UNITY_WSA
                     _temporaryCachePath = _temporaryCachePath.Replace("/", "\\");
 #endif
@@ -91,11 +107,7 @@
             {
                 sb.Replace(invalidChar, '_');
             }
-#if !UNITY_WSA
-            return TemporaryCachePath + Path.DirectorySeparatorChar + sb;
-#else
-            return TemporaryCachePath + "\\" + sb;
-#endif
+            return TemporaryCachePath + sb;
         }
 
         public static bool IsItemInCache(string cacheKey)

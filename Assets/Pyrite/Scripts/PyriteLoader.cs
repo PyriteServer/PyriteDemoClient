@@ -114,15 +114,8 @@
 
         protected bool Loaded { get; private set; }
 
-        // Octree State Tracking
-        private readonly Dictionary<string, CubeTracker> cubeDict = new Dictionary<string, CubeTracker>();
-        private readonly LinkedList<CubeTracker> cubeList = new LinkedList<CubeTracker>();
-        private Vector3 tempPosition;
-        private PyriteCube cubeCamPos;
-        private PyriteCube cubeCamPosNew;
         private PyriteQuery pyriteQuery;
         private PyriteSetVersionDetailLevel pyriteLevel;
-        private PyriteSetVersionDetailLevel pyriteLevel1;
 
         private void Start()
         {

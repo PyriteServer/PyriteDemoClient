@@ -4,6 +4,7 @@ namespace Pyrite
     using System;
     using System.Net;
 
+    [System.ComponentModel.DesignerCategory("Code")]
     public class TimeoutWebClient : WebClient
     {
         protected override WebRequest GetWebRequest(Uri uri)
