@@ -15,6 +15,7 @@
         public GameObject gameObject { get; set; }
         public GameObject trackObject { get; set; }
         public PyriteQuery pyriteQuery { get; set; }
+        public PyriteOctreeLoader manager { get; set; }
 
         public string DictKey
         {
@@ -55,6 +56,10 @@
 
             Active = false;
             gameObject.GetComponent<MeshFilter>().mesh.Clear();
+            lock (manager.MaterialDataCache)
+            {
+                manager.MaterialDataCache.Release(gameObject.GetComponent<Renderer>().sharedMaterial.mainTexture.name);
+            }
             gameObject.GetComponent<Renderer>().sharedMaterial = null;
         }
 

@@ -127,7 +127,7 @@ MonoBehaviour:
   DowngradeConstant: 0
   WorldYOffset: 450
   UseWwwForTextures: 1
-  UseWwwForEbo: 1
+  UseWwwForEbo: 0
   CacheFill: 0
   CacheSize: 3000
   UseUnlitShader: 1
@@ -135,11 +135,13 @@ MonoBehaviour:
   HideModelMesh: 0
   ShowLocatorCubes: 0
   ShowCubes: 0
-  OctreeListCount: 1000
+  LimitOctreeListCount: 0
+  OctreeListCount: 30
   BoundBoxSize: 1
   RenderCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   TranslucentCube: {fileID: 135038, guid: 60a096d0e6079b041bffbe077cfdbb20, type: 2}
   LocatorCube: {fileID: 184526, guid: dc3cc2520c5517849870a598ced0a465, type: 2}
+  DebugLogs: 0
 --- !u!4 &662348521
 Transform:
   m_ObjectHideFlags: 0
