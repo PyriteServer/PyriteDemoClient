@@ -117,7 +117,7 @@ MonoBehaviour:
   CameraRig: {fileID: 1589477367}
   PyriteServer: 
   ModelVersion: V1
-  SetName: 
+  SetName: NashvilleNew
   DetailLevel: 1
   FilterDetailLevels: 0
   DetailLevelsToFilter: 
@@ -383,6 +383,52 @@ Prefab:
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: 26634abc3f64a7448bbc0ecd08a0ea6a, type: 2}
+    - target: {fileID: 178746, guid: 2ed15342f3ff5db4884dd54cd9d83800, type: 2}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 2ed15342f3ff5db4884dd54cd9d83800, type: 2}
+  m_IsPrefabParent: 0
+--- !u!1001 &1766310069
+Prefab:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 406414, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 406414, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 406414, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 406414, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 406414, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 406414, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 406414, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 406414, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
+      propertyPath: m_RootOrder
+      value: 4
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_ParentPrefab: {fileID: 100100000, guid: 794b535d5d608944f972f6c6a71421ca, type: 2}
   m_IsPrefabParent: 0
