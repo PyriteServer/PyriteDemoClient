@@ -348,6 +348,9 @@ MonoBehaviour:
   SetName: 
   EboCacheSize: 100
   MaterialDataCacheSize: 20
+  CubeBuildLimitPerFrame: 0
+  MaterialRequestLimitPerFrame: 0
+  ModelRequestLimitPerFrame: 0
   UseCameraDetection: 1
   UseUnlitShader: 1
   UseFileCache: 1

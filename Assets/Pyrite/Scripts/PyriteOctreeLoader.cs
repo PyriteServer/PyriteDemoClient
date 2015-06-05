@@ -794,6 +794,7 @@ namespace Pyrite
                             {
                                 Buffer = modelWww.bytes
                             };
+                        _eboCache[modelPath].Process();
                         yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath));
                     }
                     else
@@ -823,6 +824,7 @@ namespace Pyrite
                                 {
                                     Buffer = modelResponse.Content
                                 };
+                                _eboCache[modelPath].Process();
                                 SucceedGetGeometryBufferRequest(modelPath).Wait();
                             }
                         }, DependentRequestsExistBlocking);
