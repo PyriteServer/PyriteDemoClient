@@ -452,6 +452,10 @@
                 newCameraPosition += new Vector3(0, (max - min).y*1.4f, 0);
                 CameraRig.transform.position = newCameraPosition;
                 CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
+
+                //Kainiemi: Some mechanism needed to inform InputManager about the transform change
+                CameraRig.GetComponent<PyriteDemoClient.InputManager>().NotifyOnTransformChange();
+                
             }
         }
 
