@@ -129,7 +129,7 @@ namespace PyriteDemoClient
             {
                 target.rotation = transform.rotation;
                 target.Translate(Vector3.right * -Input.GetAxis("Mouse X") * panSpeed);
-                target.Translate(transform.up * -Input.GetAxis("Mouse Y") * panSpeed, Space.World);
+                //target.Translate(transform.up * -Input.GetAxis("Mouse Y") * panSpeed, Space.World);
                 moveIcon.SetActive(true);
             }
             
