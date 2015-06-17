@@ -86,9 +86,18 @@ namespace PyriteDemoClient
             // Need to create camera target for panning here as PyriteLoader is changing CameraRig transformation on-the-go.
             if (!target)
             {
+                Mesh mesh = Resources.Load("Cube") as Mesh;
                 GameObject go = new GameObject("Cam Target");
+                MeshFilter mf = go.AddComponent<MeshFilter>();
+                mf.sharedMesh = mesh;
+                go.AddComponent<MeshRenderer>();
+                
                 go.transform.position = transform.position + (transform.forward * distance);
                 target = go.transform;
+            }
+            else
+            {
+                target.transform.position = transform.position + (transform.forward * distance);
             }
 
             distance = Vector3.Distance(transform.position, target.position);
@@ -135,9 +144,9 @@ namespace PyriteDemoClient
             }
             else if (Input.GetMouseButton(1))
             {
-                target.rotation = transform.rotation;
-                target.Translate(Vector3.right * -Input.GetAxis("Mouse X") * panSpeed);
-                //target.Translate(transform.up * -Input.GetAxis("Mouse Y") * panSpeed, Space.World);
+                //target.rotation = transform.rotation;
+                target.Translate(Vector3.right * -Input.GetAxis("Mouse X") * panSpeed, Space.World);
+                target.Translate(Vector3.forward * -Input.GetAxis("Mouse Y") * panSpeed, Space.World);
                 moveIcon.SetActive(true);
             }
             
