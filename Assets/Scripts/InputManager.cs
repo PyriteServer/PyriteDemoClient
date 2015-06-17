@@ -50,6 +50,13 @@ namespace PyriteDemoClient
         private Transform _targetPosition;
 		private float momentumStartTime;
 
+        bool cameraFlyEnabled = false;
+
+        public void EnableCameraFly()
+        {
+            //cameraFlyEnabled = true;
+
+        }
             
 
         private static float ClampAngle(float angle, float min, float max)
@@ -96,6 +103,7 @@ namespace PyriteDemoClient
             xDeg = Vector3.Angle(Vector3.right, transform.right);
             yDeg = Vector3.Angle(Vector3.up, transform.up);
 
+            
             enabled = true;
         }
 
@@ -325,11 +333,18 @@ namespace PyriteDemoClient
 
         private void Update()
         {
-            //ProcessFlyCameraInput();
+            if ( cameraFlyEnabled )
+            {
+                
+            }
+            else
+            {
+                //ProcessFlyCameraInput();
             
-            ProcessOrbitCameraInput();
+                ProcessOrbitCameraInput();
 
-            //ProcessOriginalInput();
+                //ProcessOriginalInput();
+            }
 
         }
 

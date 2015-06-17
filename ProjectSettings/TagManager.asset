@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - MeshCube
+  - meshcube
+  - RoutePoint
   layers:
   - Default
   - TransparentFX
