@@ -10,7 +10,7 @@ PlayerSettings:
   targetResolution: 0
   accelerometerFrequency: 60
   companyName: Pyrite3d
-  productName: PyriteDemo
+  productName: Pyrite3D Technical Prototype
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_ShowUnitySplashScreen: 1
@@ -37,7 +37,7 @@ PlayerSettings:
   disableDepthAndStencilBuffers: 0
   defaultIsFullScreen: 0
   defaultIsNativeResolution: 1
-  runInBackground: 1
+  runInBackground: 0
   captureSingleScreen: 0
   Override IPod Music: 0
   Prepare IOS For Recording: 0
@@ -279,26 +279,26 @@ PlayerSettings:
   metroCertificateNotAfter: 00cff5f866bcd101
   metroApplicationDescription: PyriteDemo
   metroStoreTileLogo80: 
-  metroStoreTileLogo: 
+  metroStoreTileLogo: Assets/Demo/Icons/store/Windows/Square150.png
   metroStoreTileLogo140: 
   metroStoreTileLogo180: 
   metroStoreTileWideLogo80: 
-  metroStoreTileWideLogo: 
+  metroStoreTileWideLogo: Assets/Demo/Icons/store/Windows/310_150.png
   metroStoreTileWideLogo140: 
   metroStoreTileWideLogo180: 
   metroStoreTileSmallLogo80: 
-  metroStoreTileSmallLogo: 
+  metroStoreTileSmallLogo: Assets/Demo/Icons/store/Windows/square30.png
   metroStoreTileSmallLogo140: 
   metroStoreTileSmallLogo180: 
   metroStoreSmallTile80: 
-  metroStoreSmallTile: 
+  metroStoreSmallTile: Assets/Demo/Icons/store/Windows/square70.png
   metroStoreSmallTile140: 
   metroStoreSmallTile180: 
   metroStoreLargeTile80: 
-  metroStoreLargeTile: 
+  metroStoreLargeTile: Assets/Demo/Icons/store/Windows/Square310.png
   metroStoreLargeTile140: 
   metroStoreLargeTile180: 
-  metroStoreSplashScreenImage: 
+  metroStoreSplashScreenImage: Assets/Demo/Icons/store/Windows/splash.png
   metroStoreSplashScreenImage140: 
   metroStoreSplashScreenImage180: 
   metroPhoneAppIcon: 
@@ -316,17 +316,17 @@ PlayerSettings:
   metroPhoneSplashScreenImage: 
   metroPhoneSplashScreenImage140: 
   metroPhoneSplashScreenImage240: 
-  metroTileShortName: PyriteDemo
+  metroTileShortName: Pyrite3D
   metroCommandLineArgsFile: 
   metroTileShowName: 0
-  metroMediumTileShowName: 0
-  metroLargeTileShowName: 0
+  metroMediumTileShowName: 1
+  metroLargeTileShowName: 1
   metroWideTileShowName: 0
   metroDefaultTileSize: 1
   metroTileForegroundText: 1
   metroTileBackgroundColor: {r: 0, g: 0, b: 0, a: 1}
-  metroSplashScreenBackgroundColor: {r: 0, g: 0, b: 0, a: 1}
-  metroSplashScreenUseBackgroundColor: 0
+  metroSplashScreenBackgroundColor: {r: 1, g: .325490206, b: .0509803928, a: 1}
+  metroSplashScreenUseBackgroundColor: 1
   platformCapabilities:
     WindowsStoreApps:
       EnterpriseAuthentication: False

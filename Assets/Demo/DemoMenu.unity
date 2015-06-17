@@ -134,6 +134,7 @@ MonoBehaviour:
   m_SubmitButton: Submit
   m_CancelButton: Cancel
   m_InputActionsPerSecond: 10
+  m_RepeatDelay: .5
   m_AllowActivationOnMobileDevice: 0
 --- !u!114 &188113949
 MonoBehaviour:
@@ -229,7 +230,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: .937254906, g: .937254906, b: .937254906, a: 1}
   m_FontData:
     m_Font: {fileID: 12800000, guid: 80dd4857c552e5e499a0f442aab2aade, type: 3}
     m_FontSize: 20
@@ -299,7 +300,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: .196078435, g: .0352941193, b: .0196078438, a: 1}
+  m_Color: {r: 1, g: .325490206, b: .0509803928, a: 1}
   m_Sprite: {fileID: 0}
   m_Type: 1
   m_PreserveAspect: 0
@@ -360,7 +361,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: .937254906, g: .937254906, b: .937254906, a: 1}
   m_Sprite: {fileID: 21300000, guid: 672acafec466f02409e2bdc9e9487d7c, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
@@ -465,7 +466,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Sprite: {fileID: 21300000, guid: d62f1143a5f31a54cacda42d00bc7744, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0b44d4d9eecfd2b49b59fe4b037c0f87, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -559,8 +560,7 @@ MonoBehaviour:
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine, Version=0.0.0.0,
-            Culture=neutral, PublicKeyToken=null
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
@@ -581,7 +581,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Sprite: {fileID: 21300000, guid: d62f1143a5f31a54cacda42d00bc7744, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0b44d4d9eecfd2b49b59fe4b037c0f87, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -743,7 +743,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: .937254906, g: .937254906, b: .937254906, a: 1}
   m_FontData:
     m_Font: {fileID: 12800000, guid: 80dd4857c552e5e499a0f442aab2aade, type: 3}
     m_FontSize: 20
@@ -756,7 +756,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Explorer
+  m_Text: Perth, AU
 --- !u!222 &1396261004
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -793,7 +793,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Sprite: {fileID: 21300000, guid: d62f1143a5f31a54cacda42d00bc7744, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0b44d4d9eecfd2b49b59fe4b037c0f87, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -897,6 +897,7 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: .0219999999
+  m_StereoMirrorMode: 0
 --- !u!4 &1560289524
 Transform:
   m_ObjectHideFlags: 0
@@ -955,7 +956,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: .937254906, g: .937254906, b: .937254906, a: 1}
   m_FontData:
     m_Font: {fileID: 12800000, guid: 80dd4857c552e5e499a0f442aab2aade, type: 3}
     m_FontSize: 20
@@ -968,7 +969,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Glider
+  m_Text: Nashville, TN
 --- !u!222 &1680156828
 CanvasRenderer:
   m_ObjectHideFlags: 0
