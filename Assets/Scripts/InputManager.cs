@@ -144,9 +144,13 @@ namespace PyriteDemoClient
             }
             else if (Input.GetMouseButton(1))
             {
-                //target.rotation = transform.rotation;
-                target.Translate(Vector3.right * -Input.GetAxis("Mouse X") * panSpeed, Space.World);
-                target.Translate(Vector3.forward * -Input.GetAxis("Mouse Y") * panSpeed, Space.World);
+                target.rotation = transform.rotation;
+
+                Vector3 right = new Vector3(transform.right.x, 0.0f, transform.right.z);
+                Vector3 forward = new Vector3(transform.forward.x, 0.0f, transform.forward.z);
+
+                target.Translate(right * -Input.GetAxis("Mouse X") * panSpeed, Space.World);
+                target.Translate(forward * -Input.GetAxis("Mouse Y") * panSpeed, Space.World);
                 moveIcon.SetActive(true);
             }
             

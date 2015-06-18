@@ -21,7 +21,6 @@ public class GenerateRoute : MonoBehaviour {
         int index = 0;
         for(int i=0; i<routePoints.Length; i++)
         {
-            Debug.Log("Iterating i: " + i);
             lr.SetPosition(index, routePoints[i].transform.position);
             index++;
 
