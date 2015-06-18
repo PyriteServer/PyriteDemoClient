@@ -8,11 +8,13 @@ public class GenerateRoute : MonoBehaviour {
 
     bool routeEnabled = false;
     GameObject routeGroup;
+	GameObject pins;
 
 	// Use this for initialization
 	void Start () {
 
         routeGroup = GameObject.Find("RouteGroup");
+		pins = GameObject.Find("Pins");
         GameObject route = GameObject.Instantiate(Resources.Load("Route")) as GameObject;
         route.transform.parent = routeGroup.transform;
 
@@ -46,6 +48,7 @@ public class GenerateRoute : MonoBehaviour {
 
 
         routeGroup.SetActive(false);
+		pins.SetActive(false);
 	}
 	
     void ToggleRoute(GameObject button)
@@ -53,11 +56,13 @@ public class GenerateRoute : MonoBehaviour {
         if ( routeEnabled )
         {
             routeGroup.SetActive(false);
+			pins.SetActive(false);
             routeEnabled = false;
         }
         else
         {
             routeGroup.SetActive(true);
+			pins.SetActive(true);
             routeEnabled = true;
         }
     }
