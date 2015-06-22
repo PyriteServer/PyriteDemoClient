@@ -81,7 +81,12 @@ namespace PyriteDemoClient
         
         public void NotifyOnTransformChange()
         {
-            transform.position = new Vector3(transform.position.x, transform.position.y - 225.0f, transform.position.z);
+            //transform.position = new Vector3(transform.position.x, transform.position.y - 350.0f, transform.position.z);
+
+            transform.position = new Vector3(-248.2652f, 41.91526f, -250.901f);
+            
+            
+            
 
             // Need to create camera target for panning here as PyriteLoader is changing CameraRig transformation on-the-go.
             if (!target)
