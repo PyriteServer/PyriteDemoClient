@@ -81,13 +81,10 @@ namespace PyriteDemoClient
         
         public void NotifyOnTransformChange()
         {
-            //transform.position = new Vector3(transform.position.x, transform.position.y - 350.0f, transform.position.z);
-
-            transform.position = new Vector3(-248.2652f, 41.91526f, -250.901f);
+            // Hardcoded initial position for camera
+            // TODO: place dummy object representing init camera position into scene and grab the position from there
+            transform.position = new Vector3(-248.2652f, 132, -250.901f);
             
-            
-            
-
             // Need to create camera target for panning here as PyriteLoader is changing CameraRig transformation on-the-go.
             if (!target)
             {
@@ -229,6 +226,7 @@ namespace PyriteDemoClient
 
         void ProcessOriginalInput()
         {
+            /*
             // Keyboard
             _moveX = Input.GetAxis("Horizontal") * Time.deltaTime * TranslationDeltaRate;
             _moveY = Input.GetAxis("Vertical") * Time.deltaTime * TranslationDeltaRate;
@@ -236,6 +234,17 @@ namespace PyriteDemoClient
 
             _yaw += Input.GetAxis("HorizontalTurn") * Time.deltaTime * RotationDeltaRate;
             _camPitch -= Input.GetAxis("VerticalTurn") * Time.deltaTime * RotationDeltaRate * (InvertY ? -1f : 1f);
+
+            //Debug.Log(Input.touchCount);
+
+            float h = Input.GetAxis("Horizontal");
+            float w = Input.GetAxis("Vertical");
+
+            
+            Debug.Log(h);
+            Debug.Log(w);
+
+             * */
 
             // Touch
             if (Input.touchCount == 1)
@@ -357,6 +366,9 @@ namespace PyriteDemoClient
             }
             else
             {
+
+                
+
                 //ProcessFlyCameraInput();
             
                 ProcessOrbitCameraInput();
