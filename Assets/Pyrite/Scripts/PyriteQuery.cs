@@ -79,7 +79,7 @@
 
         public PyriteSetVersionDetailLevel[] DetailLevels { get; private set; }
 
-        public string GetModelPath(int lodIndex, int x, int y, int z)
+        public string GetModelPath(int lodIndex, int x, int y, int z, string modelFormat = null)
         {
             var modelPathBuilder = new StringBuilder(_modelUrlPart);
             modelPathBuilder.Append(DetailLevels[lodIndex].Value);
@@ -89,6 +89,13 @@
             modelPathBuilder.Append(y);
             modelPathBuilder.Append(',');
             modelPathBuilder.Append(z);
+
+            if (!string.IsNullOrEmpty(modelFormat))
+            {
+                modelPathBuilder.Append("?fmt=");
+                modelPathBuilder.Append(modelFormat);
+            }
+            
             return modelPathBuilder.ToString();
         }
 
