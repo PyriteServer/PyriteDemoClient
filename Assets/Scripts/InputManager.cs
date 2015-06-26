@@ -19,7 +19,7 @@ namespace PyriteDemoClient
         public int zoomRate = 1;
         public float panSpeed = 5.0f;
         public float zoomDampening = 5.0f;
-
+        public float forceBasedPanSpeed = 100.0f;
         private float xDeg = 0.0f;
         private float yDeg = 0.0f;
         private float currentDistance;
@@ -29,7 +29,7 @@ namespace PyriteDemoClient
         private Quaternion rotation;
         private Vector3 position;
         float speed = 0.0f;
-        
+        public bool forceBasedPanningAndFovZoom = false;
 
         // Original members
         public float RotationDeltaRate = 20;
@@ -124,9 +124,30 @@ namespace PyriteDemoClient
             orbitIcon.SetActive(false);
             moveIcon.SetActive(false);
 
+            float scrollWheelSpeed = Input.GetAxis("Mouse ScrollWheel");
+
+            if (forceBasedPanningAndFovZoom)
+            {
+                Debug.Log(scrollWheelSpeed);
+                Camera.main.fieldOfView -= scrollWheelSpeed * Time.deltaTime * zoomRate;
+            }
+            
+            if (scrollWheelSpeed > 0.0f || scrollWheelSpeed < 0.0f)
+            {
+                moveIcon.SetActive(true);
+            }
+            
             if (Input.GetMouseButton(2))
             {
-                desiredDistance -= Input.GetAxis("Mouse Y") * Time.deltaTime * zoomRate * 0.125f * Mathf.Abs(desiredDistance);
+                if (forceBasedPanningAndFovZoom)
+                {
+                    Camera.main.fieldOfView -= Input.GetAxis("Mouse Y") * Time.deltaTime * zoomRate * 0.125f;
+                }
+                else
+                {
+                    desiredDistance -= Input.GetAxis("Mouse Y") * Time.deltaTime * zoomRate * 0.125f * Mathf.Abs(desiredDistance);
+                }
+                
                 moveIcon.SetActive(true);
             }
             else if(Input.GetMouseButton(0))
@@ -151,24 +172,36 @@ namespace PyriteDemoClient
                 Vector3 right = new Vector3(transform.right.x, 0.0f, transform.right.z);
                 Vector3 forward = new Vector3(transform.forward.x, 0.0f, transform.forward.z);
 
-                target.Translate(right * -Input.GetAxis("Mouse X") * panSpeed, Space.World);
-                target.Translate(forward * -Input.GetAxis("Mouse Y") * panSpeed, Space.World);
+                right = right * -Input.GetAxis("Mouse X");
+                forward = forward * -Input.GetAxis("Mouse Y");
+
+                Rigidbody rb = GetComponent<Rigidbody>();
+                    
+                if (forceBasedPanningAndFovZoom)
+                {
+                    rb.constraints = RigidbodyConstraints.FreezePositionY;
+                    Vector3 force = right + forward;
+                    rb.AddForce(force * forceBasedPanSpeed);
+
+                }
+                else
+                {
+                    target.Translate(right * panSpeed, Space.World);
+                    target.Translate(forward * panSpeed, Space.World);
+                }
+                
                 moveIcon.SetActive(true);
             }
             
-            float scrollWheelSpeed = Input.GetAxis("Mouse ScrollWheel");
-
-            if ( scrollWheelSpeed > 0.0f )
+            
+            if ( !forceBasedPanningAndFovZoom)
             {
-                moveIcon.SetActive(true);
+                desiredDistance -= scrollWheelSpeed * Time.deltaTime * zoomRate * Mathf.Abs(desiredDistance);
+                desiredDistance = Mathf.Clamp(desiredDistance, minDistance, maxDistance);
+                currentDistance = Mathf.Lerp(currentDistance, desiredDistance, Time.deltaTime * zoomDampening);
+                position = target.position - (transform.forward * currentDistance + targetOffset);
+                transform.position = position;    
             }
-            
-            desiredDistance -= scrollWheelSpeed * Time.deltaTime * zoomRate * Mathf.Abs(desiredDistance);
-            desiredDistance = Mathf.Clamp(desiredDistance, minDistance, maxDistance);
-            currentDistance = Mathf.Lerp(currentDistance, desiredDistance, Time.deltaTime * zoomDampening);
-            position = target.position - (transform.forward * currentDistance + targetOffset);
-
-            transform.position = position;
             
         }
 
@@ -226,7 +259,7 @@ namespace PyriteDemoClient
 
         void ProcessOriginalInput()
         {
-            /*
+            
             // Keyboard
             _moveX = Input.GetAxis("Horizontal") * Time.deltaTime * TranslationDeltaRate;
             _moveY = Input.GetAxis("Vertical") * Time.deltaTime * TranslationDeltaRate;
@@ -234,17 +267,6 @@ namespace PyriteDemoClient
 
             _yaw += Input.GetAxis("HorizontalTurn") * Time.deltaTime * RotationDeltaRate;
             _camPitch -= Input.GetAxis("VerticalTurn") * Time.deltaTime * RotationDeltaRate * (InvertY ? -1f : 1f);
-
-            //Debug.Log(Input.touchCount);
-
-            float h = Input.GetAxis("Horizontal");
-            float w = Input.GetAxis("Vertical");
-
-            
-            Debug.Log(h);
-            Debug.Log(w);
-
-             * */
 
             // Touch
             if (Input.touchCount == 1)
