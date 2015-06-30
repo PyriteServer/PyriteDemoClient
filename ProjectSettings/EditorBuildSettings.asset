@@ -11,3 +11,5 @@ EditorBuildSettings:
     path: Assets/Demo/DemoMenu.unity
   - enabled: 1
     path: Assets/Demo/Glider.unity
+  - enabled: 1
+    path: Assets/Demo/Perth.unity

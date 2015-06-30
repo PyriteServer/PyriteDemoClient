@@ -57,11 +57,15 @@
             {
                 if (!_hydrated)
                 {
-                    _hydrated = true;
-                    if (!Directory.Exists(TemporaryCachePath))
+                     _hydrated = true;
+                    try
                     {
-                        Directory.CreateDirectory(TemporaryCachePath);
+                        if (!Directory.Exists(TemporaryCachePath))
+                        {
+                            Directory.CreateDirectory(TemporaryCachePath);
+                        }
                     }
+                    catch { }
 
                     foreach (var file in Directory.GetFiles(TemporaryCachePath))
                     {

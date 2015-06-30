@@ -57,6 +57,7 @@
 
         public bool FilterDetailLevels = false;
         public List<int> DetailLevelsToFilter;
+        public GeometryBuffer.ModelFormat ModelFormat = GeometryBuffer.ModelFormat.Ebo;
         public string ModelVersion = "V2";
         public string SetName;
 
@@ -126,6 +127,8 @@
         private PyriteQuery pyriteQuery;
         private PyriteSetVersionDetailLevel pyriteLevel;
 
+        private string ModelFormatString;
+
         private void Start()
         {
             if (string.IsNullOrEmpty(SetName))
@@ -139,6 +142,8 @@
                 Debug.LogError("Must specify ModelVersion");
                 return;
             }
+
+            ModelFormatString = ModelFormat.ToString();
 
             InternalSetup();
             StartCoroutine(InternalLoad());
@@ -694,7 +699,7 @@
         private IEnumerator GetModelForRequest(LoadCubeRequest loadRequest)
         {
             var modelPath = loadRequest.Query.GetModelPath(loadRequest.LodIndex, loadRequest.X, loadRequest.Y,
-                loadRequest.Z);
+                loadRequest.Z, ModelFormatString);
             while (!Monitor.TryEnter(_eboCache))
             {
                 yield return null;
@@ -731,7 +736,8 @@
                         var buffer =
                             new GeometryBuffer(_geometryBufferAltitudeTransform, true)
                             {
-                                Buffer = modelWww.bytes
+                                Buffer = modelWww.bytes,
+                                Format =  ModelFormat
                             };
                         _eboCache[modelPath] = buffer;
                         buffer.Process();
