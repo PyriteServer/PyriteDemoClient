@@ -68,13 +68,36 @@ namespace PyriteDemoClient
             return Mathf.Clamp(angle, min, max);
         }
 
+        private void SetObjectActive(GameObject objectToSet, bool active)
+        {
+            if (objectToSet != null)
+            {
+                objectToSet.SetActive(active);
+            }
+        }
+
+        private void SetMoveIconActive(bool active)
+        {
+            SetObjectActive(moveIcon, active);
+        }
+
+        private void SetAltitudeIconActive(bool active)
+        {
+            SetObjectActive(altitudeIcon, active);
+        }
+
+        private void SetOrbitIconActive(bool active)
+        {
+            SetObjectActive(orbitIcon, active);
+        }
+
         void Start()
         {
             //Cursor.visible = false;
 
-            moveIcon.SetActive(false);
-            orbitIcon.SetActive(false);
-            altitudeIcon.SetActive(false);
+            SetMoveIconActive(false);
+            SetOrbitIconActive(false);
+            SetAltitudeIconActive(false);
 
             enabled = false;
         }
@@ -121,8 +144,8 @@ namespace PyriteDemoClient
         private void ProcessOrbitCameraInput()
         {
 
-            orbitIcon.SetActive(false);
-            moveIcon.SetActive(false);
+            SetOrbitIconActive(false);
+            SetMoveIconActive(false);
 
             float scrollWheelSpeed = Input.GetAxis("Mouse ScrollWheel");
 
@@ -134,7 +157,7 @@ namespace PyriteDemoClient
             
             if (scrollWheelSpeed > 0.0f || scrollWheelSpeed < 0.0f)
             {
-                moveIcon.SetActive(true);
+                SetMoveIconActive(true);
             }
             
             if (Input.GetMouseButton(2))
@@ -148,7 +171,7 @@ namespace PyriteDemoClient
                     desiredDistance -= Input.GetAxis("Mouse Y") * Time.deltaTime * zoomRate * 0.125f * Mathf.Abs(desiredDistance);
                 }
                 
-                moveIcon.SetActive(true);
+                SetMoveIconActive(true);
             }
             else if(Input.GetMouseButton(0))
             {
@@ -163,7 +186,7 @@ namespace PyriteDemoClient
                 rotation = Quaternion.Lerp(currentRotation, desiredRotation, Time.deltaTime * zoomDampening);
                 transform.rotation = rotation;
 
-                orbitIcon.SetActive(true);
+                SetOrbitIconActive(true);
             }
             else if (Input.GetMouseButton(1))
             {
@@ -190,7 +213,7 @@ namespace PyriteDemoClient
                     target.Translate(forward * panSpeed, Space.World);
                 }
                 
-                moveIcon.SetActive(true);
+                SetMoveIconActive(true);
             }
             
             
@@ -213,7 +236,7 @@ namespace PyriteDemoClient
                 if (speed < 0.0f)
                 {
                     speed = 0.0f;
-                    moveIcon.SetActive(false);
+                    SetMoveIconActive(false);
                 }
             }
 
@@ -225,7 +248,7 @@ namespace PyriteDemoClient
                 xAxis = (transform.right * -Input.GetAxis("Mouse X") * panSpeed);
                 yAxis = (transform.up * -Input.GetAxis("Mouse Y") * panSpeed);
                 speed = 0.0f;
-                moveIcon.SetActive(true);
+                SetMoveIconActive(true);
             }
             else
             {
@@ -248,7 +271,7 @@ namespace PyriteDemoClient
 
                 if (speed > 0.0f)
                 {
-                    moveIcon.SetActive(true);
+                    SetMoveIconActive(true);
                 }
             }
 
@@ -276,9 +299,9 @@ namespace PyriteDemoClient
 
                 if (orbitIcon != null)
                 {
-                    moveIcon.SetActive(true);
-                    orbitIcon.SetActive(false);
-                    altitudeIcon.SetActive(false);
+                    SetMoveIconActive(true);
+                    SetOrbitIconActive(false);
+                    SetAltitudeIconActive(false);
                 }
             }
 
@@ -289,9 +312,9 @@ namespace PyriteDemoClient
 
                 if (orbitIcon != null)
                 {
-                    orbitIcon.SetActive(true);
-                    moveIcon.SetActive(false);
-                    altitudeIcon.SetActive(false);
+                    SetOrbitIconActive(true);
+                    SetMoveIconActive(false);
+                    SetAltitudeIconActive(false);
                 }
             }
 
@@ -316,18 +339,18 @@ namespace PyriteDemoClient
 
                 if (orbitIcon != null)
                 {
-                    altitudeIcon.SetActive(true);
-                    orbitIcon.SetActive(false);
-                    moveIcon.SetActive(false);
+                    SetAltitudeIconActive(true);
+                    SetOrbitIconActive(false);
+                    SetMoveIconActive(false);
                 }
             }
 
             if (Input.touchCount == 0 && orbitIcon != null)
             {
 
-                orbitIcon.SetActive(false);
-                moveIcon.SetActive(false);
-                altitudeIcon.SetActive(false);
+                SetOrbitIconActive(false);
+                SetMoveIconActive(false);
+                SetAltitudeIconActive(false);
             }
 
             // Limit movement
