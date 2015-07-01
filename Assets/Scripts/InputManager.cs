@@ -14,7 +14,6 @@ namespace PyriteDemoClient
         private InputProcessor lastProcessed = InputProcessor.Original;
 
         // Members for orbit and fly cam
-        public Transform target;
         public Vector3 targetOffset;
         public float distance = 5.0f;
         public float maxDistance = 500;
@@ -27,8 +26,6 @@ namespace PyriteDemoClient
         public float panSpeed = 5.0f;
         public float zoomDampening = 5.0f;
         public float forceBasedPanSpeed = 100.0f;
-        private float currentDistance;
-        private float desiredDistance;
         private Vector3 position;
         float speed = 0.0f;
         public bool forceBasedPanningAndFovZoom = false;
@@ -101,34 +98,7 @@ namespace PyriteDemoClient
             // Hardcoded initial position for camera
             // TODO: place dummy object representing init camera position into scene and grab the position from there
             transform.position = new Vector3(-248.2652f, 132, -250.901f);
-            
-            // Need to create camera target for panning here as PyriteLoader is changing CameraRig transformation on-the-go.
-            if (!target)
-            {
-                Mesh mesh = Resources.Load("Cube") as Mesh;
-                GameObject go = new GameObject("Cam Target");
-                MeshFilter mf = go.AddComponent<MeshFilter>();
-                mf.sharedMesh = mesh;
-                go.AddComponent<MeshRenderer>();
-                
-                go.transform.position = transform.position + (transform.forward * distance);
-                target = go.transform;
-            }
-            else
-            {
-                target.transform.position = transform.position + (transform.forward * distance);
-            }
-
-            distance = Vector3.Distance(transform.position, target.position);
-            currentDistance = distance;
-            desiredDistance = distance;
-
             position = transform.position;
-
-            //xDeg = Vector3.Angle(Vector3.right, transform.right);
-            //yDeg = Vector3.Angle(Vector3.up, transform.up);
-
-            
             enabled = true;
         }
 
@@ -148,20 +118,38 @@ namespace PyriteDemoClient
             
             if (scrollWheelSpeed > 0.0f || scrollWheelSpeed < 0.0f)
             {
+                if (scrollWheelSpeed > 0.005f)
+                {
+                    scrollWheelSpeed = 0.1f;
+                }
+                else if (scrollWheelSpeed < -0.005)
+                {
+                    scrollWheelSpeed = -0.1f;
+                } 
                 SetMoveIconActive(true);
             }
 
-            if (Input.GetMouseButton(2))
+            if (Input.GetMouseButton(2) || Mathf.Abs(scrollWheelSpeed) > 0.005)
             {
                 if (forceBasedPanningAndFovZoom)
                 {
                     Camera.main.fieldOfView -= Input.GetAxis("Mouse Y") * Time.deltaTime * zoomRate * 0.125f;
                 }
-                else
+                else if (Mathf.Abs(scrollWheelSpeed) < 0.005)
                 {
-                    desiredDistance -= Input.GetAxis("Mouse Y") * Time.deltaTime * zoomRate * 0.125f * Mathf.Abs(desiredDistance);
-                }
 
+                    var mouseY = Input.GetAxis("Mouse Y");
+                    if (mouseY > 0.005f)
+                    {
+                        scrollWheelSpeed = 0.1f;
+                    } else if (mouseY < -0.005)
+                    {
+                        scrollWheelSpeed = -0.1f;
+                    }
+                }
+                var deltaForward = scrollWheelSpeed * Time.deltaTime * zoomRate * 10;
+
+                transform.Translate(transform.forward * deltaForward, Space.World);
                 SetMoveIconActive(true);
             }
             else if (Input.GetMouseButton(0))
@@ -171,10 +159,7 @@ namespace PyriteDemoClient
 
                 _camPitch = ClampAngle(_camPitch, yMinLimit, yMaxLimit);
 
-                _cameraOrientation.eulerAngles = new Vector3(_camPitch, _yaw, 0);
 
-                transform.rotation = Quaternion.Lerp(transform.rotation, _cameraOrientation, Time.deltaTime * zoomDampening);
-                
                 SetOrbitIconActive(true);
             }
             else if (Input.GetMouseButton(1)) // wasd
@@ -210,11 +195,8 @@ namespace PyriteDemoClient
             
             if ( !forceBasedPanningAndFovZoom && (lastProcessed == InputProcessor.OrbitCamera || processedInput))
             {
-                desiredDistance -= scrollWheelSpeed * Time.deltaTime * zoomRate * Mathf.Abs(desiredDistance);
-                desiredDistance = Mathf.Clamp(desiredDistance, minDistance, maxDistance);
-                currentDistance = Mathf.Lerp(currentDistance, desiredDistance, Time.deltaTime * zoomDampening);
-                //position = transform.position - transform.forward;
-                //transform.position = position;
+                _cameraOrientation.eulerAngles = new Vector3(_camPitch, _yaw, 0);
+                transform.rotation = Quaternion.Lerp(transform.rotation, _cameraOrientation, Time.deltaTime * zoomDampening);
             }
 
             return processedInput;
@@ -394,18 +376,12 @@ namespace PyriteDemoClient
                 var movementRotation = Quaternion.Euler(new Vector3(0f, transform.eulerAngles.y, 0f));
                 movementVector = movementRotation * movementVector;
                 transform.Translate(movementVector, Space.World);
-
-                // var planePoint = transform.position;
-                // planePoint.y = 0;
-                // Debug.DrawLine(transform.position, planePoint, Color.green, 0f, true);
             }
             return inputProcessed;
         }
 
         private void Update()
         {
-            // ProcessFlyCameraInput();
-
             if (!ProcessOriginalInput()) // Keyboard + Touch
             {
                 if(ProcessOrbitCameraInput()) // Mouse
@@ -417,11 +393,7 @@ namespace PyriteDemoClient
                 lastProcessed = InputProcessor.Original;
             }
 
-            // Mouse
-            //ProcessOrbitCameraInput();
-
-            // Touch
-            //ProcessOriginalInput();
+            position = transform.position;
         }
 
         private static float LimitAngles(float angle)
