@@ -98,5 +98,15 @@
         {
             return CreateWWW(path, false);
         }
+
+        public static bool Failed(this WWW www)
+        {
+            return !www.Succeeded();
+        }
+
+        public static bool Succeeded(this WWW www)
+        {
+            return string.IsNullOrEmpty(www.error);
+        }
     }
 }

@@ -54,7 +54,7 @@ namespace Pyrite
             br.BaseStream.Seek(stringLength, SeekOrigin.Current);
         }
 
-        public void ProcessCtmRaw()
+        private void ProcessCtmRaw()
         {
             if (Processed) return;
 
@@ -130,8 +130,8 @@ namespace Pyrite
             Processed = true;
             Buffer = null;
         }
-        
-        public void ProcessEbo2()
+
+        private void ProcessEbo2()
         {
             if (Processed) return;
 
@@ -231,7 +231,7 @@ namespace Pyrite
             Buffer = null;
         }
 
-        public void ProcessEbo()
+        private void ProcessEbo()
         {
             if (Processed) return;
 
