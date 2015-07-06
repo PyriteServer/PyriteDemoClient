@@ -34,7 +34,23 @@
 
         private static string _proxyUrl;
 
-        private static readonly char[] InvalidFileCharacters = Path.GetInvalidFileNameChars();
+		private static char[] _invalidFileCharacters;
+		
+		private static char[] InvalidFileCharacters
+        {
+		    get
+		    {
+		        if (_invalidFileCharacters == null)
+		        {
+		            var invalidChars = new List<char>(Path.GetInvalidFileNameChars());
+		            invalidChars.Add('?');
+		            invalidChars.Add('=');
+		            _invalidFileCharacters = invalidChars.ToArray();
+		        }
+
+		        return _invalidFileCharacters;
+		    }
+        }
 
         // MRU index for cache items. The key points to the node in the list that can be used to delete it or refresh it (move it to the end)
         private static readonly Dictionary<string, LinkedListNode<string>> _cacheFileIndex =
@@ -159,8 +175,15 @@
 
         private static void SaveResponseToFileCache(string cacheFilePath, byte[] response)
         {
-            File.WriteAllBytes(cacheFilePath, response);
-            InsertOrUpdateCacheEntry(cacheFilePath);
+            try
+            {
+                File.WriteAllBytes(cacheFilePath, response);
+                InsertOrUpdateCacheEntry(cacheFilePath);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("Error saving file to cache: " + ex.ToString());
+            }
         }
 
         public static void GetBytes(string url, Action<CacheWebResponse<byte[]>> onBytesDownloaded,

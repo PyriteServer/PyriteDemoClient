@@ -730,18 +730,36 @@
                             FileCacheMisses++;
                             modelWww = new WWW(modelPath);
                             yield return modelWww;
-                            CacheWebRequest.AddToCache(cachePath, modelWww.bytes);
+                            if (modelWww.Succeeded())
+                            {
+                                CacheWebRequest.AddToCache(cachePath, modelWww.bytes);
+                            }
                         }
 
-                        var buffer =
-                            new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                        if (modelWww.Failed())
+                        {
+                            Debug.LogError("Error getting model [" + modelPath + "] " +
+                                           modelWww.error);
+                            FailGetGeometryBufferRequest(loadRequest, modelPath);
+                        }
+                        else
+                        {
+                            var buffer =
+                                new GeometryBuffer(_geometryBufferAltitudeTransform, true)
+                                {
+                                    Buffer = modelWww.bytes,
+                                    Format = ModelFormat
+                                };
+                            BetterThreadPool.QueueUserWorkItem((s) =>
                             {
-                                Buffer = modelWww.bytes,
-                                Format =  ModelFormat
-                            };
-                        _eboCache[modelPath] = buffer;
-                        buffer.Process();
-                        yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath, buffer));
+                                lock (_eboCache)
+                                {
+                                    _eboCache[modelPath] = buffer;
+                                }
+                                buffer.Process();
+                                SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
+                            });
+                        }
                     }
                     else
                     {
@@ -848,11 +866,22 @@
                                 FileCacheMisses++;
                                 textureWww = new WWW(texturePath);
                                 yield return textureWww;
-                                CacheWebRequest.AddToCache(cachePath, textureWww.bytes);
+                                if (textureWww.Succeeded())
+                                {
+                                    CacheWebRequest.AddToCache(cachePath, textureWww.bytes);
+                                }
                             }
-
-                            materialData.DiffuseTex = textureWww.texture;
-                            materialData.DiffuseTex.name = materialData.Name;
+                            if (textureWww.Failed())
+                            {
+                                Debug.LogError("Error getting texture [" + texturePath + "] " +
+                                               textureWww.error);
+                                FailGetMaterialDataRequest(loadRequest, texturePath);
+                            }
+                            else
+                            {
+                                materialData.DiffuseTex = textureWww.texture;
+                                materialData.DiffuseTex.name = materialData.Name;
+                            }
                         }
                         MaterialDataCache[texturePath] = materialData;
                         // Add a reference to keep the texture around until we queue off the related load requests
