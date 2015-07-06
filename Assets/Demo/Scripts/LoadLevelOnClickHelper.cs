@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class Back : MonoBehaviour {
+public class LoadLevelOnClickHelper : MonoBehaviour {
 
     public string LevelToLoad = "DemoMenu";
 
