@@ -146,7 +146,6 @@ namespace Pyrite
 
                 float x, y, z;
 
-                var verticesIndex = new int[vertexCount];
                 var vertices = new Vector3[uniqueCount];
                 var uvs = new Vector2[uniqueCount];
 
@@ -162,16 +161,13 @@ namespace Pyrite
                             // Reuse vert and uv
                             case (0):
                                 bufferIndex = (int) br.ReadUInt32();
-                                verticesIndex[i] = verticesIndex[bufferIndex];
-                                Triangles[i] = verticesIndex[bufferIndex];
+                                Triangles[i] = Triangles[bufferIndex];
                                 break;
                             // reuse vert, new uv
                             case (64):
                                 bufferIndex = (int) br.ReadUInt32();
 
-                                vertices[nextNewIndex] = vertices[verticesIndex[bufferIndex]];
-                                
-                                verticesIndex[i] = nextNewIndex;
+                                vertices[nextNewIndex] = vertices[Triangles[bufferIndex]];
 
                                 uvs[nextNewIndex] = new Vector2(br.ReadSingle(), br.ReadSingle());
                                 Triangles[i] = nextNewIndex;
@@ -195,8 +191,6 @@ namespace Pyrite
                                 }
 
                                 vertices[nextNewIndex] = new Vector3(x, y + YOffset, z);
-                                
-                                verticesIndex[i] = nextNewIndex;
 
                                 uvs[nextNewIndex] = new Vector2(br.ReadSingle(), br.ReadSingle());
                                 Triangles[i] = nextNewIndex;
@@ -245,7 +239,6 @@ namespace Pyrite
 
                 float x, y, z;
 
-                var verticesIndex = new int[vertexCount];
                 var vertices = new List<Vector3>();
                 var uvs = new List<Vector2>();
 
@@ -261,16 +254,14 @@ namespace Pyrite
                             // Reuse vert and uv
                             case (0):
                                 bufferIndex = (int)br.ReadUInt32();
-                                verticesIndex[i] = verticesIndex[bufferIndex];
-                                Triangles[i] = verticesIndex[bufferIndex];
+                                Triangles[i] = Triangles[bufferIndex];
                                 break;
                             // reuse vert, new uv
                             case (64):
                                 bufferIndex = (int)br.ReadUInt32();
 
-                                vertices.Add(vertices[verticesIndex[bufferIndex]]);
+                                vertices.Add(vertices[Triangles[bufferIndex]]);
                                 p = vertices.Count - 1;
-                                verticesIndex[i] = p;
 
                                 uvs.Add(new Vector2(br.ReadSingle(), br.ReadSingle()));
                                 Triangles[i] = p;
@@ -292,10 +283,8 @@ namespace Pyrite
                                     z = br.ReadSingle();
                                 }
 
-                                //vertices.Add(i, new Vector3(x, y + YOffset, z));
                                 vertices.Add(new Vector3(x, y + YOffset, z));
                                 p = vertices.Count - 1;
-                                verticesIndex[i] = p;
 
                                 uvs.Add(new Vector2(br.ReadSingle(), br.ReadSingle()));
                                 Triangles[i] = p;
