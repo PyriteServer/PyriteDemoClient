@@ -744,16 +744,21 @@
                         }
                         else
                         {
-
                             var buffer =
                                 new GeometryBuffer(_geometryBufferAltitudeTransform, true)
                                 {
                                     Buffer = modelWww.bytes,
                                     Format = ModelFormat
                                 };
-                            _eboCache[modelPath] = buffer;
-                            buffer.Process();
-                            yield return StartCoroutine(SucceedGetGeometryBufferRequest(modelPath, buffer));
+                            BetterThreadPool.QueueUserWorkItem((s) =>
+                            {
+                                lock (_eboCache)
+                                {
+                                    _eboCache[modelPath] = buffer;
+                                }
+                                buffer.Process();
+                                SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
+                            });
                         }
                     }
                     else
