@@ -9,6 +9,8 @@ namespace PyriteDemoClient
         Original = 0,
         OrbitCamera
     }
+
+
     public class InputManager : MonoBehaviour
     {
         private InputProcessor lastProcessed = InputProcessor.Original;
@@ -20,8 +22,8 @@ namespace PyriteDemoClient
         public float minDistance = 0.5f;
         public float xSpeed = 200.0f;
         public float ySpeed = 200.0f;
-        public int yMinLimit = -80;
-        public int yMaxLimit = 80;
+        public int pitchMin = -22;
+        public int pitchMax = 53;
         public int zoomRate = 1;
         public float panSpeed = 5.0f;
         public float zoomDampening = 5.0f;
@@ -43,12 +45,23 @@ namespace PyriteDemoClient
         private Quaternion _cameraOrientation;
         private float momentumStartTime;
 
+        // Should be set by loader script as this is very much model specific
+        Vector3 _minPosition;
+        Vector3 _maxPosition;
+
         public void EnableCameraFly()
         {
             //cameraFlyEnabled = true;
 
         }
         
+        public void SetInputLimits(Vector3 min, Vector3 max)
+        {
+            Debug.Log("Min: " + min);
+            Debug.Log("Max: " + max);
+            _minPosition = min;
+            _maxPosition = max;
+        }
 
         private static float ClampAngle(float angle, float min, float max)
         {
@@ -157,7 +170,7 @@ namespace PyriteDemoClient
                 _yaw += Input.GetAxis("Mouse X") * xSpeed * 0.02f;
                 _camPitch -= Input.GetAxis("Mouse Y") * ySpeed * 0.02f;
 
-                _camPitch = ClampAngle(_camPitch, yMinLimit, yMaxLimit);
+                _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
 
 
                 SetOrbitIconActive(true);
@@ -229,7 +242,7 @@ namespace PyriteDemoClient
                 _yaw += Input.GetAxis("Mouse X") * xSpeed * 0.02f;
                 _camPitch -= Input.GetAxis("Mouse Y") * ySpeed * 0.02f;
 
-                _camPitch = ClampAngle(_camPitch, yMinLimit, yMaxLimit);
+                _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
 
                 var desiredRotation = Quaternion.Euler(_camPitch, _yaw, 0);
 
@@ -263,8 +276,9 @@ namespace PyriteDemoClient
             float dPitch = Input.GetAxis("VerticalTurn");
             _yaw += Input.GetAxis("HorizontalTurn") * Time.deltaTime * RotationDeltaRate;
             _camPitch -= Input.GetAxis("VerticalTurn") * Time.deltaTime * RotationDeltaRate * (InvertY ? -1f : 1f);
+            _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
 
-            if(dX != 0.0f || dY != 0.0f || dZ != 0.0f || dYaw != 0.0f || dPitch != 0.0f)
+            if (dX != 0.0f || dY != 0.0f || dZ != 0.0f || dYaw != 0.0f || dPitch != 0.0f)
             {
                 inputProcessed = true;
             }
@@ -287,6 +301,7 @@ namespace PyriteDemoClient
                 inputProcessed = true;
                 _yaw += Input.GetTouch(0).deltaPosition.x * -TouchTranslationDeltaRate * 0.4f;
                 _camPitch -= Input.GetTouch(0).deltaPosition.y * -TouchTranslationDeltaRate * 0.4f;
+                _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
 
                 if (orbitIcon != null)
                 {
@@ -328,11 +343,11 @@ namespace PyriteDemoClient
                 SetOrbitIconActive(false);
                 SetMoveIconActive(false);
                 SetAltitudeIconActive(false);
-            } 
+            }
 
             // Limit movement
-            _camPitch = Mathf.Clamp(_camPitch, -60, 80);
-            
+            _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
+
             if (Input.GetButton("XboxLB"))
             {
                 dY -= Time.deltaTime * TranslationDeltaRate;
@@ -380,6 +395,14 @@ namespace PyriteDemoClient
             return inputProcessed;
         }
 
+        private Vector3 ClampPosition(Vector3 position)
+        {
+            position.x = Mathf.Clamp(position.x, _minPosition.x, _maxPosition.x);
+            position.y = Mathf.Clamp(position.y, _minPosition.y, _maxPosition.y);
+            position.z = Mathf.Clamp(position.z, _minPosition.z, _maxPosition.z);
+            return position;
+        }
+
         private void Update()
         {
             if (!ProcessOriginalInput()) // Keyboard + Touch
@@ -393,7 +416,7 @@ namespace PyriteDemoClient
                 lastProcessed = InputProcessor.Original;
             }
 
-            position = transform.position;
+            position = transform.position = ClampPosition(transform.position);
         }
 
         private static float LimitAngles(float angle)

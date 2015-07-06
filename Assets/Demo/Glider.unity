@@ -880,8 +880,8 @@ MonoBehaviour:
   minDistance: 50
   xSpeed: 200
   ySpeed: 200
-  yMinLimit: -80
-  yMaxLimit: 80
+  pitchMin: -22
+  pitchMax: 53
   zoomRate: 500
   panSpeed: 5
   zoomDampening: 5

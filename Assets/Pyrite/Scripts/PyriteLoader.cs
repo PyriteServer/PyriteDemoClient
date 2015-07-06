@@ -459,7 +459,23 @@
                 CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
 
                 //Kainiemi: Some mechanism needed to inform InputManager about the transform change
-                CameraRig.GetComponent<PyriteDemoClient.InputManager>().NotifyOnTransformChange();
+                PyriteDemoClient.InputManager inputManager = CameraRig.GetComponent<PyriteDemoClient.InputManager>();
+                if(inputManager != null)
+                {
+
+                    // Give input manager position limits based on model bounds
+                    var highestLod = pyriteQuery.DetailLevels.First();
+                    var lowestLod = pyriteQuery.DetailLevels.Last();
+                    inputManager.SetInputLimits(
+                        new Vector3(highestLod.ModelBoundsMin.x + lowestLod.WorldCubeScale.x /2,
+                        highestLod.ModelBoundsMin.z + _geometryBufferAltitudeTransform + lowestLod.WorldCubeScale.z / 8,
+                        highestLod.ModelBoundsMin.y  + lowestLod.WorldCubeScale.y / 2),
+                        new Vector3(highestLod.ModelBoundsMax.x - lowestLod.WorldCubeScale.x / 2,
+                        highestLod.ModelBoundsMax.z + _geometryBufferAltitudeTransform - lowestLod.WorldCubeScale.z / 16,
+                        highestLod.ModelBoundsMax.y - lowestLod.WorldCubeScale.y / 2));
+
+                    inputManager.NotifyOnTransformChange();
+                }
                 
             }
         }
