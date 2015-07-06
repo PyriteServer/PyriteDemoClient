@@ -34,14 +34,14 @@
 
         public static void QueueUserWorkItem(WaitCallback callback)
         {
-#if !UNITY_WSA
+#if !UNITY_WSA || UNITY_EDITOR
             Instance.EnqueueTask(callback);
 #elif NETFX_CORE
             Windows.System.Threading.ThreadPool.RunAsync(new Windows.System.Threading.WorkItemHandler(callback));
 #endif
         }
 
-#if !UNITY_WSA
+#if !UNITY_WSA  || UNITY_EDITOR
         private readonly Thread[] m_threadPool;
 #endif
 
@@ -65,7 +65,7 @@
 
         private BetterThreadPool(int queueSize, int threadNum)
         {
-#if !UNITY_WSA
+#if !UNITY_WSA || UNITY_EDITOR
 #if UNITY_WEBPLAYER
             threadNum = 1;
 #else
@@ -107,7 +107,7 @@
 
         private void EnqueueTask(WaitCallback callback)
         {
-#if !UNITY_WSA
+#if !UNITY_WSA  || UNITY_EDITOR
             lock (this)
             {
                 while (m_numTasks == m_taskQueue.Length)
