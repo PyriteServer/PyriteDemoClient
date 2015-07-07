@@ -731,6 +731,7 @@
                     EboCacheMisses++;
 
                     _eboCache[modelPath] = null;
+                    Monitor.Exit(_eboCache);
                     if (UseWwwForEbo)
                     {
                         var cachePath = CacheWebRequest.GetCacheFilePath(modelPath);
@@ -816,6 +817,10 @@
                         }, DependentRequestsExistBlocking);
                     }
                 }
+                else
+                {
+                    Monitor.Exit(_eboCache);
+                }
             }
             else // The model data was in the cache
             {
@@ -823,9 +828,8 @@
                 EboCacheHits++;
                 loadRequest.GeometryBuffer = _eboCache[modelPath];
                 MoveRequestForward(loadRequest);
+                Monitor.Exit(_eboCache);
             }
-
-            Monitor.Exit(_eboCache);
         }
 
         // Responsible for getting the material data for a load request
