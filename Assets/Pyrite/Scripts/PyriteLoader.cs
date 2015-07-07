@@ -805,7 +805,8 @@
                                     }
                                     var buffer = new GeometryBuffer(_geometryBufferAltitudeTransform, true)
                                     {
-                                        Buffer = modelResponse.Content
+                                        Buffer = modelResponse.Content,
+                                        Format = ModelFormat
                                     };
                                     _eboCache[modelPath] = buffer;
                                     buffer.Process();
