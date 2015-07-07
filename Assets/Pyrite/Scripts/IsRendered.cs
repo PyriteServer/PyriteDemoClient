@@ -75,7 +75,18 @@
         {
             if (_manager != null)
             {
-                yield return StartCoroutine(RequestCubeLoad());
+                if (ShouldUpgrade(Camera.main))
+                {
+                    _upgrading = true;
+                    StartCoroutine(StopRenderCheck(Camera.main));
+                    yield return
+                        StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lodIndex,
+                            addedDetectors => { StartCoroutine(DestroyChildrenAfterLoading(addedDetectors)); }));
+                }
+                else
+                {
+                    yield return StartCoroutine(RequestCubeLoad());
+                }
             }
         }
 
@@ -94,6 +105,11 @@
 
         private bool ShouldUpgrade(Component cameraThatDetects)
         {
+            if (!Upgradable)
+            {
+                return false;
+            }
+
             var distance = Vector3.Distance(transform.position, cameraThatDetects.transform.position);
             return distance < _pyriteQuery.DetailLevels[_lodIndex].UpgradeDistance;
         }
@@ -210,13 +226,13 @@
         {
             while (true)
             {
-                if (ShouldHideModel)
+                if (ShouldHideModel && !_upgrading)
                 {
                     _meshRenderer.enabled = true;
                     DestroyChildren();
                     break;
                 }
-                if (Upgradable && ShouldUpgrade(cameraToCheckAgainst))
+                if (ShouldUpgrade(cameraToCheckAgainst))
                 {
                     _upgrading = true;
                     yield return
