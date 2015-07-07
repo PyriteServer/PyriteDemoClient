@@ -279,23 +279,23 @@ PlayerSettings:
   metroCertificateNotAfter: 00cff5f866bcd101
   metroApplicationDescription: PyriteDemo
   metroStoreTileLogo80: 
-  metroStoreTileLogo: 
+  metroStoreTileLogo: Assets/Demo/Icons/store/Windows/Square150.png
   metroStoreTileLogo140: 
   metroStoreTileLogo180: 
   metroStoreTileWideLogo80: 
-  metroStoreTileWideLogo: 
+  metroStoreTileWideLogo: Assets/Demo/Icons/store/Windows/310_150.png
   metroStoreTileWideLogo140: 
   metroStoreTileWideLogo180: 
   metroStoreTileSmallLogo80: 
-  metroStoreTileSmallLogo: 
+  metroStoreTileSmallLogo: Assets/Demo/Icons/store/Windows/square30.png
   metroStoreTileSmallLogo140: 
   metroStoreTileSmallLogo180: 
   metroStoreSmallTile80: 
-  metroStoreSmallTile: 
+  metroStoreSmallTile: Assets/Demo/Icons/store/Windows/square70.png
   metroStoreSmallTile140: 
   metroStoreSmallTile180: 
   metroStoreLargeTile80: 
-  metroStoreLargeTile: 
+  metroStoreLargeTile: Assets/Demo/Icons/store/Windows/Square310.png
   metroStoreLargeTile140: 
   metroStoreLargeTile180: 
   metroStoreSplashScreenImage: 
@@ -319,8 +319,8 @@ PlayerSettings:
   metroTileShortName: Pyrite3D
   metroCommandLineArgsFile: 
   metroTileShowName: 0
-  metroMediumTileShowName: 0
-  metroLargeTileShowName: 0
+  metroMediumTileShowName: 1
+  metroLargeTileShowName: 1
   metroWideTileShowName: 0
   metroDefaultTileSize: 1
   metroTileForegroundText: 1

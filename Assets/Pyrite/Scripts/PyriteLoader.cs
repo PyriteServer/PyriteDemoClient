@@ -468,10 +468,10 @@
                     var lowestLod = pyriteQuery.DetailLevels.Last();
                     inputManager.SetInputLimits(
                         new Vector3(highestLod.ModelBoundsMin.x + lowestLod.WorldCubeScale.x /2,
-                        highestLod.ModelBoundsMin.z + _geometryBufferAltitudeTransform + lowestLod.WorldCubeScale.z / 8,
+                        highestLod.ModelBoundsMin.z + _geometryBufferAltitudeTransform + lowestLod.WorldCubeScale.z / 4,
                         highestLod.ModelBoundsMin.y  + lowestLod.WorldCubeScale.y / 2),
                         new Vector3(highestLod.ModelBoundsMax.x - lowestLod.WorldCubeScale.x / 2,
-                        highestLod.ModelBoundsMax.z + _geometryBufferAltitudeTransform - lowestLod.WorldCubeScale.z / 16,
+                        highestLod.ModelBoundsMax.z + _geometryBufferAltitudeTransform + (lowestLod.WorldCubeScale.z * 1.5f),
                         highestLod.ModelBoundsMax.y - lowestLod.WorldCubeScale.y / 2));
 
                     inputManager.NotifyOnTransformChange();
