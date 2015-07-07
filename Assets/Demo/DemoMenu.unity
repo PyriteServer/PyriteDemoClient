@@ -1572,7 +1572,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Nashville, TN
+  m_Text: Begard, FR
 --- !u!222 &1680156828
 CanvasRenderer:
   m_ObjectHideFlags: 0
