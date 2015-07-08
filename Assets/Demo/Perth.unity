@@ -605,8 +605,8 @@ MonoBehaviour:
   DetailLevel: 4
   FilterDetailLevels: 0
   DetailLevelsToFilter: 01000000
-  ModelFormat: 0
-  ModelVersion: V2
+  ModelFormat: 2
+  ModelVersion: V7
   SetName: PerthNew
   EboCacheSize: 100
   MaterialDataCacheSize: 20
