@@ -977,7 +977,7 @@ RectTransform:
   m_RootOrder: 0
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -5}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: .5, y: .5}
 --- !u!114 &1176773496
@@ -1316,8 +1316,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 1
     m_LineSpacing: 1
-  m_Text: The meshes in this demo were captured by WaldoAir and processed with Pix4D.  They
-    were then prepared for streaming by Pyrite3D and are hosted in Azure.
+  m_Text: "The meshes in this demo were captured by WaldoAir and processed with Pix4D.
+    \ They were then prepared for streaming by Pyrite3D and are hosted in Azure.  \n\nFor
+    more information, please visit our website."
 --- !u!222 &1501396836
 CanvasRenderer:
   m_ObjectHideFlags: 0

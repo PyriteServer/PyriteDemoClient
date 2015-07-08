@@ -13,7 +13,7 @@ PlayerSettings:
   productName: Pyrite Technical Demo
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
-  m_ShowUnitySplashScreen: 1
+  m_ShowUnitySplashScreen: 0
   defaultScreenWidth: 1024
   defaultScreenHeight: 768
   defaultScreenWidthWeb: 960
@@ -298,7 +298,7 @@ PlayerSettings:
   metroStoreLargeTile: Assets/Demo/Icons/store/Windows/Square310.png
   metroStoreLargeTile140: 
   metroStoreLargeTile180: 
-  metroStoreSplashScreenImage: 
+  metroStoreSplashScreenImage: Assets/Demo/Icons/store/Windows/splash.png
   metroStoreSplashScreenImage140: 
   metroStoreSplashScreenImage180: 
   metroPhoneAppIcon: 
@@ -325,8 +325,8 @@ PlayerSettings:
   metroDefaultTileSize: 1
   metroTileForegroundText: 1
   metroTileBackgroundColor: {r: 0, g: 0, b: 0, a: 1}
-  metroSplashScreenBackgroundColor: {r: 0, g: 0, b: 0, a: 1}
-  metroSplashScreenUseBackgroundColor: 0
+  metroSplashScreenBackgroundColor: {r: 1, g: .325490206, b: .0509803928, a: 1}
+  metroSplashScreenUseBackgroundColor: 1
   platformCapabilities:
     WindowsStoreApps:
       EnterpriseAuthentication: False
