@@ -9,7 +9,6 @@ public class Menu : MonoBehaviour
     {
         GameObject frame = null;
         GameObject link = null;
-        GameObject close = null;
 
         public AboutDialog()
         {

@@ -56,5 +56,15 @@ namespace Pyrite.Client.Model
             Intersection<TObject> o = (Intersection<TObject>)otherRecord;
             return o.Equals(this);
         }
+
+        public override int GetHashCode()
+        {
+            return hasHit.GetHashCode() ^
+                   (Object == null ? 0 : Object.GetHashCode()) ^
+                   Position.GetHashCode() ^
+                   Normal.GetHashCode() ^
+                   Ray.GetHashCode() ^
+                   Distance.GetHashCode();
+        }
     }
 }

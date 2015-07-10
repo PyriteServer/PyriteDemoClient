@@ -13,7 +13,6 @@ public class Designator2 : MonoBehaviour
     private Vector3 currentDest;
     private bool direction;
     private float basePosY;
-    private float destPosY;
     private float scaleLen;
     private float scale;
 
@@ -24,8 +23,7 @@ public class Designator2 : MonoBehaviour
         Destination.y += Height;
         currentDest = Destination;
 
-        basePosY = BasePos.y;
-        destPosY = BasePos.y + Height;        
+        basePosY = BasePos.y;    
     }
 
     void Update()
