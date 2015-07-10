@@ -142,9 +142,6 @@ namespace Pyrite
                 var vertexCount = br.ReadUInt16()*3;
                 var uniqueCount = br.ReadUInt32();
                 int nextNewIndex = 0;
-                int bufferIndex;
-
-                float x, y, z;
 
                 var vertices = new Vector3[uniqueCount];
                 var uvs = new Vector2[uniqueCount];
@@ -156,6 +153,7 @@ namespace Pyrite
                 {
                     try
                     {
+                        int bufferIndex;
                         switch ((int) br.ReadByte())
                         {
                             // Reuse vert and uv
@@ -177,6 +175,7 @@ namespace Pyrite
                                 throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
                             // new vert, new uv
                             case (255):
+                                float x, y, z;
                                 if (InvertedData)
                                 {
                                     x = br.ReadSingle()*-1;
@@ -234,10 +233,6 @@ namespace Pyrite
             {
                 // File is prefixed with face count, times 3 for vertices
                 var vertexCount = br.ReadUInt16() * 3;
-                int p;
-                int bufferIndex;
-
-                float x, y, z;
 
                 var vertices = new List<Vector3>();
                 var uvs = new List<Vector2>();
@@ -249,6 +244,8 @@ namespace Pyrite
                 {
                     try
                     {
+                        int p;
+                        int bufferIndex;
                         switch ((int)br.ReadByte())
                         {
                             // Reuse vert and uv
@@ -270,6 +267,7 @@ namespace Pyrite
                                 throw new EndOfStreamException("Unexpectedly hit end of EBO stream");
                             // new vert, new uv
                             case (255):
+                                float x, y, z;
                                 if (InvertedData)
                                 {
                                     x = br.ReadSingle() * -1;
@@ -327,7 +325,7 @@ namespace Pyrite
                 Debug.LogErrorFormat("GameObject {0} had too many vertices", gameObject.name);
             }
 
-            var m = (gameObject.GetComponent(typeof (MeshFilter)) as MeshFilter).mesh;
+            var m = gameObject.GetComponent<MeshFilter>().mesh;
             m.vertices = Vertices;
             m.uv = UVs;
             m.triangles = Triangles;

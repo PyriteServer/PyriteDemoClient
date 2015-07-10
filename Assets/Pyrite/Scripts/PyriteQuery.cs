@@ -5,10 +5,10 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using Client.Model;
     using Extensions;
     using Microsoft.Xna.Framework;
     using Model;
-    using Pyrite.Client.Model;
     using SimpleJSON;
     using UnityEngine;
 
@@ -95,7 +95,7 @@
                 modelPathBuilder.Append("?fmt=");
                 modelPathBuilder.Append(modelFormat);
             }
-            
+
             return modelPathBuilder.ToString();
         }
 
@@ -121,9 +121,9 @@
             var nextSetSize = DetailLevels[lodIndex - 1].SetSize;
 
             return new Vector3(
-                nextSetSize.x/currentSetSize.x,
-                nextSetSize.y/currentSetSize.y,
-                nextSetSize.z/currentSetSize.z
+                nextSetSize.x / currentSetSize.x,
+                nextSetSize.y / currentSetSize.y,
+                nextSetSize.z / currentSetSize.z
                 );
         }
 
@@ -138,9 +138,9 @@
             var prevSetSize = DetailLevels[lodIndex + 1].SetSize;
 
             return new Vector3(
-                currentSetSize.x/prevSetSize.x,
-                currentSetSize.y/prevSetSize.y,
-                currentSetSize.z/prevSetSize.z
+                currentSetSize.x / prevSetSize.x,
+                currentSetSize.y / prevSetSize.y,
+                currentSetSize.z / prevSetSize.z
                 );
         }
 
@@ -230,8 +230,7 @@
         private IEnumerator LoadMetadata(List<int> detailLevelsToFilter = null)
         {
             Debug.Log("Metadata query started against: " + _setUrl);
-            WWW loader = null;
-            loader = WwwExtensions.CreateWWW(_setUrl);
+            WWW loader = WwwExtensions.CreateWWW(_setUrl);
             yield return loader;
             var parsedContent = JSON.Parse(loader.GetDecompressedText());
             if (!parsedContent[StatusKey].Value.Equals(OkValue))
@@ -307,9 +306,9 @@
                     parsedDetailLevels[k][WorldCubeScaleKey][YKey].AsFloat,
                     parsedDetailLevels[k][WorldCubeScaleKey][ZKey].AsFloat);
 
-                detailLevel.UpgradeDistance = detailLevel.WorldCubeScale.magnitude*_upgradeFactor + _upgradeConstant;
+                detailLevel.UpgradeDistance = detailLevel.WorldCubeScale.magnitude * _upgradeFactor + _upgradeConstant;
 
-                detailLevel.DowngradeDistance = detailLevel.WorldCubeScale.magnitude*_downgradeFactor +
+                detailLevel.DowngradeDistance = detailLevel.WorldCubeScale.magnitude * _downgradeFactor +
                                                 _downgradeConstant;
 
                 detailLevel.WorldBoundsSize =
@@ -319,7 +318,7 @@
 
             DetailLevels = sortedDetailLevels.Values.ToArray();
 
-            for (int i = DetailLevels.Length - 1; i > 0; i--)
+            for (var i = DetailLevels.Length - 1; i > 0; i--)
             {
                 if (DetailLevels[i].Value != DetailLevels[i - 1].Value + 1)
                 {
@@ -379,31 +378,31 @@
 
         public Vector2 TextureCoordinatesForCube(float cubeX, float cubeY)
         {
-            var textureXPosition = (int) (cubeX/(SetSize.x/TextureSetSize.x));
-            var textureYPosition = (int) (cubeY/(SetSize.y/TextureSetSize.y));
+            var textureXPosition = (int) (cubeX / (SetSize.x / TextureSetSize.x));
+            var textureYPosition = (int) (cubeY / (SetSize.y / TextureSetSize.y));
             return new Vector2(textureXPosition, textureYPosition);
         }
 
         // Returns the center of the cube (point at the middle of each axis distance) in world space
         public Vector3 GetWorldCoordinatesForCube(PyriteCube cube)
         {
-            var xPos = WorldBoundsMin.x + WorldCubeScale.x*cube.X + WorldCubeScale.x*0.5f;
-            var yPos = WorldBoundsMin.y + WorldCubeScale.y*cube.Y + WorldCubeScale.y*0.5f;
-            var zPos = WorldBoundsMin.z + WorldCubeScale.z * cube.Z + WorldCubeScale.z * 0.5f;            
+            var xPos = WorldBoundsMin.x + WorldCubeScale.x * cube.X + WorldCubeScale.x * 0.5f;
+            var yPos = WorldBoundsMin.y + WorldCubeScale.y * cube.Y + WorldCubeScale.y * 0.5f;
+            var zPos = WorldBoundsMin.z + WorldCubeScale.z * cube.Z + WorldCubeScale.z * 0.5f;
             return new Vector3(xPos, yPos, zPos);
         }
 
         public PyriteCube GetCubeForWorldCoordinates(Vector3 pos)
         {
-            var cx = (int)((pos.x - WorldBoundsMin.x) / WorldCubeScale.x);
-            var cy = (int)((pos.y - WorldBoundsMin.y) / WorldCubeScale.y);
-            var cz = (int)((pos.z - WorldBoundsMin.z) / WorldCubeScale.z);
-            return new PyriteCube() { X = cx, Y = cy, Z = cz };
+            var cx = (int) ((pos.x - WorldBoundsMin.x) / WorldCubeScale.x);
+            var cy = (int) ((pos.y - WorldBoundsMin.y) / WorldCubeScale.y);
+            var cz = (int) ((pos.z - WorldBoundsMin.z) / WorldCubeScale.z);
+            return new PyriteCube {X = cx, Y = cy, Z = cz};
         }
 
         public Vector3 GetUnityWorldCoordinatesForCube(PyriteCube cube)
         {
-            var xPos = WorldBoundsMin.x + WorldCubeScale.x * cube.X + WorldCubeScale.x * 0.5f;            
+            var xPos = WorldBoundsMin.x + WorldCubeScale.x * cube.X + WorldCubeScale.x * 0.5f;
             var yPos = WorldBoundsMin.z + WorldCubeScale.z * cube.Z + WorldCubeScale.z * 0.5f;
             var zPos = WorldBoundsMin.y + WorldCubeScale.y * cube.Y + WorldCubeScale.y * 0.5f;
             return new Vector3(xPos, yPos, zPos);
@@ -411,10 +410,10 @@
 
         public PyriteCube GetCubeForUnityWorldCoordinates(Vector3 pos)
         {
-            var cx = (int)((pos.x - WorldBoundsMin.x) / WorldCubeScale.x);            
-            var cy = (int)((pos.z - WorldBoundsMin.y) / WorldCubeScale.z);
-            var cz = (int)((pos.y - WorldBoundsMin.z) / WorldCubeScale.y);
-            return new PyriteCube() { X = cx, Y = cy, Z = cz };
+            var cx = (int) ((pos.x - WorldBoundsMin.x) / WorldCubeScale.x);
+            var cy = (int) ((pos.z - WorldBoundsMin.y) / WorldCubeScale.z);
+            var cz = (int) ((pos.y - WorldBoundsMin.z) / WorldCubeScale.y);
+            return new PyriteCube {X = cx, Y = cy, Z = cz};
         }
     }
 }

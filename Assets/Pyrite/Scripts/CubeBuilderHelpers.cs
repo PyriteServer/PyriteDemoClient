@@ -28,33 +28,19 @@
 
         public static MaterialData GetDefaultMaterialData(int x, int y, int lod, string path)
         {
-            var current = new MaterialData(path);
-
-            // newmtl material_0
-            current.X = x;
-            current.Y = y;
-            current.Lod = lod;
-
-            // Ka 0.200000 0.200000 0.200000
-            current.Ambient = DefaultAmbient; // Gc(new[] {"Ka", "0.200000", "0.200000", "0.200000"});
-
-            // Kd 0.800000 0.800000 0.800000
-            current.Diffuse = DefaultDiffuse; // Gc(new[] {"Kd", "0.800000", "0.800000", "0.800000"});
-
-            // Ks 1.000000 1.000000 1.000000
-            current.Specular = DefaultSpecular; // Gc(new[] {"Ks", "1.000000", "1.000000", "1.000000"});
-
-            // Tr 1.000000
-            current.Alpha = DefaultAlplha; // Cf("1.000000");
-
-            // illum 2
-            current.IllumType = DefaultIllumType; // Ci("2");
-
-            // Ns 0.000000
-            current.Shininess = DefaultShininess; // Cf("0.000000")/1000;
-
-            // map_Kd model.jpg
-            current.DiffuseTexPath = path;
+            var current = new MaterialData(path)
+            {
+                X = x,
+                Y = y,
+                Lod = lod,
+                Ambient = DefaultAmbient,
+                Diffuse = DefaultDiffuse,
+                Specular = DefaultSpecular,
+                Alpha = DefaultAlplha,
+                IllumType = DefaultIllumType,
+                Shininess = DefaultShininess,
+                DiffuseTexPath = path
+            };
 
             return current;
         }

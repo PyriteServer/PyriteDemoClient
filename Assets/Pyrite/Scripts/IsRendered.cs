@@ -188,7 +188,7 @@
             // Resources.UnloadUnusedAssets();
         }
 
-        private IEnumerator WaitForChildrenToLoad(IEnumerable<GameObject> newDetectors)
+        private IEnumerator WaitForChildrenToLoad(List<GameObject> newDetectors)
         {
             while (newDetectors.Any(cd =>
             {

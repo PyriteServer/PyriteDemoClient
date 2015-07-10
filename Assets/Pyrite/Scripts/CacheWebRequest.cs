@@ -81,7 +81,13 @@
                             Directory.CreateDirectory(TemporaryCachePath);
                         }
                     }
-                    catch { }
+                    catch(Exception)
+                    {
+                        if (!Directory.Exists(TemporaryCachePath))
+                        {
+                            throw;
+                        } 
+                    }
 
                     foreach (var file in Directory.GetFiles(TemporaryCachePath))
                     {
@@ -182,7 +188,7 @@
             }
             catch (Exception ex)
             {
-                Debug.LogError("Error saving file to cache: " + ex.ToString());
+                Debug.LogError("Error saving file to cache: " + ex);
             }
         }
 

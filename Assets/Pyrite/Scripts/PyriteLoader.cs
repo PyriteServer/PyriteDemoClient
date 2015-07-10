@@ -124,8 +124,8 @@
 
         protected bool Loaded { get; private set; }
 
-        private PyriteQuery pyriteQuery;
-        private PyriteSetVersionDetailLevel pyriteLevel;
+        private PyriteQuery _pyriteQuery;
+        private PyriteSetVersionDetailLevel _pyriteLevel;
 
         private string ModelFormatString;
 
@@ -346,7 +346,7 @@
                     MaterialCacheMisses = MaterialCacheHits = 0;
                 }
 
-                var yOffset = 10;
+                const int yOffset = 10;
                 string caches;
 
                 if (UseFileCache)
@@ -394,26 +394,26 @@
 
         protected virtual IEnumerator Load()
         {
-            pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant,
+            _pyriteQuery = new PyriteQuery(this, SetName, ModelVersion, PyriteServer, UpgradeFactor, UpgradeConstant,
                 DowngradeFactor, DowngradeConstant);
-            yield return StartCoroutine(pyriteQuery.LoadAll(FilterDetailLevels ? DetailLevelsToFilter : null));
+            yield return StartCoroutine(_pyriteQuery.LoadAll(FilterDetailLevels ? DetailLevelsToFilter : null));
             var initialDetailLevelIndex = DetailLevel - 1;
             if (UseCameraDetection)
             {
-                initialDetailLevelIndex = pyriteQuery.DetailLevels.Length - 1;
+                initialDetailLevelIndex = _pyriteQuery.DetailLevels.Length - 1;
             }
 
-            pyriteLevel = pyriteQuery.DetailLevels[initialDetailLevelIndex];
+            _pyriteLevel = _pyriteQuery.DetailLevels[initialDetailLevelIndex];
 
-            var allOctCubes = pyriteQuery.DetailLevels[initialDetailLevelIndex].Octree.AllItems();
+            var allOctCubes = _pyriteQuery.DetailLevels[initialDetailLevelIndex].Octree.AllItems();
             foreach (var octCube in allOctCubes)
             {
                 var pCube = CreateCubeFromCubeBounds(octCube);
                 var x = pCube.X;
                 var y = pCube.Y;
                 var z = pCube.Z;
-                var cubePos = pyriteLevel.GetWorldCoordinatesForCube(pCube);
-                _geometryBufferAltitudeTransform = 0 - pyriteLevel.ModelBoundsMin.z;
+                var cubePos = _pyriteLevel.GetWorldCoordinatesForCube(pCube);
+                _geometryBufferAltitudeTransform = 0 - _pyriteLevel.ModelBoundsMin.z;
 
                 if (UseCameraDetection)
                 {
@@ -424,18 +424,18 @@
                     var meshRenderer = detectionCube.GetComponent<MeshRenderer>();
                     meshRenderer.enabled = true;
                     detectionCube.GetComponent<IsRendered>()
-                        .SetCubePosition(x, y, z, initialDetailLevelIndex, pyriteQuery, this);
+                        .SetCubePosition(x, y, z, initialDetailLevelIndex, _pyriteQuery, this);
 
                     detectionCube.transform.localScale = new Vector3(
-                        pyriteLevel.WorldCubeScale.x,
-                        pyriteLevel.WorldCubeScale.z,
-                        pyriteLevel.WorldCubeScale.y);
+                        _pyriteLevel.WorldCubeScale.x,
+                        _pyriteLevel.WorldCubeScale.z,
+                        _pyriteLevel.WorldCubeScale.y);
 
                     detectionCube.SetActive(true);
                 }
                 else
                 {
-                    var loadRequest = new LoadCubeRequest(x, y, z, initialDetailLevelIndex, pyriteQuery, null);
+                    var loadRequest = new LoadCubeRequest(x, y, z, initialDetailLevelIndex, _pyriteQuery, null);
                     yield return StartCoroutine(EnqueueLoadCubeRequest(loadRequest));
                 }
             }
@@ -445,38 +445,38 @@
                 // Hardcodes the coordinate inversions which are parameterized on the geometry buffer
 
                 var min = new Vector3(
-                    -pyriteLevel.ModelBoundsMin.x,
-                    pyriteLevel.ModelBoundsMin.z + _geometryBufferAltitudeTransform,
-                    -pyriteLevel.ModelBoundsMin.y);
+                    -_pyriteLevel.ModelBoundsMin.x,
+                    _pyriteLevel.ModelBoundsMin.z + _geometryBufferAltitudeTransform,
+                    -_pyriteLevel.ModelBoundsMin.y);
                 var max = new Vector3(
-                    -pyriteLevel.ModelBoundsMax.x,
-                    pyriteLevel.ModelBoundsMax.z + _geometryBufferAltitudeTransform,
-                    -pyriteLevel.ModelBoundsMax.y);
+                    -_pyriteLevel.ModelBoundsMax.x,
+                    _pyriteLevel.ModelBoundsMax.z + _geometryBufferAltitudeTransform,
+                    -_pyriteLevel.ModelBoundsMax.y);
 
-                var newCameraPosition = min + (max - min)/2.0f;
-                newCameraPosition += new Vector3(0, (max - min).y*1.4f, 0);
+                var newCameraPosition = min + (max - min) / 2.0f;
+                newCameraPosition += new Vector3(0, (max - min).y * 1.4f, 0);
                 CameraRig.transform.position = newCameraPosition;
                 CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
 
                 //Kainiemi: Some mechanism needed to inform InputManager about the transform change
-                PyriteDemoClient.InputManager inputManager = CameraRig.GetComponent<PyriteDemoClient.InputManager>();
-                if(inputManager != null)
+                var inputManager = CameraRig.GetComponent<PyriteDemoClient.InputManager>();
+                if (inputManager != null)
                 {
-
                     // Give input manager position limits based on model bounds
-                    var highestLod = pyriteQuery.DetailLevels.First();
-                    var lowestLod = pyriteQuery.DetailLevels.Last();
+                    var highestLod = _pyriteQuery.DetailLevels.First();
+                    var lowestLod = _pyriteQuery.DetailLevels.Last();
                     inputManager.SetInputLimits(
-                        new Vector3(highestLod.ModelBoundsMin.x + lowestLod.WorldCubeScale.x /2,
-                        highestLod.ModelBoundsMin.z + _geometryBufferAltitudeTransform + lowestLod.WorldCubeScale.z / 8,
-                        highestLod.ModelBoundsMin.y  + lowestLod.WorldCubeScale.y / 2),
+                        new Vector3(highestLod.ModelBoundsMin.x + lowestLod.WorldCubeScale.x / 2,
+                            highestLod.ModelBoundsMin.z + _geometryBufferAltitudeTransform +
+                            lowestLod.WorldCubeScale.z / 8,
+                            highestLod.ModelBoundsMin.y + lowestLod.WorldCubeScale.y / 2),
                         new Vector3(highestLod.ModelBoundsMax.x - lowestLod.WorldCubeScale.x / 2,
-                        highestLod.ModelBoundsMax.z + _geometryBufferAltitudeTransform + (lowestLod.WorldCubeScale.z * 1.5f),
-                        highestLod.ModelBoundsMax.y - lowestLod.WorldCubeScale.y / 2));
+                            highestLod.ModelBoundsMax.z + _geometryBufferAltitudeTransform +
+                            (lowestLod.WorldCubeScale.z * 1.5f),
+                            highestLod.ModelBoundsMax.y - lowestLod.WorldCubeScale.y / 2));
 
                     inputManager.NotifyOnTransformChange();
                 }
-                
             }
         }
 
@@ -488,9 +488,10 @@
             var pyriteLevel = pyriteQuery.DetailLevels[newLod];
 
             var cubeFactor = pyriteQuery.GetNextCubeFactor(lod);
-            var min = new Vector3(x*(int) cubeFactor.x + 0.5f, y*(int) cubeFactor.y + 0.5f, z*(int) cubeFactor.z + 0.5f);
-            var max = new Vector3((x + 1)*(int) cubeFactor.x - 0.5f, (y + 1)*(int) cubeFactor.y - 0.5f,
-                (z + 1)*(int) cubeFactor.z - 0.5f);
+            var min = new Vector3(x * (int) cubeFactor.x + 0.5f, y * (int) cubeFactor.y + 0.5f,
+                z * (int) cubeFactor.z + 0.5f);
+            var max = new Vector3((x + 1) * (int) cubeFactor.x - 0.5f, (y + 1) * (int) cubeFactor.y - 0.5f,
+                (z + 1) * (int) cubeFactor.z - 0.5f);
             var intersections =
                 pyriteQuery.DetailLevels[newLod].Octree.AllIntersections(new BoundingBox {Min = min, Max = max});
             foreach (var i in intersections)
@@ -767,7 +768,7 @@
                                     Buffer = modelWww.bytes,
                                     Format = ModelFormat
                                 };
-                            BetterThreadPool.QueueUserWorkItem((s) =>
+                            BetterThreadPool.QueueUserWorkItem(s =>
                             {
                                 lock (_eboCache)
                                 {

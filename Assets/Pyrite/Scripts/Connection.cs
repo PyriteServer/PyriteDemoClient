@@ -12,15 +12,9 @@
             State = ConnectionState.Connecting;
             var internetChecker = new WWW("http://api.pyrite3d.org/sets");
             yield return internetChecker;
-            if (string.IsNullOrEmpty(internetChecker.error))
-            {
-                State = ConnectionState.Connected;
-            }
-            else
-            {
-                State = ConnectionState.NotConnected;
-            }
+            State = string.IsNullOrEmpty(internetChecker.error)
+                ? ConnectionState.Connected
+                : ConnectionState.NotConnected;
         }
- 
     }
 }
