@@ -1,4 +1,4 @@
-﻿#if !UNITY_WSA
+﻿#if !UNITY_WSA || UNITY_EDITOR
 namespace Pyrite
 {
     using System;

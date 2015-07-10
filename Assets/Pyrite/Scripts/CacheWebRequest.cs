@@ -222,7 +222,7 @@
                     }
                     else
                     {
-#if !UNITY_WSA // We do not have WebClient in Windows Store Apps
+#if !UNITY_WSA || UNITY_EDITOR// We do not have WebClient in Windows Store Apps
                         var client = new TimeoutWebClient();
                         // set a proxy if one was used
                         if (!string.IsNullOrEmpty(_proxyUrl))

@@ -221,6 +221,7 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: .0219999999
+  m_StereoMirrorMode: 0
 --- !u!4 &549180671
 Transform:
   m_ObjectHideFlags: 0
@@ -307,10 +308,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae8fdc3ed12ec1349813d20c5c42824e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  targetOffset: {x: 0, y: 0, z: 0}
+  distance: 5
+  maxDistance: 500
+  minDistance: .5
+  xSpeed: 200
+  ySpeed: 200
+  pitchMin: -22
+  pitchMax: 53
+  zoomRate: 1
+  panSpeed: 5
+  zoomDampening: 5
+  forceBasedPanSpeed: 100
+  forceBasedPanningAndFovZoom: 0
   RotationDeltaRate: 90
   TranslationDeltaRate: 100
   TouchTranslationDeltaRate: 2
   InvertY: 0
+  altitudeIcon: {fileID: 0}
+  moveIcon: {fileID: 0}
+  orbitIcon: {fileID: 0}
 --- !u!1 &2132541548
 GameObject:
   m_ObjectHideFlags: 0
@@ -344,13 +361,17 @@ MonoBehaviour:
   PlaceHolderCube: {fileID: 0}
   BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   PyriteServer: 
-  DetailLevel: 4
+  DetailLevel: 5
   FilterDetailLevels: 0
   DetailLevelsToFilter: 
-  ModelVersion: V2
-  SetName: 
+  ModelFormat: 2
+  ModelVersion: V7
+  SetName: PerthNew
   EboCacheSize: 250
   MaterialDataCacheSize: 100
+  CubeBuildLimitPerFrame: 0
+  MaterialRequestLimitPerFrame: 0
+  ModelRequestLimitPerFrame: 0
   UseCameraDetection: 0
   UseUnlitShader: 1
   UseFileCache: 1
