@@ -901,7 +901,7 @@
                             }
                             else
                             {
-                                materialData.DiffuseTex = textureWww.texture;
+                                materialData.DiffuseTex = textureWww.textureNonReadable;
                                 materialData.DiffuseTex.name = materialData.Name;
                             }
                         }

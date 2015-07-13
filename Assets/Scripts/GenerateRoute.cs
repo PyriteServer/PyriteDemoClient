@@ -40,7 +40,7 @@ public class GenerateRoute : MonoBehaviour {
         }
             
 
-        GameObject routeStart = GameObject.Find("Canvas/GliderStart").gameObject;
+        GameObject routeStart = GameObject.Find("DemoSceneUI/GliderStart").gameObject;
         routeStart.GetComponent<Button>().onClick.AddListener(() =>
         {
             ToggleRoute(routeStart);
