@@ -13,15 +13,10 @@
 
     public class PyriteLoader : MonoBehaviour
     {
-        private DictionaryCache<string, GeometryBuffer> _eboCache;
-
-        private readonly Dictionary<string, MaterialData> _partiallyConstructedMaterialDatas =
-            new Dictionary<string, MaterialData>();
-
         // Debug Text Counters
         private readonly GUIStyle _guiStyle = new GUIStyle();
-        private int EboCacheHits;
-        private int EboCacheMisses;
+        private int GeometryCacheHits;
+        private int GeometryCacheMisses;
         private int MaterialCacheHits;
         private int MaterialCacheMisses;
 
@@ -62,7 +57,7 @@
         public string SetName;
 
         [Header("Performance options")]
-        public int EboCacheSize = 250;
+        public int GeometryBufferCacheSize = 250;
 
         public int MaterialDataCacheSize = 25;
 
@@ -101,23 +96,27 @@
 
         [HideInInspector]
         public MaterialDataCache MaterialDataCache { get; private set; }
+        
+        // Holds memory cache of geometry buffers for model construction
+        private DictionaryCache<string, GeometryBuffer> _geometryBufferCache;
+
+        // Holds material data that is not completely created yet 
+        private Dictionary<string, MaterialData> _partiallyConstructedMaterialDatas;
 
         // Queue for requests that are waiting for their material data
-        private readonly Queue<LoadCubeRequest> _loadMaterialQueue = new Queue<LoadCubeRequest>(10);
+        private Queue<LoadCubeRequest> _loadMaterialQueue;
 
         // Queue textures that have been downloaded and now need to be constructed into material data
-        private readonly Queue<KeyValuePair<string, byte[]>> _texturesReadyForMaterialDataConstruction =
-            new Queue<KeyValuePair<string, byte[]>>(5);
+        private Queue<KeyValuePair<string, byte[]>> _texturesReadyForMaterialDataConstruction;
 
         // Dictionary list to keep track of requests that are dependent on some other in progress item (e.g. material data or model data loading)
-        private readonly Dictionary<string, LinkedList<LoadCubeRequest>> _dependentCubes =
-            new Dictionary<string, LinkedList<LoadCubeRequest>>();
+        private Dictionary<string, LinkedList<LoadCubeRequest>> _dependentCubes;
 
         // Queue for requests that have material data but need model data
-        private readonly Queue<LoadCubeRequest> _loadGeometryBufferQueue = new Queue<LoadCubeRequest>(10);
+        private Queue<LoadCubeRequest> _loadGeometryBufferQueue;
 
         // Queue for requests that have model and material data and so are ready for construction
-        private readonly Queue<LoadCubeRequest> _buildCubeRequests = new Queue<LoadCubeRequest>(10);
+        private Queue<LoadCubeRequest> _buildCubeRequests;
 #if !UNITY_WSA
         private static Thread _mainThread;
 #endif
@@ -128,7 +127,7 @@
         private PyriteSetVersionDetailLevel _pyriteLevel;
 
         private string ModelFormatString;
-
+        
         private void Start()
         {
             if (string.IsNullOrEmpty(SetName))
@@ -149,6 +148,35 @@
             StartCoroutine(InternalLoad());
         }
 
+        void Awake()
+        {
+            InitializeMembers();
+        }
+
+        private void InitializeMembers()
+        {
+            _partiallyConstructedMaterialDatas = new Dictionary<string, MaterialData>();
+            _loadMaterialQueue = new Queue<LoadCubeRequest>(10);
+            _texturesReadyForMaterialDataConstruction = new Queue<KeyValuePair<string, byte[]>>(5);
+            _dependentCubes = new Dictionary<string, LinkedList<LoadCubeRequest>>();
+            _loadGeometryBufferQueue = new Queue<LoadCubeRequest>(10);
+            _buildCubeRequests = new Queue<LoadCubeRequest>(10);
+        }
+
+
+        void OnDestroy()
+        {
+            if(MaterialDataCache != null)
+            {
+                MaterialDataCache.Empty();
+            }
+
+            if(_geometryBufferCache != null)
+            {
+                _geometryBufferCache.Empty();
+            }
+        }
+
         private IEnumerator InternalLoad()
         {
             yield return StartCoroutine(Load());
@@ -163,13 +191,13 @@
 
             _guiStyle.normal.textColor = Color.red;
 
-            if (_eboCache == null)
+            if (_geometryBufferCache == null)
             {
-                _eboCache = new DictionaryCache<string, GeometryBuffer>(EboCacheSize);
+                _geometryBufferCache = new DictionaryCache<string, GeometryBuffer>(GeometryBufferCacheSize);
             }
             else
             {
-                Debug.LogWarning("Ebo cache already initialized. Skipping initizliation.");
+                Debug.LogWarning("GeometryBuffer cache already initialized. Skipping initizliation.");
             }
 
             if (MaterialDataCache == null)
@@ -178,7 +206,7 @@
             }
             else
             {
-                Debug.LogWarning("Material Data cache  already initialized. Skipping initizliation.");
+                Debug.LogWarning("Material Data cache already initialized. Skipping initizliation.");
             }
 
             ObjectPooler.Current.CreatePoolForObject(BaseModelCube);
@@ -241,12 +269,18 @@
             // Look for textures that have been downloaded and need to be converted to MaterialData
             if (Monitor.TryEnter(_texturesReadyForMaterialDataConstruction))
             {
-                while (_texturesReadyForMaterialDataConstruction.Count > 0)
+                try
                 {
-                    var materialDataKeyTextureBytesPair = _texturesReadyForMaterialDataConstruction.Dequeue();
-                    StartCoroutine(FinishCreatingMaterialDataWithTexture(materialDataKeyTextureBytesPair));
+                    while (_texturesReadyForMaterialDataConstruction.Count > 0)
+                    {
+                        var materialDataKeyTextureBytesPair = _texturesReadyForMaterialDataConstruction.Dequeue();
+                        StartCoroutine(FinishCreatingMaterialDataWithTexture(materialDataKeyTextureBytesPair));
+                    }
                 }
-                Monitor.Exit(_texturesReadyForMaterialDataConstruction);
+                finally
+                {
+                    Monitor.Exit(_texturesReadyForMaterialDataConstruction);
+                }
             }
             // Look for requests that need material data set
             ProcessQueue(_loadMaterialQueue, GetMaterialForRequest, MaterialRequestLimitPerFrame);
@@ -262,26 +296,32 @@
             var noLimit = limit == 0;
             if (Monitor.TryEnter(queue))
             {
-                while (queue.Count > 0 && (noLimit || (limit-- > 0)))
+                try
                 {
-                    var request = queue.Dequeue();
-                    if (!request.Cancelled)
+                    while (queue.Count > 0 && (noLimit || (limit-- > 0)))
                     {
-                        StartCoroutine(requestProcessFunc(request));
-                    }
-                    else
-                    {
-                        lock (MaterialDataCache)
+                        var request = queue.Dequeue();
+                        if (!request.Cancelled)
                         {
-                            if (request.MaterialData != null && request.MaterialData.DiffuseTex != null)
-                            {
-                                MaterialDataCache.Release(request.MaterialData.DiffuseTex.name);
-                            }
+                            StartCoroutine(requestProcessFunc(request));
                         }
-                        CancelledRequests++;
+                        else
+                        {
+                            lock (MaterialDataCache)
+                            {
+                                if (request.MaterialData != null && request.MaterialData.DiffuseTex != null)
+                                {
+                                    MaterialDataCache.Release(request.MaterialData.DiffuseTex.name);
+                                }
+                            }
+                            CancelledRequests++;
+                        }
                     }
                 }
-                Monitor.Exit(queue);
+                finally
+                {
+                    Monitor.Exit(queue);
+                }
             }
         }
 
@@ -321,14 +361,20 @@
             {
                 yield return null;
             }
-            LinkedList<LoadCubeRequest> dependentRequests;
-            if (!_dependentCubes.TryGetValue(dependencyKey, out dependentRequests))
+            try
             {
-                dependentRequests = new LinkedList<LoadCubeRequest>();
-                _dependentCubes.Add(dependencyKey, dependentRequests);
+                LinkedList<LoadCubeRequest> dependentRequests;
+                if (!_dependentCubes.TryGetValue(dependencyKey, out dependentRequests))
+                {
+                    dependentRequests = new LinkedList<LoadCubeRequest>();
+                    _dependentCubes.Add(dependencyKey, dependentRequests);
+                }
+                dependentRequests.AddLast(dependentRequest);
             }
-            dependentRequests.AddLast(dependentRequest);
-            Monitor.Exit(_dependentCubes);
+            finally
+            {
+                Monitor.Exit(_dependentCubes);
+            }
         }
 
 #if UNITY_EDITOR
@@ -336,9 +382,9 @@
         {
             if (ShowDebugText) // or check the app debug flag
             {
-                if (EboCacheHits + EboCacheMisses > 1000)
+                if (GeometryCacheHits + GeometryCacheMisses > 1000)
                 {
-                    EboCacheMisses = EboCacheHits = 0;
+                    GeometryCacheMisses = GeometryCacheHits = 0;
                 }
 
                 if (MaterialCacheHits + MaterialCacheMisses > 1000)
@@ -353,9 +399,9 @@
                 {
                     caches =
                         string.Format("Mesh {0}/{1} ({2}) Mat {3}/{4} ({5}|{6}) File {7}/{8} Cr {9} Lcr {10} Dr {11}",
-                            EboCacheHits,
-                            EboCacheMisses,
-                            _eboCache.Count,
+                            GeometryCacheHits,
+                            GeometryCacheMisses,
+                            _geometryBufferCache.Count,
                             MaterialCacheHits,
                             MaterialCacheMisses,
                             MaterialDataCache.Count,
@@ -369,8 +415,8 @@
                 else
                 {
                     caches = string.Format("Mesh {0}/{1} Mat {2}/{3} Cr {4} Lcr {5}",
-                        EboCacheHits,
-                        EboCacheMisses,
+                        GeometryCacheHits,
+                        GeometryCacheMisses,
                         MaterialCacheHits,
                         MaterialCacheMisses,
                         CancelledRequests,
@@ -532,10 +578,10 @@
         {
             CheckIfBackgroundThread();
             loadRequest.Failures++;
-            lock (_eboCache)
+            lock (_geometryBufferCache)
             {
                 // Remove the 'in progress' marker from the cache
-                _eboCache.Remove(modelPath);
+                _geometryBufferCache.Remove(modelPath);
             }
 
             if (RETRY_LIMIT > loadRequest.Failures)
@@ -606,11 +652,17 @@
             {
                 yield return null;
             }
-            if (_dependentCubes.TryGetValue(modelPath, out dependentRequests))
+            try
             {
-                _dependentCubes.Remove(modelPath);
+                if (_dependentCubes.TryGetValue(modelPath, out dependentRequests))
+                {
+                    _dependentCubes.Remove(modelPath);
+                }
             }
-            Monitor.Exit(_dependentCubes);
+            finally
+            {
+                Monitor.Exit(_dependentCubes);
+            }
 
             // If any were send them to their next stage
             if (dependentRequests != null)
@@ -635,30 +687,42 @@
             {
                 yield return null;
             }
-            if (_dependentCubes.TryGetValue(materialDataKey, out dependentRequests))
+            try
             {
-                _dependentCubes.Remove(materialDataKey);
+                if (_dependentCubes.TryGetValue(materialDataKey, out dependentRequests))
+                {
+                    _dependentCubes.Remove(materialDataKey);
+                }
             }
-            Monitor.Exit(_dependentCubes);
+            finally
+            {
+                Monitor.Exit(_dependentCubes);
+            }
             while (!Monitor.TryEnter(MaterialDataCache))
             {
                 yield return null;
             }
-            // If any were send them to their next stage
-            if (dependentRequests != null)
+            try
             {
-                foreach (var request in dependentRequests)
+                // If any were send them to their next stage
+                if (dependentRequests != null)
                 {
-                    request.MaterialData = materialData;
+                    foreach (var request in dependentRequests)
+                    {
+                        request.MaterialData = materialData;
 
-                    MaterialDataCache.AddRef(request.MaterialData.DiffuseTexPath);
+                        MaterialDataCache.AddRef(request.MaterialData.DiffuseTexPath);
 
-                    MoveRequestForward(request);
+                        MoveRequestForward(request);
+                    }
                 }
+                // Now that added references for the dependent requests. We can release the interim reference
+                MaterialDataCache.Release(materialData.DiffuseTexPath);
             }
-            // Now that added references for the dependent requests. We can release the interim reference
-            MaterialDataCache.Release(materialData.DiffuseTexPath);
-            Monitor.Exit(MaterialDataCache);
+            finally
+            {
+                Monitor.Exit(MaterialDataCache);
+            }
         }
 
         // Determine the next appropriate queue for the request
@@ -717,22 +781,22 @@
         {
             var modelPath = loadRequest.Query.GetModelPath(loadRequest.LodIndex, loadRequest.X, loadRequest.Y,
                 loadRequest.Z, ModelFormatString);
-            while (!Monitor.TryEnter(_eboCache))
+            while (!Monitor.TryEnter(_geometryBufferCache))
             {
                 yield return null;
             }
             // If the geometry data is being loaded or this is the first request to load it add the request the dependency list
-            if (!_eboCache.ContainsKey(modelPath) || _eboCache[modelPath] == null)
+            if (!_geometryBufferCache.ContainsKey(modelPath) || _geometryBufferCache[modelPath] == null)
             {
                 yield return StartCoroutine(AddDependentRequest(loadRequest, modelPath));
 
-                if (!_eboCache.ContainsKey(modelPath))
+                if (!_geometryBufferCache.ContainsKey(modelPath))
                 {
                     // Model data was not present in cache nor has any request started constructing it
-                    EboCacheMisses++;
+                    GeometryCacheMisses++;
 
-                    _eboCache[modelPath] = null;
-                    Monitor.Exit(_eboCache);
+                    _geometryBufferCache[modelPath] = null;
+                    Monitor.Exit(_geometryBufferCache);
                     if (UseWwwForEbo)
                     {
                         var cachePath = CacheWebRequest.GetCacheFilePath(modelPath);
@@ -770,9 +834,9 @@
                                 };
                             BetterThreadPool.QueueUserWorkItem(s =>
                             {
-                                lock (_eboCache)
+                                lock (_geometryBufferCache)
                                 {
-                                    _eboCache[modelPath] = buffer;
+                                    _geometryBufferCache[modelPath] = buffer;
                                 }
                                 buffer.Process();
                                 SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
@@ -783,7 +847,7 @@
                     {
                         CacheWebRequest.GetBytes(modelPath, modelResponse =>
                         {
-                            lock (_eboCache)
+                            lock (_geometryBufferCache)
                             {
                                 if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Error)
                                 {
@@ -793,7 +857,7 @@
                                 }
                                 else if (modelResponse.Status == CacheWebRequest.CacheWebResponseStatus.Cancelled)
                                 {
-                                    _eboCache.Remove(modelPath);
+                                    _geometryBufferCache.Remove(modelPath);
                                 }
                                 else
                                 {
@@ -810,7 +874,7 @@
                                         Buffer = modelResponse.Content,
                                         Format = ModelFormat
                                     };
-                                    _eboCache[modelPath] = buffer;
+                                    _geometryBufferCache[modelPath] = buffer;
                                     buffer.Process();
                                     SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
                                 }
@@ -820,16 +884,16 @@
                 }
                 else
                 {
-                    Monitor.Exit(_eboCache);
+                    Monitor.Exit(_geometryBufferCache);
                 }
             }
             else // The model data was in the cache
             {
                 // Model was constructed move request to next step
-                EboCacheHits++;
-                loadRequest.GeometryBuffer = _eboCache[modelPath];
+                GeometryCacheHits++;
+                loadRequest.GeometryBuffer = _geometryBufferCache[modelPath];
                 MoveRequestForward(loadRequest);
-                Monitor.Exit(_eboCache);
+                Monitor.Exit(_geometryBufferCache);
             }
         }
 
@@ -977,9 +1041,18 @@
             {
                 yield return null;
             }
-            var inProgressMaterialData = _partiallyConstructedMaterialDatas[materialDataKey];
-            _partiallyConstructedMaterialDatas.Remove(materialDataKey);
-            Monitor.Exit(_partiallyConstructedMaterialDatas);
+
+            MaterialData inProgressMaterialData;
+            try
+            {
+                inProgressMaterialData = _partiallyConstructedMaterialDatas[materialDataKey];
+                _partiallyConstructedMaterialDatas.Remove(materialDataKey);
+            }
+            finally
+            {
+                Monitor.Exit(_partiallyConstructedMaterialDatas);
+            }
+
             if (!CacheFill)
             {
 #if UNITY_IOS
@@ -992,14 +1065,22 @@
                 inProgressMaterialData.DiffuseTex = texture;
                 inProgressMaterialData.DiffuseTex.name = inProgressMaterialData.Name;
             }
+
             while (!Monitor.TryEnter(MaterialDataCache))
             {
                 yield return null;
             }
-            MaterialDataCache[materialDataKey] = inProgressMaterialData;
-            // Add reference until we add references for dependent requests
-            MaterialDataCache.AddRef(materialDataKey);
-            Monitor.Exit(MaterialDataCache);
+
+            try
+            {
+                MaterialDataCache[materialDataKey] = inProgressMaterialData;
+                // Add reference until we add references for dependent requests
+                MaterialDataCache.AddRef(materialDataKey);
+            }
+            finally
+            {
+                Monitor.Exit(MaterialDataCache);
+            }
             // Move forward dependent requests that wanted this material data
             yield return StartCoroutine(SucceedGetMaterialDataRequests(materialDataKey, inProgressMaterialData));
         }

@@ -232,6 +232,7 @@ Camera:
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
+  m_TargetEye: 3
   m_HDR: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -395,10 +396,10 @@ MonoBehaviour:
   DetailLevel: 4
   FilterDetailLevels: 0
   DetailLevelsToFilter: 04000000
-  ModelFormat: 0
+  ModelFormat: 2
   ModelVersion: V4b
   SetName: church
-  EboCacheSize: 100
+  GeometryBufferCacheSize: 100
   MaterialDataCacheSize: 20
   CubeBuildLimitPerFrame: 0
   MaterialRequestLimitPerFrame: 0

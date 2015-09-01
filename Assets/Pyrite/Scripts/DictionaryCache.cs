@@ -99,5 +99,13 @@
             Dictionary.Remove(key);
             return EvictionQueue.Remove(key);
         }
+
+        public virtual void Empty()
+        {
+            foreach(TKey key in Dictionary.Keys.ToList())
+            {
+                Remove(key);
+            }
+        }
     }
 }
