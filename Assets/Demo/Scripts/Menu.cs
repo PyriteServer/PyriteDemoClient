@@ -4,65 +4,18 @@ using UnityEngine.UI;
 
 public class Menu : MonoBehaviour
 {
-
-    public class AboutDialog
-    {
-        GameObject frame = null;
-        GameObject link = null;
-
-        public AboutDialog()
-        {
-            frame = GameObject.Find("AboutDialog");
-
-            link = frame.transform.FindChild("Link").gameObject;
-
-            GameObject close = frame.transform.FindChild("Close").gameObject;
-            close.GetComponent<Button>().onClick.AddListener(() =>
-            {
-                OnClose(close);
-            });
-
-            link.GetComponent<Button>().onClick.AddListener(() =>
-            {
-                OpenBrowser(link);
-            });
-
-            frame.SetActive(false);
-        }
-
-        void OnClose(GameObject button)
-        {
-            SetVisible(false);
-        }
-
-        public void SetVisible(bool visible)
-        {
-            frame.SetActive(visible);
-        }
-
-        void OpenBrowser(GameObject button)
-        {
-            Application.OpenURL(button.transform.FindChild("Text").GetComponent<Text>().text);
-        }
-    }
-
     // Use this for initialization
     private void Start()
     {
-        GliderButton = GameObject.Find("GliderStart");
-        ExplorerButton = GameObject.Find("ExplorerStart");
+        Cards = GameObject.Find("cards_frame");
         NotConnectedCanvas = GameObject.Find("NotConnected");
-
-        aboutDialog = new AboutDialog();
 
         SetButtonStates(Connection.State);
         connectionAttempts = 0;
     }
 
-    private GameObject GliderButton;
-    private GameObject ExplorerButton;
+    private GameObject Cards;
     private GameObject NotConnectedCanvas;
-    private AboutDialog aboutDialog;
 
     private const int maximumConnectionAttempts = 5;
     private int connectionAttempts;
@@ -95,9 +48,9 @@ public class Menu : MonoBehaviour
         AutoFade.LoadLevel("Perth", 0.5f, 0.5f, new Color(50, 9, 5));
     }
 
-    public void ShowAboutDialog()
+    public void LaunchPyriteSite()
     {
-        aboutDialog.SetVisible(true);    
+        Application.OpenURL("http://www.pyrite3d.org");
     }
 
     /// <summary>
@@ -108,14 +61,12 @@ public class Menu : MonoBehaviour
     {
         if (connectionState != ConnectionState.Connected)
         {
-            GliderButton.SetActive(false);
-            ExplorerButton.SetActive(false);
+            Cards.SetActive(false);
             NotConnectedCanvas.SetActive(true);
         }
         else
         {
-            GliderButton.SetActive(true);
-            ExplorerButton.SetActive(true);
+            Cards.SetActive(true);
             NotConnectedCanvas.SetActive(false);
         }
     }

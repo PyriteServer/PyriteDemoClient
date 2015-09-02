@@ -839,6 +839,10 @@ Prefab:
       propertyPath: m_EffectDistance.y
       value: -1
       objectReference: {fileID: 0}
+    - target: {fileID: 11466214, guid: f4f5dabbc2890ea4da394da839ebc80b, type: 2}
+      propertyPath: LevelToLoad
+      value: DemoMenuUpdate
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: f4f5dabbc2890ea4da394da839ebc80b, type: 2}
   m_IsPrefabParent: 0

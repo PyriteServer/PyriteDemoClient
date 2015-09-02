@@ -284,26 +284,26 @@ PlayerSettings:
   metroCertificateNotAfter: 00cff5f866bcd101
   metroApplicationDescription: PyriteDemo
   metroStoreTileLogo80: 
-  metroStoreTileLogo: Assets/Demo/Icons/store/Windows/Square150.png
+  metroStoreTileLogo: Assets/Demo/Icons/store/Windows/150x150.png
   metroStoreTileLogo140: 
   metroStoreTileLogo180: 
   metroStoreTileWideLogo80: 
-  metroStoreTileWideLogo: Assets/Demo/Icons/store/Windows/310_150.png
+  metroStoreTileWideLogo: Assets/Demo/Icons/store/Windows/310x150.png
   metroStoreTileWideLogo140: 
   metroStoreTileWideLogo180: 
   metroStoreTileSmallLogo80: 
-  metroStoreTileSmallLogo: Assets/Demo/Icons/store/Windows/square30.png
+  metroStoreTileSmallLogo: Assets/Demo/Icons/store/Windows/30x30_120.png
   metroStoreTileSmallLogo140: 
   metroStoreTileSmallLogo180: 
   metroStoreSmallTile80: 
-  metroStoreSmallTile: Assets/Demo/Icons/store/Windows/square70.png
+  metroStoreSmallTile: Assets/Demo/Icons/store/Windows/71x71.png
   metroStoreSmallTile140: 
   metroStoreSmallTile180: 
   metroStoreLargeTile80: 
-  metroStoreLargeTile: Assets/Demo/Icons/store/Windows/Square310.png
+  metroStoreLargeTile: Assets/Demo/Icons/store/Windows/310x310.png
   metroStoreLargeTile140: 
   metroStoreLargeTile180: 
-  metroStoreSplashScreenImage: Assets/Demo/Icons/store/Windows/splash.png
+  metroStoreSplashScreenImage: Assets/Demo/Icons/store/Windows/SplashScreen_620x300_bkg262F3E.png
   metroStoreSplashScreenImage140: 
   metroStoreSplashScreenImage180: 
   metroPhoneAppIcon: 
@@ -329,8 +329,9 @@ PlayerSettings:
   metroWideTileShowName: 0
   metroDefaultTileSize: 1
   metroTileForegroundText: 1
-  metroTileBackgroundColor: {r: 0, g: 0, b: 0, a: 1}
-  metroSplashScreenBackgroundColor: {r: 1, g: .325490206, b: .0509803928, a: 1}
+  metroTileBackgroundColor: {r: .149019614, g: .180392161, b: .250980407, a: 1}
+  metroSplashScreenBackgroundColor: {r: .149019614, g: .184313729, b: .243137255,
+    a: 1}
   metroSplashScreenUseBackgroundColor: 1
   platformCapabilities:
     WindowsStoreApps:
