@@ -80,13 +80,13 @@ PlayerSettings:
   virtualRealitySupported: 0
   productGUID: 17d8a00d0cc199e47926af72a4952b9b
   AndroidBundleVersionCode: 1
-  AndroidMinSdkVersion: 9
+  AndroidMinSdkVersion: 21
   AndroidPreferredInstallLocation: 1
   aotOptions: 
   apiCompatibilityLevel: 1
   iPhoneStrippingLevel: 0
   iPhoneScriptCallOptimization: 0
-  ForceInternetPermission: 0
+  ForceInternetPermission: 1
   ForceSDCardPermission: 0
   CreateWallpaper: 0
   APKExpansionFiles: 0
@@ -126,9 +126,9 @@ PlayerSettings:
   androidSplashScreen: {fileID: 0}
   AndroidKeystoreName: 
   AndroidKeyaliasName: 
-  AndroidTVCompatibility: 1
+  AndroidTVCompatibility: 0
   AndroidIsGame: 1
-  androidEnableBanner: 1
+  androidEnableBanner: 0
   m_AndroidBanners:
   - width: 320
     height: 180
@@ -140,6 +140,20 @@ PlayerSettings:
     m_Icons:
     - m_Icon: {fileID: 0}
       m_Size: 128
+  - m_BuildTarget: Android
+    m_Icons:
+    - m_Icon: {fileID: 2800000, guid: d085c72509eccef4e817d4e091d62e38, type: 3}
+      m_Size: 192
+    - m_Icon: {fileID: 2800000, guid: 7432772107eb53645bb409878ea30159, type: 3}
+      m_Size: 144
+    - m_Icon: {fileID: 2800000, guid: cc37d8d613141e74bb37c4d0ce13f74d, type: 3}
+      m_Size: 96
+    - m_Icon: {fileID: 2800000, guid: f038687cabd73d64eb57c82462a4a413, type: 3}
+      m_Size: 72
+    - m_Icon: {fileID: 2800000, guid: 9de5c35f53c9db146bc9c47a9184ec16, type: 3}
+      m_Size: 48
+    - m_Icon: {fileID: 2800000, guid: 905cb9cd4a02bef488410c66b834027a, type: 3}
+      m_Size: 36
   m_BuildTargetBatching: []
   m_BuildTargetGraphicsAPIs: []
   webPlayerTemplate: APPLICATION:Default
