@@ -304,10 +304,10 @@ PlayerSettings:
     17: 
     20: 
   metroPackageName: PyriteDemo
-  metroPackageLogo: Assets/Demo/Icons/store/Windows/square50.png
-  metroPackageLogo140: 
+  metroPackageLogo: Assets/Demo/Icons/store/Windows/storeLogo_50x50.png
+  metroPackageLogo140: Assets/Demo/Icons/store/Windows/71x71.png
   metroPackageLogo180: 
-  metroPackageLogo240: 
+  metroPackageLogo240: Assets/Demo/Icons/store/iOS/Icon-60@2x.png
   metroPackageVersion: 1.0.0.0
   metroCertificatePath: Assets/WSATestCertificate.pfx
   metroCertificatePassword: 
