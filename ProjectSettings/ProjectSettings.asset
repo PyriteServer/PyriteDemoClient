@@ -316,7 +316,7 @@ PlayerSettings:
   metroCertificateNotAfter: 00cff5f866bcd101
   metroApplicationDescription: PyriteDemo
   metroStoreTileLogo80: 
-  metroStoreTileLogo: Assets/Demo/Icons/store/Windows/150x150.png
+  metroStoreTileLogo: Assets/Demo/Icons/store/Windows/150x150_medSmall.png
   metroStoreTileLogo140: 
   metroStoreTileLogo180: 
   metroStoreTileWideLogo80: 
