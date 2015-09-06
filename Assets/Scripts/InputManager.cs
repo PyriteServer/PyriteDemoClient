@@ -2,16 +2,8 @@
 {
     using UnityEngine;
 
-    enum InputProcessor
-    {
-        Original = 0,
-        OrbitCamera
-    }
-
     public class InputManager : MonoBehaviour
     {
-        private InputProcessor lastProcessed = InputProcessor.Original;
-
         // Members for orbit and fly cam
         public Vector3 targetOffset;
         public float distance = 5.0f;
@@ -25,8 +17,6 @@
         public float panSpeed = 5.0f;
         public float zoomDampening = 5.0f;
         public float forceBasedPanSpeed = 100.0f;
-        private Vector3 position;
-        float speed = 0.0f;
 
         // Original members
         public float RotationDeltaRate = 20;
@@ -41,16 +31,14 @@
         private Quaternion _cameraOrientation;
         private float momentumStartTime;
 
+        private bool _moving;
+        private bool _altitudeChanging;
+        private bool _rotating;
+
         // Should be set by loader script as this is very much model specific
         Vector3 _minPosition;
         Vector3 _maxPosition;
 
-        public void EnableCameraFly()
-        {
-            //cameraFlyEnabled = true;
-
-        }
-        
         public void SetInputLimits(Vector3 min, Vector3 max)
         {
             Debug.Log("Min: " + min);
@@ -93,165 +81,44 @@
 
         void Start()
         {
-            //Cursor.visible = false;
-
             SetMoveIconActive(false);
             SetOrbitIconActive(false);
             SetAltitudeIconActive(false);
 
             enabled = false;
         }
-        
+
         public void NotifyOnTransformChange()
         {
             // Hardcoded initial position for camera
             // TODO: place dummy object representing init camera position into scene and grab the position from there
             transform.position = new Vector3(-248.2652f, 132, -250.901f);
-            position = transform.position;
             enabled = true;
         }
 
-        private bool ProcessOrbitCameraInput()
+        private Vector3 GetTranslation()
         {
-            bool processedInput = true;
-            SetOrbitIconActive(false);
-            if (_lastMove != Vector3.zero)
-            {
-                SetMoveIconActive(false);
-            }
+            // Get absolute value of mouse or keyboard or touch
+            // Mouse
+            Vector3 keyboardTranslation = Vector3.zero;
 
+            keyboardTranslation.x = Input.GetAxis("Horizontal");
+            keyboardTranslation.y = Input.GetAxis("Vertical");
+            keyboardTranslation.z = Input.GetAxis("Forward");
+            bool keyboardTranslated = keyboardTranslation != Vector3.zero;
 
-            float scrollWheelSpeed = Input.GetAxis("Mouse ScrollWheel");
+            keyboardTranslation *= Time.deltaTime * TranslationDeltaRate;
 
-
-            Mathf.Clamp(scrollWheelSpeed, 0.1f, -0.1f);
-
-            if (Input.GetMouseButton(2) || Mathf.Abs(scrollWheelSpeed) > 0.005)
-            {
-                if (Mathf.Abs(scrollWheelSpeed) < 0.005)
-                {
-
-                    var mouseY = Input.GetAxis("Mouse Y");
-                    if (mouseY > 0.005f)
-                    {
-                        scrollWheelSpeed = 0.1f;
-                    } else if (mouseY < -0.005)
-                    {
-                        scrollWheelSpeed = -0.1f;
-                    }
-                }
-                var deltaForward = scrollWheelSpeed * Time.deltaTime * zoomRate * 5;
-                _lastMove = transform.forward * deltaForward;
-                //Debug.LogFormat("translation: {0}, {1}, {2}", translation.x, translation.y, translation.z);
-                transform.Translate(_lastMove, Space.World);
-                momentumStartTime = 0;
-                SetMoveIconActive(true);
-            }
-            else if (Input.GetMouseButton(0))
-            {
-                _yaw += Input.GetAxis("Mouse X") * xSpeed * 0.02f;
-                _camPitch -= Input.GetAxis("Mouse Y") * ySpeed * 0.02f;
-
-                _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
-                
-                SetOrbitIconActive(true);
-            }
-            else if (Input.GetMouseButton(1)) // wasd
-            {
-                Vector3 right = new Vector3(transform.right.x, 0.0f, transform.right.z);
-                Vector3 forward = new Vector3(transform.forward.x, 0.0f, transform.forward.z);
-                float dX = -Input.GetAxis("Mouse X");
-                float dY = -Input.GetAxis("Mouse Y");
-                dX = Mathf.Clamp(dX, -1.0f, 1.0f);
-                dY = Mathf.Clamp(dY, -1.0f, 1.0f);
-                right = right * dX;
-                forward = forward * dY; 
-                _lastMove = (right + forward) * panSpeed;
-                momentumStartTime = 0;
-                transform.Translate(_lastMove, Space.World);
-                SetMoveIconActive(true);
-            }   else
-            {
-                processedInput = false;
-            }
-            
-            if ( (lastProcessed == InputProcessor.OrbitCamera || processedInput))
-            {
-                if (!processedInput)
-                {
-                    if (momentumStartTime == 0)
-                    {
-                        momentumStartTime = Time.time;
-                    }
-                    float fraction = (Time.time - momentumStartTime)/0.7f;
-                    var momentum = Vector3.Lerp(_lastMove, Vector3.zero, fraction);
-                    var thisMove = new Vector3(
-                        momentum.x,
-                        momentum.y,
-                        momentum.z);
-                    transform.Translate(thisMove, Space.World);
-
-                    if (thisMove != Vector3.zero)
-                    {
-                        SetMoveIconActive(true);
-                    }
-                }
-
-                _cameraOrientation.eulerAngles = new Vector3(_camPitch, _yaw, 0);
-                transform.rotation = Quaternion.Lerp(transform.rotation, _cameraOrientation, Time.deltaTime * zoomDampening);
-            }
-
-            return processedInput;
-        }
-
-        bool ProcessOriginalInput()
-        {
-            bool inputProcessed = false;
-            // Keyboard
-            var dX = Input.GetAxis("Horizontal") * Time.deltaTime * TranslationDeltaRate;
-            var dY = Input.GetAxis("Vertical") * Time.deltaTime * TranslationDeltaRate;
-            var dZ = Input.GetAxis("Forward") * Time.deltaTime * TranslationDeltaRate;
-            float dYaw = Input.GetAxis("HorizontalTurn");
-            float dPitch = Input.GetAxis("VerticalTurn");
-            _yaw += Input.GetAxis("HorizontalTurn") * Time.deltaTime * RotationDeltaRate;
-            _camPitch -= Input.GetAxis("VerticalTurn") * Time.deltaTime * RotationDeltaRate * (InvertY ? -1f : 1f);
-            _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
-
-            if (dX != 0.0f || dY != 0.0f || dZ != 0.0f || dYaw != 0.0f || dPitch != 0.0f)
-            {
-                //Debug.LogFormat("dxyz: {0}, {1}, {2}", dX, dY, dZ);
-                inputProcessed = true;
-            }
-
-            // Touch
+            Vector3 touchTranslation = Vector3.zero;
             if (Input.touchCount == 1)
             {
-                inputProcessed = true;
-                dX = Input.GetTouch(0).deltaPosition.x * -TouchTranslationDeltaRate * 1.5f;
-                dZ = Input.GetTouch(0).deltaPosition.y * -TouchTranslationDeltaRate * 1.5f;
+                touchTranslation.x = Input.GetTouch(0).deltaPosition.x;
+                touchTranslation.z = Input.GetTouch(0).deltaPosition.y;
 
-                if (orbitIcon != null)
-                {
-                    SetMoveIconActive(true);
-                    SetOrbitIconActive(false);
-                    SetAltitudeIconActive(false);
-                }
-            } else if (Input.touchCount == 3)
+            }
+            else if (Input.touchCount == 2)
             {
-                inputProcessed = true;
-                _yaw += Input.GetTouch(0).deltaPosition.x * -TouchTranslationDeltaRate * 0.4f;
-                _camPitch -= Input.GetTouch(0).deltaPosition.y * -TouchTranslationDeltaRate * 0.4f;
-                _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
-
-                if (orbitIcon != null)
-                {
-                    SetOrbitIconActive(true);
-                    SetMoveIconActive(false);
-                    SetAltitudeIconActive(false);
-                }
-            } else if (Input.touchCount == 2)
-            {
-                inputProcessed = true;
+                _altitudeChanging = true;
                 // Store both touches.
                 Touch touchZero = Input.GetTouch(0);
                 Touch touchOne = Input.GetTouch(1);
@@ -267,72 +134,153 @@
                 // Find the difference in the distances between each frame.
                 float deltaMagnitudeDiff = prevTouchDeltaMag - touchDeltaMag;
 
-                dY = deltaMagnitudeDiff * TouchTranslationDeltaRate;
+                touchTranslation.y = deltaMagnitudeDiff * TouchTranslationDeltaRate;
+            }
 
-                if (orbitIcon != null)
+            bool touchTranslated = touchTranslation != Vector3.zero;
+            touchTranslation *= -TouchTranslationDeltaRate * 1.5f;
+
+            Vector3 mouseTranslation = Vector3.zero;
+            float scrollWheelSpeed = Input.GetAxis("Mouse ScrollWheel");
+            if (Input.GetMouseButton(1) && Input.touchCount == 0)
+            {
+                Vector3 right = new Vector3(transform.right.x, 0.0f, transform.right.z);
+                Vector3 forward = new Vector3(transform.forward.x, 0.0f, transform.forward.z);
+                float dX = -Input.GetAxis("Mouse X");
+                float dY = -Input.GetAxis("Mouse Y");
+                mouseTranslation.x = dX = Mathf.Clamp(dX, -1.0f, 1.0f);
+                mouseTranslation.z = dY = Mathf.Clamp(dY, -1.0f, 1.0f);
+                right = right * dX;
+                forward = forward * dY;
+
+                mouseTranslation *= Time.deltaTime * TranslationDeltaRate * panSpeed;
+            }
+            else if ((Input.GetMouseButton(2) || Mathf.Abs(scrollWheelSpeed) > 0.05f) && Input.touchCount == 0)
+            {
+                if (Mathf.Abs(scrollWheelSpeed) < 0.05f)
                 {
-                    SetAltitudeIconActive(true);
-                    SetOrbitIconActive(false);
-                    SetMoveIconActive(false);
-                }
-            }
-
-            if (Input.touchCount == 0 && orbitIcon != null)
-            {
-
-                SetOrbitIconActive(false);
-                SetMoveIconActive(false);
-                SetAltitudeIconActive(false);
-            }
-
-            // Limit movement
-            _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
-
-            if (Input.GetButton("XboxLB"))
-            {
-                dY -= Time.deltaTime * TranslationDeltaRate;
-            }
-            if (Input.GetButton("XboxRB"))
-            {
-                dY += Time.deltaTime * TranslationDeltaRate;
-            }
-            if (inputProcessed || lastProcessed == InputProcessor.Original)
-            {
-                Vector3 thisMove;
-                // Handle momentum
-                if ((dX == 0 && dY == 0 && dZ == 0))
-                {
-                    if (momentumStartTime == 0)
+                    var mouseY = Input.GetAxis("Mouse Y");
+                    if (mouseY > 0.005f)
                     {
-                        momentumStartTime = Time.time;
+                        scrollWheelSpeed = 0.1f;
                     }
-                    float fraction = (Time.time - momentumStartTime) / 0.7f;
-                    var momentum = Vector3.Lerp(_lastMove, Vector3.zero, fraction);
-                    thisMove = new Vector3(
-                        dX == 0 ? momentum.x : dX,
-                        dY == 0 ? momentum.y : dY,
-                        dZ == 0 ? momentum.z : dZ);
+                    else if (mouseY < -0.005)
+                    {
+                        scrollWheelSpeed = -0.1f;
+                    }
+                }
+                scrollWheelSpeed = Mathf.Clamp(scrollWheelSpeed, -0.1f, 0.1f);
+                var deltaForward = scrollWheelSpeed * Time.deltaTime * zoomRate * 2.5f;
+                deltaForward = Mathf.Clamp(deltaForward, -7.0f, 7.0f);
+                mouseTranslation = transform.forward * deltaForward;
+                mouseTranslation = Quaternion.Euler(new Vector3(0f, -transform.eulerAngles.y, 0f)) * mouseTranslation;
+            }
+            bool mouseTranslated = mouseTranslation != Vector3.zero;
 
+            if (mouseTranslated || touchTranslated || keyboardTranslated)
+            {
+                _moving = true;
+                momentumStartTime = 0;
+                Vector3 translation = Vector3.zero;
+                translation.x = GetLargestAbs(mouseTranslation.x,
+                    keyboardTranslation.x,
+                    touchTranslation.x);
+
+                translation.y = GetLargestAbs(mouseTranslation.y,
+                    keyboardTranslation.y,
+                    touchTranslation.y);
+
+                translation.z = GetLargestAbs(mouseTranslation.z,
+                    keyboardTranslation.z,
+                    touchTranslation.z);
+
+                return translation;
+            }
+            else
+            {
+                if (momentumStartTime == 0)
+                {
+                    momentumStartTime = Time.time;
+                }
+                float fraction = (Time.time - momentumStartTime) / 0.7f;
+                return Vector3.Lerp(_lastMove, Vector3.zero, fraction);
+            }
+        }
+
+        private float GetLargestAbs(float f1, float f2, float f3)
+        {
+            float af1 = Mathf.Abs(f1);
+            float af2 = Mathf.Abs(f2);
+            float af3 = Mathf.Abs(f3);
+
+            if (af1 > af2)
+            {
+                if (af1 > af3)
+                {
+                    return f1;
                 }
                 else
                 {
-                    _lastMove = new Vector3(dX, dY, dZ);
-                    thisMove = _lastMove;
-                    momentumStartTime = 0;
+                    return f3;
                 }
-
-                // Rotate
-                _cameraOrientation.eulerAngles = new Vector3(LimitAngles(_camPitch), LimitAngles(_yaw), 0);
-                transform.rotation = Quaternion.Lerp(transform.rotation, _cameraOrientation,
-                                                        Time.time);
-
-                // Translate
-                var movementVector = thisMove;
-                var movementRotation = Quaternion.Euler(new Vector3(0f, transform.eulerAngles.y, 0f));
-                movementVector = movementRotation * movementVector;
-                transform.Translate(movementVector, Space.World);
             }
-            return inputProcessed;
+            else
+            {
+                if (af2 > af3)
+                {
+                    return f2;
+                }
+                else
+                {
+                    return f3;
+                }
+            }
+
+        }
+
+        public bool KeyboardMoving
+        {
+            get
+            {
+                return momentumStartTime == 0 && (Input.GetAxis("Forward") != 0.0f || Input.GetAxis("Horizontal") != 0.0f);
+            }
+        }
+
+        private Quaternion GetRotation()
+        {
+            float keyboardYaw = Input.GetAxis("HorizontalTurn") * Time.deltaTime * RotationDeltaRate;
+            float keyboardPitch = -Input.GetAxis("VerticalTurn") * Time.deltaTime * RotationDeltaRate * (InvertY ? -1f : 1f);
+
+            _rotating = keyboardYaw != 0.0f || keyboardPitch != 0.0f;
+
+            float touchYaw = 0.0f;
+            float touchPitch = 0.0f;
+
+            if (Input.touchCount == 3)
+            {
+                touchYaw = Input.GetTouch(0).deltaPosition.x * -TouchTranslationDeltaRate * 0.4f;
+                touchPitch = -Input.GetTouch(0).deltaPosition.y * -TouchTranslationDeltaRate * 0.4f;
+                _rotating = true;
+            }
+
+            float mouseYaw = 0.0f;
+            float mousePitch = 0.0f;
+
+            if (Input.touchCount == 0 && Input.GetMouseButton(0))
+            {
+                mouseYaw = Input.GetAxis("Mouse X") * xSpeed * 0.02f;
+                mousePitch = -Input.GetAxis("Mouse Y") * ySpeed * 0.02f;
+                _rotating = true;
+            }
+
+            _yaw += GetLargestAbs(keyboardYaw, touchYaw, mouseYaw);
+            _camPitch += GetLargestAbs(keyboardPitch, touchPitch, mousePitch);
+            _camPitch = ClampAngle(_camPitch, pitchMin, pitchMax);
+
+            Quaternion rotation = Quaternion.identity;
+            rotation.eulerAngles = new Vector3(LimitAngles(_camPitch), LimitAngles(_yaw), 0.0f);
+
+            return rotation;
         }
 
         private Vector3 ClampPosition(Vector3 position)
@@ -345,18 +293,39 @@
 
         private void Update()
         {
-            if (!ProcessOriginalInput()) // Keyboard + Touch
+            _moving = _rotating = _altitudeChanging = false;
+            _lastMove = GetTranslation();
+            _cameraOrientation = GetRotation();
+
+            transform.rotation = Quaternion.Lerp(transform.rotation, _cameraOrientation, Time.time);
+
+            var movementVector = _lastMove;
+            var movementRotation = Quaternion.Euler(new Vector3(0f, transform.eulerAngles.y, 0f));
+            movementVector = movementRotation * movementVector;
+            transform.Translate(movementVector, Space.World);
+            transform.position = ClampPosition(transform.position);
+
+            if(_moving)
             {
-                if(ProcessOrbitCameraInput()) // Mouse
-                {
-                    lastProcessed = InputProcessor.OrbitCamera;
-                }
+                SetMoveIconActive(true);
+                SetOrbitIconActive(false);
+                SetAltitudeIconActive(false);
+            } else if(_altitudeChanging)
+            {
+                SetMoveIconActive(false);
+                SetOrbitIconActive(false);
+                SetAltitudeIconActive(true);
+            } else if(_rotating)
+            {
+                SetMoveIconActive(false);
+                SetOrbitIconActive(true);
+                SetAltitudeIconActive(false);
             } else
             {
-                lastProcessed = InputProcessor.Original;
+                SetMoveIconActive(false);
+                SetOrbitIconActive(false);
+                SetAltitudeIconActive(false);
             }
-
-            position = transform.position = ClampPosition(transform.position);
         }
 
         private static float LimitAngles(float angle)
