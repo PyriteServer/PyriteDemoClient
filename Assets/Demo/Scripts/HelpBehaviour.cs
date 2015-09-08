@@ -4,9 +4,14 @@ using System.Collections;
 public class HelpBehaviour : MonoBehaviour {
 
     public GameObject HelpPanel;
+    public GameObject TouchPanel;
 
     // Use this for initialization
     void Start () {
+        if(!Input.touchSupported)
+        {
+            TouchPanel.SetActive(false);
+        }
     }
 
     void OnEnable()
