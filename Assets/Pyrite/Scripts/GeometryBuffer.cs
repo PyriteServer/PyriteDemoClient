@@ -330,7 +330,7 @@ namespace Pyrite
             m.uv = UVs;
             m.triangles = Triangles;
 
-            // m.RecalculateNormals();
+            m.RecalculateNormals();
 
             if (material != null)
             {

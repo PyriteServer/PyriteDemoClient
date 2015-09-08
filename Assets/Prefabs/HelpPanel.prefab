@@ -46,6 +46,7 @@ GameObject:
   - 114: {fileID: 11465796}
   - 114: {fileID: 11401376}
   - 114: {fileID: 11456526}
+  - 114: {fileID: 11456732}
   m_Layer: 5
   m_Name: HelpPanel
   m_TagString: Untagged
@@ -113,8 +114,8 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: "   Touch:\n      1 Finger - Moves forward/back and left/right\n      2
-    Fingers - Pinch or spread fingers to move vertically\n      3 fingers - Rotate
-    camera around"
+    Fingers - Pinch or spread fingers to move vertically \n      3 fingers - Rotate
+    camera around\n"
 --- !u!114 &11401376
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -127,6 +128,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HelpPanel: {fileID: 157124}
+  TouchPanel: {fileID: 119718}
 --- !u!114 &11414818
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -153,7 +155,7 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: "   Keyboard:\n      W,A,S,D - Moves forward, left, back, right\n      Q,E
-    - Move vertically\n      Left/Right/Up/Down - Rotate camera"
+    - Move vertically\n      Left/Right/Up/Down - Rotate camera\n"
 --- !u!114 &11428128
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -179,7 +181,8 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "   Mouse:\n      Left Click - Rotate camera\n      Right Click - Move forward/back/left/right "
+  m_Text: "   Mouse:\n      Left Click - Rotate camera\n      Right Click - Move forward/back/left/right
+    \n"
 --- !u!114 &11456526
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -192,14 +195,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Padding:
-    m_Left: 0
-    m_Right: 0
+    m_Left: 3
+    m_Right: 3
     m_Top: 0
-    m_Bottom: 0
+    m_Bottom: 1
   m_ChildAlignment: 3
-  m_Spacing: 0
+  m_Spacing: 5
   m_ChildForceExpandWidth: 0
   m_ChildForceExpandHeight: 0
+--- !u!114 &11456732
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 157124}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1741964061, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_HorizontalFit: 2
+  m_VerticalFit: 2
 --- !u!114 &11464014
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -225,7 +241,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: '  Controls'
+  m_Text: "\n  Controls"
 --- !u!114 &11465796
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -327,10 +343,10 @@ RectTransform:
   - {fileID: 22481078}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 4, y: 5}
-  m_SizeDelta: {x: -112, y: -135}
+  m_AnchorMin: {x: .5, y: .5}
+  m_AnchorMax: {x: .5, y: .5}
+  m_AnchoredPosition: {x: 13, y: 7.62939999e-06}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: .5, y: .5}
 --- !u!224 &22476346
 RectTransform:
