@@ -72,14 +72,14 @@ PlayerSettings:
     16:9: 1
     Others: 1
   bundleIdentifier: com.microsoft.pyrite
-  bundleVersion: 1.0
+  bundleVersion: 1.0.1
   preloadedAssets: []
   metroEnableIndependentInputSource: 0
   metroEnableLowLatencyPresentationAPI: 0
   xboxOneDisableKinectGpuReservation: 0
   virtualRealitySupported: 0
   productGUID: 17d8a00d0cc199e47926af72a4952b9b
-  AndroidBundleVersionCode: 1
+  AndroidBundleVersionCode: 101
   AndroidMinSdkVersion: 21
   AndroidPreferredInstallLocation: 1
   aotOptions: 

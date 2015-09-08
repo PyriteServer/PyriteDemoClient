@@ -38,15 +38,20 @@ public class Menu : MonoBehaviour
         SetButtonStates(Connection.State);
     }
 
-    public void LaunchGlider()
+    public void LaunchBegard()
     {
-        AutoFade.LoadLevel("Glider", 0.5f, 0.5f, new Color(50, 9, 5));
+        AutoFade.LoadLevel("Begard", 0.5f, 0.5f, new Color(50, 9, 5));
     }
 
     public void LaunchPerth()
     {
         AutoFade.LoadLevel("Perth", 0.5f, 0.5f, new Color(50, 9, 5));
     }
+
+	public void LaunchNashville()
+	{
+		AutoFade.LoadLevel("Nashville", 0.5f, 0.5f, new Color(50, 9, 5));
+	}
 
     public void LaunchPyriteSite()
     {

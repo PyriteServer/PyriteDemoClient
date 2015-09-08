@@ -412,7 +412,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 257008575}
-        m_MethodName: LaunchPerth
+        m_MethodName: LaunchNashville
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1193,7 +1193,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 257008575}
-        m_MethodName: LaunchGlider
+        m_MethodName: LaunchBegard
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
