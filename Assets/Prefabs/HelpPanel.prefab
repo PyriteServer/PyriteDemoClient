@@ -114,7 +114,7 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: "   Touch:\n      1 Finger - Moves forward/back and left/right\n      2
-    Fingers - Pinch or spread fingers to move vertically \n      3 fingers - Rotate
+    Fingers - Pinch or spread fingers to move vertically \n      3 Fingers - Rotate
     camera around\n"
 --- !u!114 &11401376
 MonoBehaviour:

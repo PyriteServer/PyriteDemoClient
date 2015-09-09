@@ -660,6 +660,10 @@ Prefab:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 22481078, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 22481078, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
@@ -671,94 +675,9 @@ Prefab:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 11456526, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Spacing
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 11401376, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: KeyboardPanel
-      value: 
-      objectReference: {fileID: 957023661}
-    - target: {fileID: 11465796, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_FillCenter
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 11465796, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Type
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 11464014, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_FontData.m_LineSpacing
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 11464014, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Text
-      value: "\n  Controls"
-      objectReference: {fileID: 0}
-    - target: {fileID: 11428128, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Text
-      value: "   Mouse:\n      Left Click - Rotate camera\n      Right Click - Move
-        forward/back/left/right \n"
-      objectReference: {fileID: 0}
-    - target: {fileID: 11414818, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Text
-      value: "   Keyboard:\n      W,A,S,D - Moves forward, left, back, right\n      Q,E
-        - Move vertically\n      Left/Right/Up/Down - Rotate camera\n"
-      objectReference: {fileID: 0}
-    - target: {fileID: 11400396, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Text
-      value: "   Touch:\n      1 Finger - Moves forward/back and left/right\n      2
-        Fingers - Pinch or spread fingers to move vertically \n      3 fingers - Rotate
-        camera around\n"
-      objectReference: {fileID: 0}
-    - target: {fileID: 11456526, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Padding.m_Right
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 11456526, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Padding.m_Left
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 22481078, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 11456526, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Padding.m_Top
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 11456526, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: m_Padding.m_Bottom
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 11401376, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-      propertyPath: TouchPanel
-      value: 
-      objectReference: {fileID: 1969198423}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
   m_IsPrefabParent: 0
---- !u!1 &957023661 stripped
-GameObject:
-  m_PrefabParentObject: {fileID: 186954, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-  m_PrefabInternal: {fileID: 957023660}
---- !u!1 &1276483622 stripped
-GameObject:
-  m_PrefabParentObject: {fileID: 157124, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-  m_PrefabInternal: {fileID: 957023660}
---- !u!114 &1276483623
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1276483622}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1741964061, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_HorizontalFit: 2
-  m_VerticalFit: 2
 --- !u!114 &1276483625 stripped
 MonoBehaviour:
   m_PrefabParentObject: {fileID: 11401376, guid: 6d3f6d6300547dd44a08ca063d09618b,
@@ -979,6 +898,7 @@ Camera:
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
+  m_TargetEye: 3
   m_HDR: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -1025,7 +945,3 @@ Behaviour:
 GameObject:
   m_PrefabParentObject: {fileID: 127914, guid: f4f5dabbc2890ea4da394da839ebc80b, type: 2}
   m_PrefabInternal: {fileID: 1282827529}
---- !u!1 &1969198423 stripped
-GameObject:
-  m_PrefabParentObject: {fileID: 119718, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
-  m_PrefabInternal: {fileID: 957023660}
