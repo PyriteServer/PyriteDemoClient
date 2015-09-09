@@ -834,11 +834,11 @@
                                 };
                             BetterThreadPool.QueueUserWorkItem(s =>
                             {
+                                buffer.Process();
                                 lock (_geometryBufferCache)
                                 {
                                     _geometryBufferCache[modelPath] = buffer;
                                 }
-                                buffer.Process();
                                 SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
                             });
                         }
@@ -874,8 +874,8 @@
                                         Buffer = modelResponse.Content,
                                         Format = ModelFormat
                                     };
-                                    _geometryBufferCache[modelPath] = buffer;
                                     buffer.Process();
+                                    _geometryBufferCache[modelPath] = buffer;
                                     SucceedGetGeometryBufferRequest(modelPath, buffer).Wait();
                                 }
                             }
