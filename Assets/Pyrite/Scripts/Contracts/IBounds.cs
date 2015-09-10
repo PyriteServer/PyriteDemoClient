@@ -15,7 +15,7 @@ namespace Pyrite.Client.Contracts
     {
         BoundingBox BoundingBox { get; }
 
-        BoundingSphere BoundingSphere { get; }
+        Microsoft.Xna.Framework.BoundingSphere BoundingSphere { get; }
 
         Intersection<TObject> Intersects(Ray ray);
 
@@ -25,6 +25,6 @@ namespace Pyrite.Client.Contracts
 
         Intersection<TObject> Intersects(BoundingFrustum frustum);
 
-        Intersection<TObject> Intersects(BoundingSphere intersectionSphere);
+        Intersection<TObject> Intersects(Microsoft.Xna.Framework.BoundingSphere intersectionSphere);
     }
 }

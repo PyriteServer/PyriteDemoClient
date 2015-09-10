@@ -167,7 +167,7 @@ namespace Pyrite.Client.Model
             return this.GetIntersection(box);
         }
 
-        public IEnumerable<Intersection<TObject>> AllIntersections(BoundingSphere sphere)
+        public IEnumerable<Intersection<TObject>> AllIntersections(Microsoft.Xna.Framework.BoundingSphere sphere)
         {
             if (!this.treeReady)
             {
@@ -462,7 +462,7 @@ namespace Pyrite.Client.Model
             return ret;
         }
 
-        private IEnumerable<Intersection<TObject>> GetIntersection(BoundingSphere sphere)
+        private IEnumerable<Intersection<TObject>> GetIntersection(Microsoft.Xna.Framework.BoundingSphere sphere)
         {
             if (this.objects.Count == 0 && this.HasChildren == false)
             {

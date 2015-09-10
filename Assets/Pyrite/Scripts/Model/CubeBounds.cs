@@ -15,7 +15,7 @@ namespace Pyrite.Model
     public class CubeBounds : IBounds<CubeBounds>
     {
         public BoundingBox BoundingBox { get; set; }
-        public BoundingSphere BoundingSphere { get; set; }
+        public Microsoft.Xna.Framework.BoundingSphere BoundingSphere { get; set; }
 
         public Intersection<CubeBounds> Intersects(Ray ray)
         {
@@ -57,7 +57,7 @@ namespace Pyrite.Model
             return ir;
         }
 
-        public Intersection<CubeBounds> Intersects(BoundingSphere intersectionSphere)
+        public Intersection<CubeBounds> Intersects(Microsoft.Xna.Framework.BoundingSphere intersectionSphere)
         {
             if (BoundingBox.Max != BoundingBox.Min)
             {
