@@ -37,9 +37,6 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
---- !u!127 &3
-LevelGameManager:
-  m_ObjectHideFlags: 0
 --- !u!157 &4
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -68,6 +65,7 @@ LightmapSettings:
     m_TextureCompression: 1
     m_FinalGather: 0
     m_FinalGatherRayCount: 1024
+    m_ReflectionCompression: 2
   m_LightmapSnapshot: {fileID: 0}
   m_RuntimeCPUUsage: 25
 --- !u!196 &5
@@ -216,6 +214,7 @@ Camera:
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
+  m_TargetEye: 3
   m_HDR: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -301,7 +300,6 @@ MonoBehaviour:
   panSpeed: 5
   zoomDampening: 5
   forceBasedPanSpeed: 100
-  forceBasedPanningAndFovZoom: 0
   RotationDeltaRate: 90
   TranslationDeltaRate: 50
   TouchTranslationDeltaRate: 2
@@ -341,14 +339,14 @@ MonoBehaviour:
   EnableDebugLogs: 0
   PlaceHolderCube: {fileID: 135038, guid: 2f934764d71518942b1b6029f72c985b, type: 2}
   BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
-  PyriteServer: 
+  PyriteServer: http://localhost:29567/
   DetailLevel: 5
   FilterDetailLevels: 0
-  DetailLevelsToFilter: 03000000
-  ModelFormat: 1
-  ModelVersion: V7
-  SetName: PerthNew
-  EboCacheSize: 250
+  DetailLevelsToFilter: 
+  ModelFormat: 2
+  ModelVersion: V1
+  SetName: Sample
+  GeometryBufferCacheSize: 250
   MaterialDataCacheSize: 50
   CubeBuildLimitPerFrame: 0
   MaterialRequestLimitPerFrame: 0
