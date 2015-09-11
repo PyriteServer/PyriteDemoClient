@@ -122,8 +122,8 @@ MonoBehaviour:
   minDistance: 50
   xSpeed: 200
   ySpeed: 200
-  pitchMin: -22
-  pitchMax: 53
+  pitchMin: -40
+  pitchMax: 70
   zoomRate: 500
   panSpeed: 5
   zoomDampening: 5
@@ -142,7 +142,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 359493708}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 50, y: 31.2000008, z: 50}
+  m_LocalPosition: {x: 50, y: 41.5499992, z: 50}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1590602521}
@@ -369,10 +369,10 @@ MonoBehaviour:
   BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   PyriteServer: 
   DetailLevel: 4
-  FilterDetailLevels: 1
+  FilterDetailLevels: 0
   DetailLevelsToFilter: 04000000
   ModelFormat: 2
-  ModelVersion: V8
+  ModelVersion: MobileV8
   SetName: NashvilleNew
   GeometryBufferCacheSize: 100
   MaterialDataCacheSize: 20

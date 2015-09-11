@@ -499,10 +499,9 @@
                     _pyriteLevel.ModelBoundsMax.z + _geometryBufferAltitudeTransform,
                     -_pyriteLevel.ModelBoundsMax.y);
 
-                var newCameraPosition = min + (max - min) / 2.0f;
-                newCameraPosition += new Vector3(0, (max - min).y * 1.4f, 0);
+                var newCameraPosition = min + (max - min) / 1.5f;
+                newCameraPosition += new Vector3(0, (max - min).y * 2f, 0);
                 CameraRig.transform.position = newCameraPosition;
-                CameraRig.transform.rotation = Quaternion.Euler(0, 180, 0);
 
                 //Kainiemi: Some mechanism needed to inform InputManager about the transform change
                 var inputManager = CameraRig.GetComponent<PyriteDemoClient.InputManager>();
@@ -514,14 +513,14 @@
                     inputManager.SetInputLimits(
                         new Vector3(highestLod.ModelBoundsMin.x + lowestLod.WorldCubeScale.x / 2,
                             highestLod.ModelBoundsMin.z + _geometryBufferAltitudeTransform +
-                            lowestLod.WorldCubeScale.z / 8,
+                            lowestLod.WorldCubeScale.z / 3,
                             highestLod.ModelBoundsMin.y + lowestLod.WorldCubeScale.y / 2),
                         new Vector3(highestLod.ModelBoundsMax.x - lowestLod.WorldCubeScale.x / 2,
                             highestLod.ModelBoundsMax.z + _geometryBufferAltitudeTransform +
                             (lowestLod.WorldCubeScale.z * 1.5f),
                             highestLod.ModelBoundsMax.y - lowestLod.WorldCubeScale.y / 2));
 
-                    inputManager.NotifyOnTransformChange();
+                    inputManager.NotifyOnTransformChange(CameraRig.transform.position);
                 }
             }
         }

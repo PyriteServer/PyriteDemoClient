@@ -25,7 +25,7 @@
         public bool InvertY = false;
         public GameObject altitudeIcon, moveIcon, orbitIcon;
 
-        private float _camPitch = 30;
+        private float _camPitch = 60;
         private float _yaw;
         private Vector3 _lastMove;
         private Quaternion _cameraOrientation;
@@ -88,11 +88,11 @@
             enabled = false;
         }
 
-        public void NotifyOnTransformChange()
+        public void NotifyOnTransformChange(Vector3 cameraPosition)
         {
             // Hardcoded initial position for camera
             // TODO: place dummy object representing init camera position into scene and grab the position from there
-            transform.position = new Vector3(-248.2652f, 132, -250.901f);
+            transform.position = cameraPosition;
             enabled = true;
         }
 
