@@ -37,9 +37,6 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
---- !u!127 &3
-LevelGameManager:
-  m_ObjectHideFlags: 0
 --- !u!157 &4
 LightmapSettings:
   m_ObjectHideFlags: 0
@@ -68,6 +65,7 @@ LightmapSettings:
     m_TextureCompression: 1
     m_FinalGather: 0
     m_FinalGatherRayCount: 1024
+    m_ReflectionCompression: 2
   m_LightmapSnapshot: {fileID: 0}
   m_RuntimeCPUUsage: 25
 --- !u!196 &5
@@ -211,7 +209,7 @@ MonoBehaviour:
   m_Script: {fileID: 1997211142, guid: f5f67c52d1564df4a8936ccd202a3bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_AllowActivationOnStandalone: 0
+  m_ForceModuleActive: 0
 --- !u!114 &529322059
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,7 +227,7 @@ MonoBehaviour:
   m_CancelButton: Cancel
   m_InputActionsPerSecond: 10
   m_RepeatDelay: .5
-  m_AllowActivationOnMobileDevice: 0
+  m_ForceModuleActive: 0
 --- !u!224 &529322060
 RectTransform:
   m_ObjectHideFlags: 0
@@ -371,10 +369,10 @@ MonoBehaviour:
   BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   PyriteServer: 
   DetailLevel: 4
-  FilterDetailLevels: 0
+  FilterDetailLevels: 1
   DetailLevelsToFilter: 04000000
   ModelFormat: 2
-  ModelVersion: V7
+  ModelVersion: V8
   SetName: NashvilleNew
   GeometryBufferCacheSize: 100
   MaterialDataCacheSize: 20
