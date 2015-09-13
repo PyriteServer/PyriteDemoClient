@@ -372,7 +372,7 @@ MonoBehaviour:
   FilterDetailLevels: 0
   DetailLevelsToFilter: 04000000
   ModelFormat: 2
-  ModelVersion: MobileV8
+  ModelVersion: V9
   SetName: NashvilleNew
   GeometryBufferCacheSize: 100
   MaterialDataCacheSize: 20
