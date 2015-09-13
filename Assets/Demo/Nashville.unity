@@ -372,10 +372,10 @@ MonoBehaviour:
   FilterDetailLevels: 0
   DetailLevelsToFilter: 04000000
   ModelFormat: 2
-  ModelVersion: V9
+  ModelVersion: MobileV9
   SetName: NashvilleNew
-  GeometryBufferCacheSize: 100
-  MaterialDataCacheSize: 20
+  GeometryBufferCacheSize: 25
+  MaterialDataCacheSize: 4
   CubeBuildLimitPerFrame: 0
   MaterialRequestLimitPerFrame: 0
   ModelRequestLimitPerFrame: 0
@@ -390,7 +390,7 @@ MonoBehaviour:
   UseWwwForTextures: 1
   UseWwwForEbo: 1
   CacheFill: 0
-  CacheSize: 500
+  CacheSize: 300
   ProxyUrl: 
 --- !u!1 &763658879 stripped
 GameObject:

@@ -474,13 +474,13 @@ MonoBehaviour:
   BaseModelCube: {fileID: 175374, guid: 786091c6c6b789647b1b411c2a47eed9, type: 2}
   PyriteServer: 
   DetailLevel: 4
-  FilterDetailLevels: 0
-  DetailLevelsToFilter: 04000000
+  FilterDetailLevels: 1
+  DetailLevelsToFilter: 0100000003000000
   ModelFormat: 2
   ModelVersion: V4b
   SetName: church
-  GeometryBufferCacheSize: 100
-  MaterialDataCacheSize: 20
+  GeometryBufferCacheSize: 30
+  MaterialDataCacheSize: 5
   CubeBuildLimitPerFrame: 0
   MaterialRequestLimitPerFrame: 0
   ModelRequestLimitPerFrame: 0
@@ -495,7 +495,7 @@ MonoBehaviour:
   UseWwwForTextures: 1
   UseWwwForEbo: 1
   CacheFill: 0
-  CacheSize: 500
+  CacheSize: 300
   ProxyUrl: 
 --- !u!4 &681042936
 Transform:

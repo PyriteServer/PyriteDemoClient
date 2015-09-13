@@ -84,14 +84,14 @@ PlayerSettings:
     16:9: 1
     Others: 1
   bundleIdentifier: com.microsoft.pyrite
-  bundleVersion: 1.0.1
+  bundleVersion: 1.0.3
   preloadedAssets: []
   metroEnableIndependentInputSource: 0
   metroEnableLowLatencyPresentationAPI: 0
   xboxOneDisableKinectGpuReservation: 0
   virtualRealitySupported: 0
   productGUID: 17d8a00d0cc199e47926af72a4952b9b
-  AndroidBundleVersionCode: 101
+  AndroidBundleVersionCode: 103
   AndroidMinSdkVersion: 21
   AndroidPreferredInstallLocation: 1
   aotOptions: 
@@ -404,20 +404,58 @@ PlayerSettings:
   metroSplashScreenUseBackgroundColor: 1
   platformCapabilities:
     WindowsStoreApps:
+      AccountRead: False
+      AccountWrite: False
+      AlarmGet: False
+      AlarmSet: False
+      Bluetooth: False
+      CalendarRead: False
+      CalendarWrite: False
+      Call: False
+      CallHistoryRead: False
+      CallHistoryWrite: False
+      ContactRead: False
+      ContactWrite: False
+      ContentWrite: False
+      DataSharing: False
+      Display: False
+      Download: False
+      Email: False
       EnterpriseAuthentication: False
+      ExternalStorage: False
+      ExternalStorageAppData: False
       HumanInterfaceDevice: False
       InternetClient: True
       InternetClientServer: True
+      KeyManager: False
+      LED: False
       Location: False
+      MessageRead: False
+      MessageWrite: False
       Microphone: False
       MusicLibrary: False
+      NFC: False
+      NFCCardEmulation: False
+      NetworkGet: False
+      NetworkProfile: False
+      NetworkSet: False
+      Notification: False
+      PackageManagerInfo: False
       PicturesLibrary: False
+      Power: False
       PrivateNetworkClientServer: False
       Proximity: False
+      Push: False
+      Recorder: False
       RemovableStorage: False
       SharedUserCertificates: False
+      Shortcut: False
+      Telephony: False
       VideosLibrary: False
+      VolumeSet: False
       WebCam: False
+      WifiDirect: False
+      WindowPrioritySet: False
   metroFTAName: 
   metroFTAFileTypes: []
   metroProtocolName: 
