@@ -424,6 +424,14 @@ Prefab:
       propertyPath: m_Pivot.y
       value: .5
       objectReference: {fileID: 0}
+    - target: {fileID: 11430208, guid: d212944fe16b7694d81eeacfe2c961e2, type: 2}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 1280681551}
+    - target: {fileID: 11430208, guid: d212944fe16b7694d81eeacfe2c961e2, type: 2}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: Toggle
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: d212944fe16b7694d81eeacfe2c961e2, type: 2}
   m_IsPrefabParent: 0
@@ -806,6 +814,12 @@ Prefab:
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
   m_IsPrefabParent: 0
+--- !u!114 &1280681551 stripped
+MonoBehaviour:
+  m_PrefabParentObject: {fileID: 11401376, guid: 6d3f6d6300547dd44a08ca063d09618b,
+    type: 2}
+  m_PrefabInternal: {fileID: 1280681550}
+  m_Script: {fileID: 11500000, guid: d51e5efc3ee076149a752182753aa273, type: 3}
 --- !u!1 &1294885374 stripped
 GameObject:
   m_PrefabParentObject: {fileID: 161226, guid: f4f5dabbc2890ea4da394da839ebc80b, type: 2}
