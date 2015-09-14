@@ -86,6 +86,11 @@
             SetAltitudeIconActive(false);
 
             enabled = false;
+
+#if UNITY_ANDROID
+            TouchTranslationDeltaRate *= 2.5f;
+#endif
+
         }
 
         public void NotifyOnTransformChange(Vector3 cameraPosition)
