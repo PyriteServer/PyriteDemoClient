@@ -374,8 +374,8 @@ MonoBehaviour:
   ModelFormat: 2
   ModelVersion: MobileV9
   SetName: NashvilleNew
-  GeometryBufferCacheSize: 25
-  MaterialDataCacheSize: 4
+  GeometryBufferCacheSize: 20
+  MaterialDataCacheSize: 3
   CubeBuildLimitPerFrame: 0
   MaterialRequestLimitPerFrame: 0
   ModelRequestLimitPerFrame: 0

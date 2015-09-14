@@ -488,7 +488,7 @@ MonoBehaviour:
   ModelVersion: V4b
   SetName: church
   GeometryBufferCacheSize: 30
-  MaterialDataCacheSize: 5
+  MaterialDataCacheSize: 4
   CubeBuildLimitPerFrame: 0
   MaterialRequestLimitPerFrame: 0
   ModelRequestLimitPerFrame: 0
