@@ -811,6 +811,14 @@ Prefab:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 11401376, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
+      propertyPath: KeyboardPanel
+      value: 
+      objectReference: {fileID: 1280681552}
+    - target: {fileID: 11401376, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
+      propertyPath: MousePanel
+      value: 
+      objectReference: {fileID: 1280681553}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
   m_IsPrefabParent: 0
@@ -820,6 +828,14 @@ MonoBehaviour:
     type: 2}
   m_PrefabInternal: {fileID: 1280681550}
   m_Script: {fileID: 11500000, guid: d51e5efc3ee076149a752182753aa273, type: 3}
+--- !u!1 &1280681552 stripped
+GameObject:
+  m_PrefabParentObject: {fileID: 186954, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
+  m_PrefabInternal: {fileID: 1280681550}
+--- !u!1 &1280681553 stripped
+GameObject:
+  m_PrefabParentObject: {fileID: 160474, guid: 6d3f6d6300547dd44a08ca063d09618b, type: 2}
+  m_PrefabInternal: {fileID: 1280681550}
 --- !u!1 &1294885374 stripped
 GameObject:
   m_PrefabParentObject: {fileID: 161226, guid: f4f5dabbc2890ea4da394da839ebc80b, type: 2}

@@ -5,13 +5,22 @@ public class HelpBehaviour : MonoBehaviour {
 
     public GameObject HelpPanel;
     public GameObject TouchPanel;
+    public GameObject KeyboardPanel;
+    public GameObject MousePanel;
 
     // Use this for initialization
-    void Start () {
+    void Start ()
+    {
         if(!Input.touchSupported)
         {
             TouchPanel.SetActive(false);
         }
+
+#if (UNITY_ANDROID || UNITY_IOS)
+        KeyboardPanel.SetActive(false);
+        MousePanel.SetActive(false);
+#endif
+
     }
 
     void OnEnable()
