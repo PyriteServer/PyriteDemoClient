@@ -90,9 +90,14 @@
 
         public void NotifyOnTransformChange(Vector3 cameraPosition)
         {
-            // Hardcoded initial position for camera
-            // TODO: place dummy object representing init camera position into scene and grab the position from there
             transform.position = cameraPosition;
+            enabled = true;
+        }
+
+        public void NotifyReadyForControl()
+        {
+            _camPitch = transform.eulerAngles.x;
+            _yaw = transform.eulerAngles.y;
             enabled = true;
         }
 

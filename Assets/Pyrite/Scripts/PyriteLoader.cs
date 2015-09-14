@@ -72,6 +72,7 @@
 
         [Header("Debug Options")]
         public bool UseCameraDetection = true;
+        public bool AutomateCameraPositionOnLoad = false;
 
         public bool UseUnlitShader = true;
         public bool UseFileCache = true;
@@ -499,10 +500,6 @@
                     _pyriteLevel.ModelBoundsMax.z + _geometryBufferAltitudeTransform,
                     -_pyriteLevel.ModelBoundsMax.y);
 
-                var newCameraPosition = min + (max - min) / 1.5f;
-                newCameraPosition += new Vector3(0, (max - min).y * 2f, 0);
-                CameraRig.transform.position = newCameraPosition;
-
                 //Kainiemi: Some mechanism needed to inform InputManager about the transform change
                 var inputManager = CameraRig.GetComponent<PyriteDemoClient.InputManager>();
                 if (inputManager != null)
@@ -520,7 +517,17 @@
                             (lowestLod.WorldCubeScale.z * 1.5f),
                             highestLod.ModelBoundsMax.y - lowestLod.WorldCubeScale.y / 2));
 
-                    inputManager.NotifyOnTransformChange(CameraRig.transform.position);
+                    if (AutomateCameraPositionOnLoad)
+                    {
+                        var newCameraPosition = min + (max - min) / 1.5f;
+                        newCameraPosition += new Vector3(0, (max - min).y * 2f, 0);
+                        CameraRig.transform.position = newCameraPosition;
+                        inputManager.NotifyOnTransformChange(CameraRig.transform.position);
+                    }
+                    else
+                    {
+                        inputManager.NotifyReadyForControl();
+                    }
                 }
             }
         }

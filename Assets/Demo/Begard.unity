@@ -493,6 +493,7 @@ MonoBehaviour:
   MaterialRequestLimitPerFrame: 0
   ModelRequestLimitPerFrame: 0
   UseCameraDetection: 1
+  AutomateCameraPositionOnLoad: 0
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 0
@@ -539,8 +540,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 703181005}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 50, y: 31.2000008, z: 50}
+  m_LocalRotation: {x: .0141693, y: .973563969, z: -.219108999, w: .0629582554}
+  m_LocalPosition: {x: 57.989769, y: 75.3078079, z: 150.735306}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 306297981}
