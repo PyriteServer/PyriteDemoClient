@@ -352,6 +352,7 @@ MonoBehaviour:
   MaterialRequestLimitPerFrame: 0
   ModelRequestLimitPerFrame: 0
   UseCameraDetection: 1
+  AutomateCameraPositionOnLoad: 1
   UseUnlitShader: 1
   UseFileCache: 1
   ShowDebugText: 1
