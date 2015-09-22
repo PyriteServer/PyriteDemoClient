@@ -139,7 +139,7 @@
                 // Find the difference in the distances between each frame.
                 float deltaMagnitudeDiff = prevTouchDeltaMag - touchDeltaMag;
 
-                touchTranslation.y = deltaMagnitudeDiff * TouchTranslationDeltaRate;
+                touchTranslation.y = -deltaMagnitudeDiff;
             }
 
             bool touchTranslated = touchTranslation != Vector3.zero;
