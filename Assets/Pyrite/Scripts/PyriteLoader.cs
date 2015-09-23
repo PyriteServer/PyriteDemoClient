@@ -470,7 +470,7 @@
                     detectionCube.transform.rotation = Quaternion.identity;
                     var meshRenderer = detectionCube.GetComponent<MeshRenderer>();
                     meshRenderer.enabled = true;
-                    detectionCube.GetComponent<IsRendered>()
+                    detectionCube.GetComponent<DetectionCube>()
                         .SetCubePosition(x, y, z, initialDetailLevelIndex, _pyriteQuery, this);
 
                     detectionCube.transform.localScale = new Vector3(
@@ -557,7 +557,7 @@
                 newDetectionCube.transform.rotation = Quaternion.identity;
                 var meshRenderer = newDetectionCube.GetComponent<MeshRenderer>();
                 meshRenderer.enabled = true;
-                newDetectionCube.GetComponent<IsRendered>()
+                newDetectionCube.GetComponent<DetectionCube>()
                     .SetCubePosition(newCube.X, newCube.Y, newCube.Z, newLod, pyriteQuery, this);
 
                 newDetectionCube.transform.localScale = new Vector3(

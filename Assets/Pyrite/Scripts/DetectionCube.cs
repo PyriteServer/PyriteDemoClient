@@ -6,7 +6,7 @@
     using System.Text;
     using UnityEngine;
 
-    public class IsRendered : MonoBehaviour
+    public class DetectionCube : MonoBehaviour
     {
         private readonly List<GameObject> _childDetectors = new List<GameObject>();
         private readonly List<GameObject> _cubes = new List<GameObject>();
@@ -142,8 +142,8 @@
         private void ReleaseDetectorCube(GameObject detectorCubeToRelease)
         {
             detectorCubeToRelease.name = "Released: " + detectorCubeToRelease.name;
-            detectorCubeToRelease.GetComponent<IsRendered>()._upgraded = false;
-            detectorCubeToRelease.GetComponent<IsRendered>()._upgrading = false;
+            detectorCubeToRelease.GetComponent<DetectionCube>()._upgraded = false;
+            detectorCubeToRelease.GetComponent<DetectionCube>()._upgrading = false;
             detectorCubeToRelease.SetActive(false);
         }
 
@@ -169,7 +169,7 @@
         {
             foreach (var detector in _childDetectors)
             {
-                detector.GetComponent<IsRendered>().DestroyChildren();
+                detector.GetComponent<DetectionCube>().DestroyChildren();
                 ReleaseDetectorCube(detector);
             }
             _childDetectors.Clear();
@@ -192,7 +192,7 @@
         {
             while (newDetectors.Any(cd =>
             {
-                var cdAsIsRendered = cd.GetComponent<IsRendered>();
+                var cdAsIsRendered = cd.GetComponent<DetectionCube>();
                 return cdAsIsRendered._loadCubeRequest != null;
             }))
             {
