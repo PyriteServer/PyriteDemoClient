@@ -9,7 +9,7 @@
     public class DetectionCube : MonoBehaviour
     {
         private readonly List<GameObject> _childDetectors = new List<GameObject>();
-        private readonly List<GameObject> _cubes = new List<GameObject>();
+        private GameObject _model = null;
         private int _lodIndex;
         private PyriteLoader _manager;
         private MeshRenderer _meshRenderer;
@@ -17,20 +17,34 @@
         private Renderer _render;
         private int _x, _y, _z;
         private LoadCubeRequest _loadCubeRequest;
-        private bool _upgraded;
-        private bool _upgrading;
+
+        private State _state;
+
+        enum State
+        {
+            NotVisible = 0,
+            AboutToBeVisible,
+            ModelLoading,
+            ModelLoaded,
+            Upgrading,
+            Upgraded
+        }
 
         private bool Upgradable
         {
             get
             {
-                return !_upgraded && !_upgrading && _manager != null && _childDetectors.Count == 0 && _lodIndex != 0;
+                return _state != State.Upgraded
+                    && _state != State.Upgrading
+                    && _manager != null 
+                    && _childDetectors.Count == 0 
+                    && _lodIndex != 0;
             }
         }
 
         private bool Downgradable
         {
-            get { return _upgraded && !_upgrading; }
+            get { return _state == State.Upgraded; }
         }
 
         public void SetCubePosition(int x, int y, int z, int lod, PyriteQuery query, PyriteLoader manager)
@@ -50,6 +64,7 @@
             nameBuilder.Append('_');
             nameBuilder.Append(z);
             name = nameBuilder.ToString();
+            _state = State.NotVisible;
         }
 
         // Use this for initialization
@@ -63,44 +78,40 @@
         {
             if (Camera.current == Camera.main)
             {
-                if (_cubes.Count == 0 && _childDetectors.Count == 0)
+                if(_state == State.NotVisible)
                 {
+                    _state = State.AboutToBeVisible;
                     _meshRenderer.enabled = false;
-                    StartCoroutine(OnRenderRoutine());
-                }
-            }
-        }
-
-        private IEnumerator OnRenderRoutine()
-        {
-            if (_manager != null)
-            {
-                if (ShouldUpgrade(Camera.main))
-                {
-                    _upgrading = true;
                     StartCoroutine(StopRenderCheck(Camera.main));
-                    yield return
-                        StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lodIndex,
-                            addedDetectors => { StartCoroutine(DestroyChildrenAfterLoading(addedDetectors)); }));
-                }
-                else
-                {
-                    yield return StartCoroutine(RequestCubeLoad());
                 }
             }
         }
 
         private IEnumerator RequestCubeLoad()
         {
+            _state = State.ModelLoading;
             CancelRequest();
-            _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lodIndex, _pyriteQuery, createdObject =>
+            _loadCubeRequest = new LoadCubeRequest(_x, _y, _z, _lodIndex, _pyriteQuery, OnModelLoaded);
+            return _manager.EnqueueLoadCubeRequest(_loadCubeRequest);
+        }
+
+        private void OnModelLoaded(GameObject modelObject)
+        {
+            if(_state != State.ModelLoading && _state != State.NotVisible)
+            {
+                Debug.LogError("OnModelLoaded called when in invalid state: " + _state);
+            }
+
+            DestroyChildren();
+            _model = modelObject;
+            if (_state == State.NotVisible)
             {
                 DestroyChildren();
-                _cubes.Add(createdObject);
-                StartCoroutine(StopRenderCheck(Camera.main));
-            });
-
-            return _manager.EnqueueLoadCubeRequest(_loadCubeRequest);
+            }
+            else
+            {
+                _state = State.ModelLoaded;
+            }
         }
 
         private bool ShouldUpgrade(Component cameraThatDetects)
@@ -142,8 +153,7 @@
         private void ReleaseDetectorCube(GameObject detectorCubeToRelease)
         {
             detectorCubeToRelease.name = "Released: " + detectorCubeToRelease.name;
-            detectorCubeToRelease.GetComponent<DetectionCube>()._upgraded = false;
-            detectorCubeToRelease.GetComponent<DetectionCube>()._upgrading = false;
+            detectorCubeToRelease.GetComponent<DetectionCube>()._state = State.NotVisible;
             detectorCubeToRelease.SetActive(false);
         }
 
@@ -158,11 +168,11 @@
 
         private void RemoveChildModelObjects()
         {
-            foreach (var cube in _cubes)
+            if (_model != null)
             {
-                ReleaseCubeGameObject(cube);
+                ReleaseCubeGameObject(_model);
+                _model = null;
             }
-            _cubes.Clear();
         }
 
         private void RemoveChildDetectors()
@@ -182,14 +192,14 @@
             RemoveChildModelObjects();
 
             RemoveChildDetectors();
-
-            _upgraded = false;
-            _upgrading = false;
             // Resources.UnloadUnusedAssets();
         }
 
         private IEnumerator WaitForChildrenToLoad(List<GameObject> newDetectors)
         {
+            // Loop until hidden or children have loaded
+            // When a child is loaded its loadCubeRequest is set to null
+            // It is also in this state when no loading has been requested
             while (newDetectors.Any(cd =>
             {
                 var cdAsIsRendered = cd.GetComponent<DetectionCube>();
@@ -199,6 +209,7 @@
                 yield return null;
                 if (ShouldHideModel)
                 {
+                    _state = State.NotVisible;
                     _meshRenderer.enabled = true;
                     DestroyChildren();
                     break;
@@ -213,8 +224,14 @@
             _childDetectors.AddRange(childDetectors);
             yield return StartCoroutine(WaitForChildrenToLoad(_childDetectors));
             RemoveChildModelObjects();
-            _upgrading = false;
-            _upgraded = true;
+            if (_state == State.NotVisible)
+            {
+                DestroyChildren();
+            }
+            else
+            {
+                _state = State.Upgraded;
+            }
         }
 
         public bool ShouldHideModel
@@ -226,27 +243,42 @@
         {
             while (true)
             {
-                if (ShouldHideModel && !_upgrading)
+                if (ShouldHideModel)
                 {
+                    // The detection cube is no longer visible
+                    _state = State.NotVisible;
                     _meshRenderer.enabled = true;
                     DestroyChildren();
                     break;
                 }
+
                 if (ShouldUpgrade(cameraToCheckAgainst))
                 {
-                    _upgrading = true;
+                    _state = State.Upgrading;
+                    CancelRequest();
                     yield return
                         StartCoroutine(_manager.AddUpgradedDetectorCubes(_pyriteQuery, _x, _y, _z, _lodIndex,
-                            addedDetectors => { StartCoroutine(DestroyChildrenAfterLoading(addedDetectors)); }));
+                            OnUpgradedDetectorCubesCreated));
                 }
-                else if (Downgradable && ShouldDowngrade(cameraToCheckAgainst))
+                else if (_state == State.AboutToBeVisible || (Downgradable && ShouldDowngrade(cameraToCheckAgainst)))
                 {
+                    _state = State.ModelLoading;
                     yield return StartCoroutine(RequestCubeLoad());
                 }
 
                 // Run this at most 10 times per second
                 yield return new WaitForSeconds(0.1F);
             }
+        }
+
+        private void OnUpgradedDetectorCubesCreated(IEnumerable<GameObject> addedDetectors)
+        {
+            if (_state != State.Upgrading && _state != State.NotVisible)
+            {
+                Debug.LogError("OnUpgradedDetectorCubesCreated called when in invalid state: " + _state);
+            }
+
+            StartCoroutine(DestroyChildrenAfterLoading(addedDetectors));
         }
     }
 }
